@@ -1,3 +1,4 @@
+
 import { getItineraries } from '@/actions/itineraryActions';
 import ItinerarySelectionStep from '@/components/trip/ItinerarySelectionStep';
 import CreateTripFormWrapper from '@/components/trip/CreateTripFormWrapper';
@@ -23,20 +24,22 @@ export default async function CreateTripPage({
     );
   }
 
-  const itineraries = await getItineraries();
+  const allItineraries = await getItineraries();
 
-  const filteredItineraries = initialItineraryType 
-    ? itineraries.filter(itn => itn.type === initialItineraryType)
-    : itineraries;
+  // If initialItineraryType is provided, filter by it. Otherwise, use all itineraries.
+  const itinerariesToDisplay = initialItineraryType
+    ? allItineraries.filter(itn => itn.type === initialItineraryType)
+    : allItineraries;
   
-  const title = initialItineraryType 
+  const title = initialItineraryType
     ? `Select a ${initialItineraryType.replace('_', ' ')} Itinerary`
     : "Choose Your Adventure: Select an Itinerary";
 
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-4xl font-bold mb-10 text-center font-headline">{title}</h1>
-      <ItinerarySelectionStep itineraries={filteredItineraries.length > 0 ? filteredItineraries : itineraries} />
+      {/* Pass the correctly filtered (or all) itineraries to the selection step */}
+      <ItinerarySelectionStep itineraries={itinerariesToDisplay} />
     </div>
   );
 }
@@ -69,3 +72,5 @@ function CreateTripFormSkeleton() {
     </div>
   )
 }
+
+    
