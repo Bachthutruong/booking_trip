@@ -28,8 +28,8 @@ export default function AdminLoginPage() {
       if (result.success) {
         toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
         const redirectPath = searchParams.get('redirect') || '/admin/dashboard';
-        router.push(redirectPath);
-        router.refresh(); // Important to re-evaluate middleware and protected routes
+        router.push(redirectPath); // Điều hướng đến trang đích
+        // router.refresh(); // Đã loại bỏ: router.push() nên đủ để kích hoạt middleware đánh giá lại route mới.
       } else {
         setError(result.message);
         toast({ title: 'Login Failed', description: result.message, variant: 'destructive' });
