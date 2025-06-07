@@ -12,7 +12,7 @@ export default async function EditItineraryPage({ params }: { params: { itinerar
 
   if (!itinerary) {
     return (
-        <div className="space-y-6 max-w-3xl mx-auto text-center">
+        <div className="space-y-6 max-w-3xl mx-auto text-center py-10">
             <p className="text-destructive text-lg">Itinerary not found.</p>
             <Button variant="outline" asChild>
                 <Link href="/admin/itineraries"><ArrowLeft className="mr-2 h-4 w-4"/> Back to Itineraries</Link>
@@ -22,7 +22,7 @@ export default async function EditItineraryPage({ params }: { params: { itinerar
   }
 
   const handleUpdateItinerary = async (values: ItineraryFormValues) => {
-    // The itinerary.id here is the string representation of ObjectId
+    // itinerary.id is already the string representation from mapDocumentToItinerary
     return updateItinerary(itinerary.id, values); 
   };
 
@@ -31,14 +31,15 @@ export default async function EditItineraryPage({ params }: { params: { itinerar
        <Button variant="outline" asChild className="mb-4">
         <Link href="/admin/itineraries"><ArrowLeft className="mr-2 h-4 w-4"/> Back to Itineraries</Link>
       </Button>
-      <Card>
+      <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="font-headline text-2xl">Edit Itinerary: {itinerary.name}</CardTitle>
-          <CardDescription>Update the details for this travel itinerary.</CardDescription>
+          <CardDescription>Update the details for this travel itinerary. Ensure available times are comma-separated (e.g., 08:00,14:30).</CardDescription>
         </CardHeader>
         <CardContent>
           <ItineraryForm 
             initialData={itinerary} 
+            // @ts-ignore // Server action signature compatibility
             onSubmitAction={handleUpdateItinerary} 
             submitButtonText="Update Itinerary" 
           />

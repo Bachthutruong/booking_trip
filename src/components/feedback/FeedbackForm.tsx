@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,16 +16,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect } from "react";
-import { useToast } from "@/components/ui/toast";
+import { useState, useEffect, useTransition } from "react";
+import { useToast } from "@/hooks/use-toast"; // Corrected path
 import { submitFeedback } from '@/actions/feedbackActions';
-import { getTripsForUserFeedback } from '@/actions/tripActions'; // Action to get user's trips
+import { getTripsForUserFeedback } from '@/actions/tripActions';
 import type { FeedbackFormValues } from '@/lib/types';
-import { Loader2, User, Mail, Hash, MessageCircle } from "lucide-react";
+import { Loader2, User, Mail, Hash, MessageCircle, Search, Phone } from "lucide-react";
 
 const feedbackFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters.").max(100),
   email: z.string().email("Invalid email address."),
+  phoneForTrips: z.string().optional(), // For fetching user's trips
   tripId: z.string().optional(),
   message: z.string().min(10, "Message must be at least 10 characters long.").max(1000),
 });
@@ -33,9 +35,8 @@ export default function FeedbackForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userTrips, setUserTrips] = useState<{ id: string; name: string }[]>([]);
-  // TODO: In a real app with auth, get user's identifier (e.g., email or phone)
-  // For now, we'll fetch all trips or leave it empty.
-  // const userIdentifier = "user_phone_or_email"; // Replace with actual user identifier if available
+  const [phoneForTrips, setPhoneForTrips] = useState("");
+  const [isFetchingTrips, startFetchingTripsTransition] = useTransition();
 
   const form = useForm<z.infer<typeof feedbackFormSchema>>({
     resolver: zodResolver(feedbackFormSchema),
@@ -46,27 +47,40 @@ export default function FeedbackForm() {
     },
   });
 
-  // useEffect(() => {
-  //   async function fetchUserTrips() {
-  //     if (userIdentifier) { // Only fetch if user is identified
-  //       const trips = await getTripsForUserFeedback(userIdentifier);
-  //       setUserTrips(trips);
-  //     }
-  //   }
-  //   fetchUserTrips();
-  // }, [userIdentifier]);
+  const handleFetchUserTrips = () => {
+    if (!phoneForTrips.trim()) {
+      toast({ title: "Phone Number Required", description: "Please enter your phone number to find related trips.", variant: "destructive"});
+      return;
+    }
+    startFetchingTripsTransition(async () => {
+      try {
+        const trips = await getTripsForUserFeedback(phoneForTrips);
+        setUserTrips(trips);
+        if (trips.length === 0) {
+          toast({ title: "No Trips Found", description: "No completed or confirmed trips found for this phone number." });
+        }
+      } catch (error) {
+        toast({ title: "Error Fetching Trips", description: "Could not fetch your trips.", variant: "destructive" });
+      }
+    });
+  };
 
 
   async function onSubmit(values: z.infer<typeof feedbackFormSchema>) {
     setIsSubmitting(true);
     try {
-      const result = await submitFeedback(values);
+      // Remove phoneForTrips before submitting actual feedback data
+      const { phoneForTrips, ...feedbackData } = values;
+      const result = await submitFeedback(feedbackData);
+      
       if (result.success) {
         toast({
           title: "Feedback Submitted!",
           description: result.message,
         });
-        form.reset(); // Reset form on successful submission
+        form.reset();
+        setUserTrips([]);
+        setPhoneForTrips("");
       } else {
         toast({
           title: "Error",
@@ -114,6 +128,24 @@ export default function FeedbackForm() {
             </FormItem>
           )}
         />
+
+        <div className="space-y-2">
+            <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary"/>Your Phone (to find related trips)</FormLabel>
+            <div className="flex gap-2">
+                <Input 
+                    placeholder="Enter phone used for booking" 
+                    value={phoneForTrips}
+                    onChange={(e) => setPhoneForTrips(e.target.value)}
+                    type="tel"
+                />
+                <Button type="button" variant="outline" onClick={handleFetchUserTrips} disabled={isFetchingTrips || !phoneForTrips.trim()}>
+                    {isFetchingTrips ? <Loader2 className="h-4 w-4 animate-spin"/> : <Search className="h-4 w-4"/>}
+                    <span className="ml-2 hidden sm:inline">Find Trips</span>
+                </Button>
+            </div>
+            <FormDescription>If your feedback is about a specific trip, enter your phone number to select it.</FormDescription>
+        </div>
+        
         {userTrips.length > 0 && (
           <FormField
             control={form.control}
@@ -157,7 +189,7 @@ export default function FeedbackForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full text-lg py-6" disabled={isSubmitting}>
+        <Button type="submit" className="w-full text-lg py-6" disabled={isSubmitting || isFetchingTrips}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />

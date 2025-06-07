@@ -1,6 +1,6 @@
 
 import { MongoClient, Db, Collection } from 'mongodb';
-import type { Itinerary, Trip, Feedback } from './types';
+import type { Itinerary, Trip, Feedback, DiscountCode, DistrictSurcharge, AdditionalService } from './types';
 
 const uri = process.env.MONGODB_URI;
 if (!uri) {
@@ -47,4 +47,17 @@ export async function getFeedbackCollection(): Promise<Collection<Feedback>> {
   return db.collection<Feedback>('feedback');
 }
 
-// You can add more collection getters here as needed, e.g., for users, etc.
+export async function getDiscountCodesCollection(): Promise<Collection<DiscountCode>> {
+  const db = await getDb();
+  return db.collection<DiscountCode>('discount_codes');
+}
+
+export async function getDistrictSurchargesCollection(): Promise<Collection<DistrictSurcharge>> {
+  const db = await getDb();
+  return db.collection<DistrictSurcharge>('district_surcharges');
+}
+
+export async function getAdditionalServicesCollection(): Promise<Collection<AdditionalService>> {
+  const db = await getDb();
+  return db.collection<AdditionalService>('additional_services');
+}

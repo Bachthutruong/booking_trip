@@ -1,18 +1,21 @@
+
 import { getItineraryById } from '@/actions/itineraryActions';
-import { getDistrictSurcharges, getAdditionalServices, getAvailableTimes } from '@/actions/configActions';
+import { getDistrictSurcharges, getAdditionalServices } from '@/actions/configActions';
 import CreateTripForm from './CreateTripForm'; // This will be the client component
 
 export default async function CreateTripFormWrapper({ itineraryId }: { itineraryId: string }) {
   const itinerary = await getItineraryById(itineraryId);
+  
+  // These are now fetched from MongoDB via configActions
   const districts = await getDistrictSurcharges();
-  const services = await getAdditionalServices();
-  // const availableTimes = await getAvailableTimes(); // Itinerary specific times are now part of itinerary object
+  const allServices = await getAdditionalServices();
 
   if (!itinerary) {
-    return <p className="text-center text-destructive text-lg">Itinerary not found. Please select a valid itinerary.</p>;
+    return <p className="text-center text-destructive text-lg py-10">Itinerary not found. Please select a valid itinerary.</p>;
   }
 
-  const applicableServices = services.filter(service => 
+  // Filter services applicable to the selected itinerary type
+  const applicableServices = allServices.filter(service => 
     service.applicableTo.includes(itinerary.type)
   );
 
@@ -21,7 +24,7 @@ export default async function CreateTripFormWrapper({ itineraryId }: { itinerary
       itinerary={itinerary}
       districts={districts}
       additionalServices={applicableServices}
-      availableTimes={itinerary.availableTimes || []} // Use itinerary specific times
+      // availableTimes is part of the itinerary object
     />
   );
 }

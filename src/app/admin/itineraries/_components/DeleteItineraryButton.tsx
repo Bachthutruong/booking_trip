@@ -21,9 +21,10 @@ import { useState, useTransition } from 'react';
 
 interface DeleteItineraryButtonProps {
   itineraryId: string;
+  itineraryName: string;
 }
 
-export function DeleteItineraryButton({ itineraryId }: DeleteItineraryButtonProps) {
+export function DeleteItineraryButton({ itineraryId, itineraryName }: DeleteItineraryButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -33,9 +34,9 @@ export function DeleteItineraryButton({ itineraryId }: DeleteItineraryButtonProp
     startTransition(async () => {
       const result = await deleteItinerary(itineraryId);
       if (result.success) {
-        toast({ title: "Itinerary Deleted", description: result.message });
+        toast({ title: "Itinerary Deleted", description: `"${itineraryName}" has been deleted.` });
         setIsOpen(false);
-        router.refresh(); // Refresh the page to update the list
+        // router.refresh(); // Let revalidatePath in action handle refresh
       } else {
         toast({ title: "Error", description: result.message, variant: "destructive" });
       }
@@ -45,7 +46,7 @@ export function DeleteItineraryButton({ itineraryId }: DeleteItineraryButtonProp
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive" size="icon" title="Delete">
+        <Button variant="destructive" size="icon" title={`Delete ${itineraryName}`}>
           <Trash2 className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>
@@ -53,8 +54,7 @@ export function DeleteItineraryButton({ itineraryId }: DeleteItineraryButtonProp
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the itinerary
-            and remove its data from our servers.
+            This action cannot be undone. This will permanently delete the itinerary <strong>{itineraryName}</strong>.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -13,29 +13,25 @@ function mapDocumentToItinerary(doc: any): Itinerary {
   return {
     ...doc,
     id: doc._id.toString(),
-    _id: doc._id,
+    _id: doc._id, // Keep original _id if needed internally
   };
 }
 
 export async function getItineraries(): Promise<Itinerary[]> {
   const itinerariesCollection = await getItinerariesCollection();
-  const itineraries = await itinerariesCollection.find({}).toArray();
+  const itineraries = await itinerariesCollection.find({}).sort({ name: 1 }).toArray();
   return itineraries.map(mapDocumentToItinerary);
 }
 
 export async function getItineraryById(id: string): Promise<Itinerary | null> {
-  if (!ObjectId.isValid(id)) {
-    // Attempt to find by user-friendly ID if it's not an ObjectId
-    const itinerariesCollection = await getItinerariesCollection();
-    const itineraryDoc = await itinerariesCollection.findOne({ id: id });
-    if (itineraryDoc) {
-      return mapDocumentToItinerary(itineraryDoc);
-    }
-    // If still not found, or if original ID was meant to be an ObjectId but invalid, return null
-    return null; 
-  }
   const itinerariesCollection = await getItinerariesCollection();
-  const itineraryDoc = await itinerariesCollection.findOne({ _id: new ObjectId(id) });
+  let itineraryDoc;
+  if (ObjectId.isValid(id)) {
+    itineraryDoc = await itinerariesCollection.findOne({ _id: new ObjectId(id) });
+  } else {
+    // Fallback for user-friendly ID if it's not an ObjectId
+    itineraryDoc = await itinerariesCollection.findOne({ id: id });
+  }
   return itineraryDoc ? mapDocumentToItinerary(itineraryDoc) : null;
 }
 
@@ -47,7 +43,8 @@ const itineraryFormSchema = z.object({
   pricePerPerson: z.coerce.number().min(0, "Price must be a positive number."),
   description: z.string().min(10, "Description is required and must be at least 10 characters."),
   imageUrl: z.string().url("Must be a valid URL.").optional().or(z.literal('')),
-  availableTimes: z.string().min(1, "Available times are required (comma-separated)."),
+  availableTimes: z.string().min(1, "Available times are required (comma-separated, e.g., 08:00,09:00).")
+    .regex(/^(\d{2}:\d{2})(,\s*\d{2}:\d{2})*$/, "Times must be in HH:MM format, comma-separated."),
 });
 
 export async function createItinerary(values: ItineraryFormValues): Promise<{ success: boolean; message: string; itineraryId?: string }> {
@@ -58,10 +55,10 @@ export async function createItinerary(values: ItineraryFormValues): Promise<{ su
   const data = validation.data;
 
   const itinerariesCollection = await getItinerariesCollection();
-  const newItineraryId = new ObjectId();
-  const newItinerary: Omit<Itinerary, '_id' | 'id'> & { _id: ObjectId, id: string } = {
-    _id: newItineraryId,
-    id: newItineraryId.toString(), // Using ObjectId string as the user-friendly ID
+  const newItineraryObjectId = new ObjectId();
+  const newItinerary: Itinerary = {
+    _id: newItineraryObjectId,
+    id: newItineraryObjectId.toString(),
     name: data.name,
     type: data.type,
     pricePerPerson: data.pricePerPerson,
@@ -71,14 +68,11 @@ export async function createItinerary(values: ItineraryFormValues): Promise<{ su
   };
 
   try {
-    const result = await itinerariesCollection.insertOne(newItinerary as any); // Cast to any to handle _id type difference if strict
-    if (result.insertedId) {
-      revalidatePath('/admin/itineraries');
-      revalidatePath('/create-trip');
-      revalidatePath('/');
-      return { success: true, message: 'Itinerary created successfully.', itineraryId: newItinerary.id };
-    }
-    return { success: false, message: 'Failed to create itinerary.' };
+    await itinerariesCollection.insertOne(newItinerary as any);
+    revalidatePath('/admin/itineraries');
+    revalidatePath('/create-trip');
+    revalidatePath('/');
+    return { success: true, message: 'Itinerary created successfully.', itineraryId: newItinerary.id };
   } catch (error) {
     console.error('Error creating itinerary:', error);
     return { success: false, message: 'An error occurred while creating the itinerary.' };
@@ -93,11 +87,17 @@ export async function updateItinerary(id: string, values: ItineraryFormValues): 
   const data = validation.data;
 
   if (!ObjectId.isValid(id)) {
-    return { success: false, message: "Invalid Itinerary ID format." };
+    // Attempt to find by user-friendly ID if not an ObjectId
+    const currentItinerary = await getItineraryById(id);
+    if (!currentItinerary || !currentItinerary._id) {
+        return { success: false, message: "Itinerary not found or invalid ID." };
+    }
+    id = currentItinerary._id.toString(); // Use the actual MongoDB ObjectId string
   }
 
+
   const itinerariesCollection = await getItinerariesCollection();
-  const updateData: Partial<Itinerary> = {
+  const updateData: Partial<Omit<Itinerary, '_id' | 'id'>> = {
     name: data.name,
     type: data.type,
     pricePerPerson: data.pricePerPerson,
@@ -123,12 +123,21 @@ export async function updateItinerary(id: string, values: ItineraryFormValues): 
 }
 
 export async function deleteItinerary(id: string): Promise<{ success: boolean; message: string }> {
-  if (!ObjectId.isValid(id)) {
-    return { success: false, message: "Invalid Itinerary ID format." };
-  }
+   let objectIdToDelete: ObjectId;
+   if (ObjectId.isValid(id)) {
+    objectIdToDelete = new ObjectId(id);
+   } else {
+    // If it's a friendly ID, find the document to get its _id
+    const itinerary = await getItineraryById(id);
+    if (!itinerary || !itinerary._id) {
+        return { success: false, message: "Itinerary not found or invalid ID." };
+    }
+    objectIdToDelete = itinerary._id;
+   }
+
   const itinerariesCollection = await getItinerariesCollection();
   try {
-    const result = await itinerariesCollection.deleteOne({ _id: new ObjectId(id) });
+    const result = await itinerariesCollection.deleteOne({ _id: objectIdToDelete });
     if (result.deletedCount > 0) {
       revalidatePath('/admin/itineraries');
       revalidatePath('/create-trip');

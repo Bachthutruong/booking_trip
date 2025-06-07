@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,18 +21,20 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Info, Loader2, Users, MapPin, Phone, Mail, FileText, Tag, Palette, Wand2, TicketPercent, Clock } from "lucide-react";
+import { CalendarIcon, Info, Loader2, Users, MapPin, Phone, Mail, FileText, Tag, Palette, Wand2, TicketPercent, Clock, Contact } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect, useMemo } from "react";
 import { createTrip } from "@/actions/tripActions";
-import { useToast } from "@/hooks/use-toast"; // Corrected import path
-import type { Itinerary, DistrictSurcharge, AdditionalService, CreateTripFormValues as FormValues } from '@/lib/types'; // Renamed to FormValues
+import { useToast } from "@/hooks/use-toast";
+import type { Itinerary, DistrictSurcharge, AdditionalService, CreateTripFormValues as FormValues, DiscountCode } from '@/lib/types';
 import { useRouter } from "next/navigation";
 import { AVAILABLE_SECONDARY_CONTACT_TYPES } from "@/lib/constants";
-import ItineraryCard from "../itinerary/ItineraryCard"; // Import ItineraryCard
+import ItineraryCard from "../itinerary/ItineraryCard";
+import { getDiscountCodeDetails } from "@/actions/configActions"; // For discount validation
+
 
 const createTripFormSchema = z.object({
-  itineraryId: z.string(), // Will be set from props, not user input here
+  itineraryId: z.string(),
   date: z.date({ required_error: "Please select a date." }),
   time: z.string({ required_error: "Please select a time." }),
   numberOfPeople: z.coerce.number().min(1, "At least one person is required.").max(50, "Maximum 50 people."),
@@ -60,6 +63,10 @@ const createTripFormSchema = z.object({
       path: ["secondaryContactType"],
     });
   }
+  // Address validation based on itinerary type (will be handled in server action for robustness, but good for client too)
+  // For example:
+  // if (itineraryType === 'airport_pickup' && !data.dropoffAddress) { ... }
+  // This logic is better placed in the server action to prevent bypass.
 });
 
 
@@ -67,15 +74,17 @@ interface CreateTripFormProps {
   itinerary: Itinerary;
   districts: DistrictSurcharge[];
   additionalServices: AdditionalService[];
-  availableTimes: string[];
+  // availableTimes are now part of itinerary object
 }
 
-export default function CreateTripForm({ itinerary, districts, additionalServices, availableTimes }: CreateTripFormProps) {
+export default function CreateTripForm({ itinerary, districts, additionalServices }: CreateTripFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calculatedPrice, setCalculatedPrice] = useState(itinerary.pricePerPerson);
-  const [secondaryContactType, setSecondaryContactType] = useState<string | undefined>();
+  const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
+  const [discountMessage, setDiscountMessage] = useState<string | null>(null);
+  const [debouncedDiscountCode, setDebouncedDiscountCode] = useState<string>('');
 
   const form = useForm<z.infer<typeof createTripFormSchema>>({
     resolver: zodResolver(createTripFormSchema),
@@ -84,18 +93,52 @@ export default function CreateTripForm({ itinerary, districts, additionalService
       numberOfPeople: 1,
       additionalServiceIds: [],
       notes: "",
-      district: districts.find(d => d.surchargeAmount === 0)?.districtName || districts[0]?.districtName || "", // Default to Hoan Kiem or first
+      district: districts.find(d => d.surchargeAmount === 0)?.districtName || districts[0]?.districtName || "",
+      time: itinerary.availableTimes.length > 0 ? itinerary.availableTimes[0] : "",
     },
   });
 
-  const { watch } = form;
+  const { watch, setValue } = form;
   const watchNumberOfPeople = watch("numberOfPeople");
   const watchDistrict = watch("district");
   const watchAdditionalServices = watch("additionalServiceIds");
+  const watchDiscountCode = watch("discountCode");
+
+  // Debounce discount code validation
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedDiscountCode(watchDiscountCode || '');
+    }, 500); // 500ms delay
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [watchDiscountCode]);
+
+  useEffect(() => {
+    const validateAndApplyDiscount = async () => {
+      if (debouncedDiscountCode.trim() === '') {
+        setAppliedDiscount(null);
+        setDiscountMessage(null);
+        return;
+      }
+      const discountDetails = await getDiscountCodeDetails(debouncedDiscountCode);
+      if (discountDetails && discountDetails.isActive) {
+        setAppliedDiscount(discountDetails);
+        setDiscountMessage(`Applied: ${discountDetails.description || discountDetails.code} (${discountDetails.type === 'fixed' ? discountDetails.value.toLocaleString() + ' VND' : discountDetails.value + '%'})`);
+      } else {
+        setAppliedDiscount(null);
+        setDiscountMessage("Invalid or expired discount code.");
+      }
+    };
+    validateAndApplyDiscount();
+  }, [debouncedDiscountCode]);
+
 
   useEffect(() => {
     const numPeople = watchNumberOfPeople || 1;
-    const districtSurcharge = districts.find(d => d.districtName === watchDistrict)?.surchargeAmount || 0;
+    const districtSurchargeItem = districts.find(d => d.districtName === watchDistrict);
+    const districtSurchargeAmount = districtSurchargeItem ? districtSurchargeItem.surchargeAmount : 0;
     
     let servicesPrice = 0;
     if (watchAdditionalServices) {
@@ -105,51 +148,61 @@ export default function CreateTripForm({ itinerary, districts, additionalService
       }, 0);
     }
     
-    setCalculatedPrice((itinerary.pricePerPerson * numPeople) + districtSurcharge + servicesPrice);
-  }, [watchNumberOfPeople, watchDistrict, watchAdditionalServices, itinerary.pricePerPerson, districts, additionalServices]);
+    let basePrice = (itinerary.pricePerPerson * numPeople) + districtSurchargeAmount + servicesPrice;
+
+    if (appliedDiscount) {
+      if (appliedDiscount.type === 'fixed') {
+        basePrice -= appliedDiscount.value;
+      } else if (appliedDiscount.type === 'percentage') {
+        basePrice -= basePrice * (appliedDiscount.value / 100);
+      }
+    }
+    setCalculatedPrice(Math.max(0, basePrice));
+
+  }, [watchNumberOfPeople, watchDistrict, watchAdditionalServices, appliedDiscount, itinerary.pricePerPerson, districts, additionalServices]);
 
   async function onSubmit(values: z.infer<typeof createTripFormSchema>) {
     setIsSubmitting(true);
 
-    const submissionData: FormValues & { discountCode?: string, secondaryContact?: string } = {
+    if (itinerary.type === 'airport_pickup' && !values.dropoffAddress) {
+      form.setError("dropoffAddress", { type: "manual", message: "Drop-off address is required for airport pickups." });
+      setIsSubmitting(false);
+      return;
+    }
+    if ((itinerary.type === 'airport_dropoff' || itinerary.type === 'tourism') && !values.pickupAddress) {
+       form.setError("pickupAddress", { type: "manual", message: "Pickup address is required for this itinerary type." });
+      setIsSubmitting(false);
+      return;
+    }
+
+
+    const submissionData: FormValues & { date: string; secondaryContact?: string } = {
       ...values,
-      date: values.date, // Form values are already Date object from react-hook-form Controller
+      date: format(values.date, "yyyy-MM-dd"), // Format date to string for server action
       additionalServiceIds: values.additionalServiceIds || [],
-      discountCode: values.discountCode,
+      discountCode: appliedDiscount ? appliedDiscount.code : undefined, // Submit the validated code
       secondaryContact: values.secondaryContactType && values.secondaryContactValue ? `${values.secondaryContactType}: ${values.secondaryContactValue}` : undefined,
     };
     
-    // Remove temporary fields for submission
-    // @ts-ignore
-    delete submissionData.secondaryContactType;
-    // @ts-ignore
-    delete submissionData.secondaryContactValue;
-
-
     try {
-      // Convert date to YYYY-MM-DD string for server action
-      const result = await createTrip({
-        ...submissionData,
-        // @ts-ignore // Date object is fine for server action if handled
-        date: format(values.date, "yyyy-MM-dd"), 
-      });
+      const result = await createTrip(submissionData);
 
-      if (result.success) {
+      if (result.success && result.tripId) {
         toast({
           title: "Trip Created!",
           description: result.message,
         });
-        router.push(`/my-trips?tripId=${result.tripId}&phone=${submissionData.contactPhone}`); // Redirect to manage the new trip, include phone
+        router.push(`/my-trips?tripId=${result.tripId}&phone=${submissionData.contactPhone}`);
       } else {
         toast({
-          title: "Error",
+          title: "Error Creating Trip",
           description: result.message,
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
+        title: "Unexpected Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
@@ -160,7 +213,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
   
   const addressFields = useMemo(() => {
     switch (itinerary.type) {
-      case 'airport_pickup': // Về HN (từ sân bay về HN) -> người dùng nhập địa chỉ xuống xe
+      case 'airport_pickup':
         return (
           <FormField
             control={form.control}
@@ -177,8 +230,8 @@ export default function CreateTripForm({ itinerary, districts, additionalService
             )}
           />
         );
-      case 'airport_dropoff': // Từ HN đi sân bay -> người dùng nhập địa điểm lên xe
-      case 'tourism': // Du lịch -> người dùng nhập địa điểm lên xe
+      case 'airport_dropoff': 
+      case 'tourism': 
         return (
           <FormField
             control={form.control}
@@ -211,8 +264,9 @@ export default function CreateTripForm({ itinerary, districts, additionalService
             <p className="text-3xl font-bold text-primary">
               {calculatedPrice.toLocaleString()} VND
             </p>
+            {discountMessage && <p className={`text-xs mt-1 ${appliedDiscount ? 'text-green-600' : 'text-destructive'}`}>{discountMessage}</p>}
             <p className="text-xs text-muted-foreground mt-1">
-              Final price may vary based on discount codes.
+              Final price based on selections.
             </p>
         </Card>
       </div>
@@ -251,7 +305,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) } // Disable past dates
+                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) }
                           initialFocus
                         />
                       </PopoverContent>
@@ -273,7 +327,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {availableTimes.length > 0 ? availableTimes.map(time => (
+                        {itinerary.availableTimes.length > 0 ? itinerary.availableTimes.map(time => (
                           <SelectItem key={time} value={time}>{time}</SelectItem>
                         )) : <SelectItem value="" disabled>No times available</SelectItem>}
                       </SelectContent>
@@ -315,7 +369,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                     <SelectContent>
                       {districts.map(district => (
                         <SelectItem key={district.id} value={district.districtName}>
-                          {district.districtName} (+{district.surchargeAmount.toLocaleString()} VND)
+                          {district.districtName} {district.surchargeAmount > 0 ? `(+${district.surchargeAmount.toLocaleString()} VND)` : '(No surcharge)'}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -358,8 +412,8 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 name="secondaryContactType"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="flex items-center"><Mail className="h-4 w-4 mr-2 text-primary" />Secondary Contact Type</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); setSecondaryContactType(value); }} defaultValue={field.value}>
+                    <FormLabel className="flex items-center"><Contact className="h-4 w-4 mr-2 text-primary" />Secondary Contact Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Select contact type (Optional)" />
@@ -382,7 +436,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                     <FormItem>
                     <FormLabel className="flex items-center opacity-0 md:opacity-100">.</FormLabel> {/* Spacer for alignment */}
                     <FormControl>
-                        <Input placeholder={`Your ${secondaryContactType || 'contact'}`} {...field} disabled={!secondaryContactType} />
+                        <Input placeholder={`Your ${watch("secondaryContactType") || 'contact detail'}`} {...field} disabled={!watch("secondaryContactType")} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -402,6 +456,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                         Enhance your trip with these optional services.
                       </FormDescription>
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                     {additionalServices.map((service) => (
                       <FormField
                         key={service.id}
@@ -411,7 +466,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                           return (
                             <FormItem
                               key={service.id}
-                              className="flex flex-row items-start space-x-3 space-y-0"
+                              className="flex flex-row items-center space-x-3 space-y-0"
                             >
                               <FormControl>
                                 <Checkbox
@@ -427,14 +482,16 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                                   }}
                                 />
                               </FormControl>
-                              <FormLabel className="font-normal">
+                              <FormLabel className="font-normal text-sm">
                                 {service.name} (+{service.price.toLocaleString()} VND)
+                                {service.description && <span className="block text-xs text-muted-foreground">{service.description}</span>}
                               </FormLabel>
                             </FormItem>
                           );
                         }}
                       />
                     ))}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -490,6 +547,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
   );
 }
 
+// Using ShadCN Card as a simple div with styling for layout consistency
 const Card = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <div className={cn("bg-card text-card-foreground rounded-lg border shadow-sm", className)}>
     {children}

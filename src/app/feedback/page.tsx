@@ -1,3 +1,4 @@
+
 import FeedbackForm from '@/components/feedback/FeedbackForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquareHeart } from 'lucide-react';
@@ -14,6 +15,7 @@ export default function FeedbackPage() {
             <CardTitle className="font-headline text-3xl">Share Your Feedback</CardTitle>
             <CardDescription className="text-lg">
               We value your opinion! Let us know about your experience with Hanoi Explorer.
+              If your feedback relates to a specific trip, please enter your phone number so we can list your recent trips.
             </CardDescription>
           </CardHeader>
           <CardContent>

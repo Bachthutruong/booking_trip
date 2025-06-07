@@ -11,7 +11,7 @@ export interface Itinerary {
   pricePerPerson: number;
   description: string;
   imageUrl?: string;
-  availableTimes: string[];
+  availableTimes: string[]; // Array of HH:MM strings
 }
 
 export interface Participant {
@@ -19,10 +19,11 @@ export interface Participant {
   name: string;
   phone: string;
   numberOfPeople: number;
-  address: string;
+  address: string; // Their pickup/dropoff address for this leg of the shared trip
   discountCode?: string;
   notes?: string;
-  pricePaid: number; // Price this participant is responsible for
+  pricePaid: number; // Price this participant is responsible for (can be 0 if main booker covers)
+  // status: 'pending_payment' | 'payment_confirmed'; // If individual payment tracking is needed
 }
 
 export type TripStatus = 'pending_payment' | 'payment_confirmed' | 'completed' | 'cancelled';
@@ -30,49 +31,59 @@ export type TripStatus = 'pending_payment' | 'payment_confirmed' | 'completed' |
 export interface Trip {
   _id?: ObjectId; // MongoDB ID
   id: string; // User-friendly/app-specific ID
-  itineraryId: string;
+  itineraryId: string; // Refers to Itinerary.id
   itineraryName: string;
   itineraryType: ItineraryType;
   date: string; // YYYY-MM-DD
   time: string; // HH:MM
-  numberOfPeople: number;
+  numberOfPeople: number; // Initial number of people by creator
   pickupAddress?: string;
   dropoffAddress?: string;
   contactName: string;
   contactPhone: string;
-  secondaryContact?: string;
+  secondaryContact?: string; // Format "Type: Value", e.g., "Email: test@example.com"
   notes?: string;
   transferProofImageUrl?: string;
   status: TripStatus;
-  creatorUserId?: string; // e.g., contactPhone of the creator
+  creatorUserId?: string; // e.g., contactPhone of the creator, or a dedicated user ID if auth is added
   participants: Participant[];
   totalPrice: number; // Total price for the initial booking by the creator
-  district?: string;
-  additionalServiceIds: string[];
+  district?: string; // Selected district for surcharge calculation
+  additionalServiceIds: string[]; // IDs of selected AdditionalService
+  discountCode?: string; // Applied discount code
   createdAt: string; // ISO date string
+  // updatedAd: string; // ISO date string
 }
 
 export interface DiscountCode {
+  _id?: ObjectId;
   id: string;
   code: string;
   type: 'fixed' | 'percentage';
   value: number;
   isActive: boolean;
   description?: string;
+  usageLimit?: number;
+  timesUsed?: number;
+  validFrom?: string; // ISO date string
+  validTo?: string; // ISO date string
 }
 
 export interface DistrictSurcharge {
+  _id?: ObjectId;
   id: string;
   districtName: string;
   surchargeAmount: number;
 }
 
 export interface AdditionalService {
+  _id?: ObjectId;
   id: string;
   name: string;
   price: number;
-  applicableTo: ItineraryType[];
-  iconName?: string;
+  description?: string;
+  applicableTo: ItineraryType[]; // Which itinerary types this service can be applied to
+  iconName?: string; // Optional: for UI, e.g., 'Luggage', 'Baby'
 }
 
 export interface Feedback {
@@ -88,17 +99,19 @@ export interface Feedback {
 // Form specific types
 export interface CreateTripFormValues {
   itineraryId: string;
-  date: Date;
+  date: Date; // Date object from calendar
   time: string;
   numberOfPeople: number;
   pickupAddress?: string;
   dropoffAddress?: string;
   contactName: string;
   contactPhone: string;
-  secondaryContact?: string;
+  secondaryContactType?: string; // e.g., 'Email', 'Zalo'
+  secondaryContactValue?: string; // The actual email, Zalo number etc.
   notes?: string;
   district?: string;
   additionalServiceIds: string[];
+  discountCode?: string;
 }
 
 export interface JoinTripFormValues {
@@ -106,7 +119,7 @@ export interface JoinTripFormValues {
   name: string;
   phone: string;
   numberOfPeople: number;
-  address: string;
+  address: string; // Their pickup address for this shared trip
   discountCode?: string;
   notes?: string;
 }
@@ -118,7 +131,6 @@ export interface FeedbackFormValues {
   message: string;
 }
 
-// Admin form for Itinerary
 export interface ItineraryFormValues {
   name: string;
   type: ItineraryType;
@@ -126,4 +138,29 @@ export interface ItineraryFormValues {
   description: string;
   imageUrl?: string;
   availableTimes: string; // Comma-separated string, will be parsed
+}
+
+// Admin form types
+export interface DiscountCodeFormValues {
+  code: string;
+  type: 'fixed' | 'percentage';
+  value: number;
+  isActive: boolean;
+  description?: string;
+  // usageLimit?: number;
+  // validFrom?: Date | null;
+  // validTo?: Date | null;
+}
+
+export interface DistrictSurchargeFormValues {
+  districtName: string;
+  surchargeAmount: number;
+}
+
+export interface AdditionalServiceFormValues {
+  name: string;
+  price: number;
+  description?: string;
+  applicableTo: ItineraryType[];
+  iconName?: string;
 }
