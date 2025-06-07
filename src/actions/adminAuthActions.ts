@@ -15,7 +15,7 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-export async function loginAdmin(formData: FormData): Promise<{ success: boolean; message: string }> {
+export async function loginAdmin(formData: FormData, redirectPathOverride?: string): Promise<{ success: boolean; message: string }> {
   const values = Object.fromEntries(formData.entries());
   const validation = loginSchema.safeParse(values);
 
@@ -34,7 +34,11 @@ export async function loginAdmin(formData: FormData): Promise<{ success: boolean
       maxAge: 60 * 60 * 24 * 7, // 1 week
       sameSite: 'lax',
     });
-    return { success: true, message: 'Login successful!' };
+    const finalRedirectPath = redirectPathOverride || '/admin/dashboard';
+    redirect(finalRedirectPath); // Perform server-side redirect
+    // The following line is effectively unreachable due to redirect,
+    // but might be needed if redirect was conditional and types expect a return.
+    // For now, Next.js handles the thrown redirect error.
   } else {
     return { success: false, message: 'Invalid username or password.' };
   }

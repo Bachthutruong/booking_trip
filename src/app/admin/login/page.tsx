@@ -8,11 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { KeyRound, Loader2, LogIn, UserCircle } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'; // useRouter might not be needed anymore for push
 import { useState, useTransition } from 'react';
 
 export default function AdminLoginPage() {
-  const router = useRouter();
+  const router = useRouter(); // Keep for potential future use, but not for current redirect logic
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -22,17 +22,25 @@ export default function AdminLoginPage() {
     event.preventDefault();
     setError(null);
     const formData = new FormData(event.currentTarget);
+    const redirectPath = searchParams.get('redirect') || '/admin/dashboard';
 
     startTransition(async () => {
-      const result = await loginAdmin(formData);
-      if (result.success) {
-        toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
-        const redirectPath = searchParams.get('redirect') || '/admin/dashboard';
-        router.push(redirectPath); // Điều hướng đến trang đích
-        // router.refresh(); // Đã loại bỏ: router.push() nên đủ để kích hoạt middleware đánh giá lại route mới.
-      } else {
-        setError(result.message);
-        toast({ title: 'Login Failed', description: result.message, variant: 'destructive' });
+      try {
+        // Pass the redirectPath to the server action
+        const result = await loginAdmin(formData, redirectPath);
+        
+        // This part will only be reached if loginAdmin did NOT redirect (i.e., on failure)
+        if (result && !result.success) {
+          setError(result.message);
+          toast({ title: 'Login Failed', description: result.message, variant: 'destructive' });
+        }
+        // If login was successful, loginAdmin would have called redirect() and this point wouldn't be reached.
+      } catch (e: any) {
+        // Catching errors that might occur if redirect itself throws an error that isn't handled by Next.js
+        // or if another error occurs in the action.
+        // NEXT_REDIRECT errors are typically handled by Next.js itself and won't be caught here.
+        setError(e.message || "An unexpected error occurred during login.");
+        toast({ title: 'Login Error', description: e.message || "An unexpected error occurred.", variant: 'destructive' });
       }
     });
   };
