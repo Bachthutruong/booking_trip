@@ -25,13 +25,13 @@ export default function AdminLoginPage() {
 
     startTransition(async () => {
       try {
-        // Pass the redirectPath to the server action
+        // The loginAdmin action will redirect on success, so 'result' will be undefined.
+        // If it returns a value, it means login failed.
         const result = await loginAdmin(formData, redirectPath);
         
-        // If 'result' is defined, it means the server action returned,
-        // which implies a login failure (because success cases redirect and don't return).
-        if (result) {
-          if (!result.success) { // Check if login was explicitly unsuccessful
+        if (result) { 
+          // This block is only reached if loginAdmin returns (i.e., login failed)
+          if (!result.success) {
             setError(result.message);
             toast({ title: 'Login Failed', description: result.message, variant: 'destructive' });
           }
@@ -40,9 +40,15 @@ export default function AdminLoginPage() {
         // and Next.js is handling the page transition. No client-side action needed here.
 
       } catch (e: any) {
-        // This catch block handles unexpected errors during the action call itself,
-        // or if the action throws an error that isn't a Next.js redirect.
-        // NEXT_REDIRECT errors are typically handled by Next.js before reaching here.
+        // Check if the error is the specific NEXT_REDIRECT error
+        if (e.digest === 'NEXT_REDIRECT') {
+          // This is an expected error thrown by redirect().
+          // Next.js will handle the actual redirection. We don't need to show a toast.
+          // We can simply let it propagate or return here.
+          return; 
+        }
+        
+        // Handle other, unexpected errors
         setError(e.message || "An unexpected error occurred during login.");
         toast({ title: 'Login Error', description: e.message || "An unexpected error occurred.", variant: 'destructive' });
       }
