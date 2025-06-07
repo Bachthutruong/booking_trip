@@ -1,4 +1,3 @@
-
 import type { ObjectId } from 'mongodb';
 
 export type ItineraryType = 'airport_pickup' | 'airport_dropoff' | 'tourism';
@@ -23,7 +22,8 @@ export interface Participant {
   discountCode?: string;
   notes?: string;
   pricePaid: number; // Price this participant is responsible for (can be 0 if main booker covers)
-  // status: 'pending_payment' | 'payment_confirmed'; // If individual payment tracking is needed
+  district?: string; // Participant's pickup/dropoff district for surcharge calculation
+  status: TripStatus; // If individual payment tracking is needed
 }
 
 export type TripStatus = 'pending_payment' | 'payment_confirmed' | 'completed' | 'cancelled';
@@ -61,12 +61,14 @@ export interface DiscountCode {
   code: string;
   type: 'fixed' | 'percentage';
   value: number;
+  discountPercentage: number;
   isActive: boolean;
   description?: string;
   usageLimit?: number;
-  timesUsed?: number;
+  usedCount?: number;
   validFrom?: string; // ISO date string
   validTo?: string; // ISO date string
+  expiryDate?: string; // ISO date string
 }
 
 export interface DistrictSurcharge {
@@ -133,6 +135,8 @@ export interface JoinTripFormValues {
   address: string; // Their pickup address for this shared trip
   discountCode?: string;
   notes?: string;
+  district?: string; // Add district field to JoinTripFormValues
+  pricePaid: number; // Add pricePaid field to JoinTripFormValues
 }
 
 export interface FeedbackFormValues {
@@ -156,11 +160,11 @@ export interface DiscountCodeFormValues {
   code: string;
   type: 'fixed' | 'percentage';
   value: number;
+  discountPercentage?: number;
   isActive: boolean;
   description?: string;
-  // usageLimit?: number;
-  // validFrom?: Date | null;
-  // validTo?: Date | null;
+  usageLimit?: number | '';
+  expiryDate?: string | null;
 }
 
 export interface DistrictSurchargeFormValues {

@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,14 +27,14 @@ export default async function Home() { // Make the component async
             <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 transition-all duration-300 ease-in-out transform hover:scale-105" asChild>
               <Link href="/create-trip">Plan Your Trip Now</Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10 transition-all duration-300 ease-in-out transform hover:scale-105" asChild>
+            <Button size="lg" variant="outline" className="border-primary-foreground text-black hover:bg-primary-foreground/10 transition-all duration-300 ease-in-out transform hover:scale-105" asChild>
               <Link href="/#itineraries">View Popular Itineraries</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      <section className="container mx-auto px-4 animate-slideInUp" style={{animationDelay: '0.2s'}}>
+      <section className="container mx-auto px-4 animate-slideInUp" style={{ animationDelay: '0.2s' }}>
         <h2 className="text-3xl font-headline font-semibold text-center mb-10">Our Services</h2>
         <div className="grid md:grid-cols-3 gap-8">
           <Card className="hover:shadow-xl transition-shadow duration-300">
@@ -57,7 +58,7 @@ export default async function Home() { // Make the component async
               <CardDescription>Reliable rides from Hanoi to the airport for your departure.</CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-             <Button variant="link" asChild><Link href="/create-trip?type=airport_dropoff">Book Dropoff</Link></Button>
+              <Button variant="link" asChild><Link href="/create-trip?type=airport_dropoff">Book Dropoff</Link></Button>
             </CardContent>
           </Card>
           <Card className="hover:shadow-xl transition-shadow duration-300">
@@ -74,46 +75,46 @@ export default async function Home() { // Make the component async
           </Card>
         </div>
       </section>
-      
-      <section id="itineraries" className="container mx-auto px-4 animate-slideInUp" style={{animationDelay: '0.4s'}}>
-         <h2 className="text-3xl font-headline font-semibold text-center mb-10">Popular Itineraries</h2>
-         {popularItineraries.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {popularItineraries.map(itinerary => (
-                <Card key={itinerary.id} className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                    <Image 
-                        src={itinerary.imageUrl || "https://placehold.co/600x400.png"} 
-                        alt={itinerary.name} 
-                        width={600} 
-                        height={400} 
-                        className="w-full h-48 object-cover" 
-                        // For data-ai-hint, you might use itinerary type or keywords from its name/description
-                        data-ai-hint={`${itinerary.type} ${itinerary.name.split(" ")[0] || 'travel'}`}
-                    />
-                    <CardHeader>
-                    <CardTitle className="font-headline">{itinerary.name}</CardTitle>
-                    <CardDescription className="line-clamp-3">{itinerary.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                    <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" asChild>
-                        {/* Link to the specific itinerary if you have a dedicated page, or to create-trip pre-filled */}
-                        <Link href={`/create-trip?itineraryId=${itinerary.id}`}>View Details & Book</Link>
-                    </Button>
-                    </CardContent>
-                </Card>
-                ))}
-            </div>
-         ) : (
-            <p className="text-center text-muted-foreground">No popular itineraries to display at the moment. Check back soon!</p>
-         )}
-         <div className="text-center mt-8">
-            <Button variant="outline" asChild>
-                <Link href="/create-trip">See All Itineraries</Link>
-            </Button>
-         </div>
+
+      <section id="itineraries" className="container mx-auto px-4 animate-slideInUp" style={{ animationDelay: '0.4s' }}>
+        <h2 className="text-3xl font-headline font-semibold text-center mb-10">Popular Itineraries</h2>
+        {popularItineraries.length > 0 ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {popularItineraries.map(itinerary => (
+              <Card key={itinerary.id} className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                <Image
+                  src={itinerary.imageUrl || "https://placehold.co/600x400.png"}
+                  alt={itinerary.name}
+                  width={600}
+                  height={400}
+                  className="w-full h-48 object-cover"
+                  // For data-ai-hint, you might use itinerary type or keywords from its name/description
+                  data-ai-hint={`${itinerary.type} ${itinerary.name.split(" ")[0] || 'travel'}`}
+                />
+                <CardHeader>
+                  <CardTitle className="font-headline">{itinerary.name}</CardTitle>
+                  <CardDescription className="line-clamp-3">{itinerary.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+                    {/* Link to the specific itinerary if you have a dedicated page, or to create-trip pre-filled */}
+                    <Link href={`/create-trip?itineraryId=${itinerary.id}`}>View Details & Book</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-muted-foreground">No popular itineraries to display at the moment. Check back soon!</p>
+        )}
+        <div className="text-center mt-8">
+          <Button variant="outline" asChild>
+            <Link href="/create-trip">See All Itineraries</Link>
+          </Button>
+        </div>
       </section>
 
-      <section className="container mx-auto px-4 py-10 bg-card rounded-xl shadow-md animate-slideInUp" style={{animationDelay: '0.6s'}}>
+      <section className="container mx-auto px-4 py-10 bg-card rounded-xl shadow-md animate-slideInUp" style={{ animationDelay: '0.6s' }}>
         <h2 className="text-3xl font-headline font-semibold text-center mb-8">Need Help or Info?</h2>
         <div className="grid md:grid-cols-3 gap-6 text-center">
           <div>
@@ -152,4 +153,3 @@ export default async function Home() { // Make the component async
   );
 }
 
-    

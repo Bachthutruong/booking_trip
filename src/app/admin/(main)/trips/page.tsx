@@ -1,4 +1,3 @@
-
 import { getAllTrips, confirmPaymentByAdmin } from '@/actions/tripActions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,8 +31,8 @@ export default async function AdminTripsPage({
 }) {
   let trips = await getAllTrips();
 
-  const statusFilter = searchParams?.status;
-  const searchTerm = searchParams?.search?.toLowerCase();
+  const statusFilter = searchParams?.status ?? '';
+  const searchTerm = searchParams?.search?.toLowerCase() ?? '';
 
   if (statusFilter && TRIP_STATUSES[statusFilter as keyof typeof TRIP_STATUSES]) {
     trips = trips.filter(trip => trip.status === statusFilter);
@@ -61,14 +60,14 @@ export default async function AdminTripsPage({
           <CardDescription>View and manage all customer trip bookings.</CardDescription>
           {/* Basic Search Form */}
           <form method="GET" className="mt-4 flex gap-2">
-            <input type="text" name="search" placeholder="Search name, phone, itinerary..." defaultValue={searchParams?.search} className="border p-2 rounded-md flex-grow text-sm" />
-            <select name="status" defaultValue={searchParams?.status} className="border p-2 rounded-md text-sm">
-                <option value="">All Statuses</option>
-                {Object.entries(TRIP_STATUSES).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                ))}
+            <input type="text" name="search" placeholder="Search name, phone, itinerary..." defaultValue={searchParams?.search ?? ''} className="border p-2 rounded-md flex-grow text-sm" />
+            <select name="status" defaultValue={searchParams?.status ?? ''} className="border p-2 rounded-md text-sm">
+              <option value="">All Statuses</option>
+              {Object.entries(TRIP_STATUSES).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
             </select>
-            <Button type="submit"><Filter className="mr-2 h-4 w-4"/>Filter</Button>
+            <Button type="submit"><Filter className="mr-2 h-4 w-4" />Filter</Button>
             <Button variant="outline" asChild><Link href="/admin/trips">Clear</Link></Button>
           </form>
         </CardHeader>
@@ -97,21 +96,21 @@ export default async function AdminTripsPage({
                         <Badge variant="outline" className="ml-2 text-xs">{ITINERARY_TYPES[trip.itineraryType]}</Badge>
                       </TableCell>
                       <TableCell>
-                        {trip.contactName}<br/>
+                        {trip.contactName}<br />
                         <span className="text-xs text-muted-foreground">{trip.contactPhone}</span>
                       </TableCell>
                       <TableCell>
-                        {format(new Date(trip.date), "MMM dd, yyyy")}<br/>
+                        {format(new Date(trip.date), "MMM dd, yyyy")}<br />
                         <span className="text-xs text-muted-foreground">{trip.time}</span>
                       </TableCell>
                       <TableCell className="text-center">{trip.numberOfPeople + trip.participants.reduce((sum, p) => sum + p.numberOfPeople, 0)}</TableCell>
                       <TableCell>{trip.totalPrice.toLocaleString()} VND</TableCell>
                       <TableCell>
-                        <Badge 
-                            variant={trip.status === 'payment_confirmed' ? 'default' : trip.status === 'pending_payment' ? 'outline' : 'secondary'}
-                            className={trip.status === 'payment_confirmed' ? 'bg-green-500 text-white' : trip.status === 'pending_payment' ? 'border-yellow-500 text-yellow-600' : ''}
+                        <Badge
+                          variant={trip.status === 'payment_confirmed' ? 'default' : trip.status === 'pending_payment' ? 'outline' : 'secondary'}
+                          className={trip.status === 'payment_confirmed' ? 'bg-green-500 text-white' : trip.status === 'pending_payment' ? 'border-yellow-500 text-yellow-600' : ''}
                         >
-                            {TRIP_STATUSES[trip.status]}
+                          {TRIP_STATUSES[trip.status]}
                         </Badge>
                       </TableCell>
                       <TableCell className="space-y-1 sm:space-y-0 sm:space-x-2 text-right">
@@ -123,9 +122,9 @@ export default async function AdminTripsPage({
                         {trip.status === 'pending_payment' && trip.transferProofImageUrl && (
                           <ConfirmPaymentButton tripId={trip.id} />
                         )}
-                         {trip.status === 'pending_payment' && !trip.transferProofImageUrl && (
-                           <Badge variant="outline" className="text-xs border-orange-400 text-orange-500">No Proof Yet</Badge>
-                         )}
+                        {trip.status === 'pending_payment' && !trip.transferProofImageUrl && (
+                          <Badge variant="outline" className="text-xs border-orange-400 text-orange-500">No Proof Yet</Badge>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

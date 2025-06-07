@@ -4,18 +4,32 @@ import type { Trip } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CalendarDays, Clock, Users, MapPin, CheckCircle2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import JoinTripForm from './JoinTripForm'; // This will be the dialog/form component
 import { ITINERARY_TYPES } from '@/lib/constants';
 import Image from 'next/image'; // Assuming itineraries might have images
+import { getDistrictSurcharges } from '@/actions/configActions'; // Import the action
+import type { DistrictSurcharge } from '@/lib/types'; // Import DistrictSurcharge type
 
 export default function JoinableTripCard({ trip }: { trip: Trip }) {
   const [isJoinFormOpen, setIsJoinFormOpen] = useState(false);
+  const [districts, setDistricts] = useState<DistrictSurcharge[]>([]); // State to store districts
+
+  // Fetch districts when the component mounts or when the form is opened
+  useEffect(() => {
+    if (isJoinFormOpen) {
+      const fetchDistricts = async () => {
+        const fetchedDistricts = await getDistrictSurcharges();
+        setDistricts(fetchedDistricts);
+      };
+      fetchDistricts();
+    }
+  }, [isJoinFormOpen]);
 
   const formattedDate = new Date(trip.date).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric'
   });
-  
+
   // Calculate total participants already in the trip
   const totalCurrentParticipants = trip.numberOfPeople + trip.participants.reduce((sum, p) => sum + p.numberOfPeople, 0);
 
@@ -24,13 +38,13 @@ export default function JoinableTripCard({ trip }: { trip: Trip }) {
       <Card className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl">
         {/* You might want to fetch itinerary image based on trip.itineraryId if available */}
         <div className="relative w-full h-40 bg-secondary/50">
-           <Image 
-            src={`https://placehold.co/600x400.png?text=${encodeURIComponent(trip.itineraryName.substring(0,20))}`} 
-            alt={trip.itineraryName} 
-            layout="fill" 
+          <Image
+            src={`https://placehold.co/600x400.png?text=${encodeURIComponent(trip.itineraryName.substring(0, 20))}`}
+            alt={trip.itineraryName}
+            layout="fill"
             objectFit="cover"
             data-ai-hint={`${trip.itineraryType} travel`}
-            />
+          />
         </div>
         <CardHeader>
           <CardTitle className="font-headline text-lg">{trip.itineraryName}</CardTitle>
@@ -49,12 +63,13 @@ export default function JoinableTripCard({ trip }: { trip: Trip }) {
           </Button>
         </CardFooter>
       </Card>
-      
+
       {isJoinFormOpen && (
         <JoinTripForm
           trip={trip}
           isOpen={isJoinFormOpen}
           onOpenChange={setIsJoinFormOpen}
+          districts={districts}
         />
       )}
     </>

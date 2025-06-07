@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 
 import { MongoClient, Db, Collection } from 'mongodb';
 import type { Itinerary, Trip, Feedback, DiscountCode, DistrictSurcharge, AdditionalService, AdminUser } from './types';

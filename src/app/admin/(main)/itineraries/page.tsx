@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { PlusCircle, Edit3, Eye, Clock } from 'lucide-react';
 import { ITINERARY_TYPES } from '@/lib/constants';
 import { DeleteItineraryButton } from './_components/DeleteItineraryButton';
-
+import { Itinerary } from '@/lib/types';
 
 export default async function AdminItinerariesPage() {
   const itineraries = await getItineraries();
@@ -54,14 +54,14 @@ export default async function AdminItinerariesPage() {
                       <TableCell>{itinerary.pricePerPerson.toLocaleString()}</TableCell>
                       <TableCell>
                         {itinerary.availableTimes.length > 0 ? (
-                           <div className="flex flex-wrap gap-1">
-                            {itinerary.availableTimes.slice(0,3).map(time => (
-                                <Badge key={time} variant="outline" className="text-xs font-normal"><Clock className="h-3 w-3 mr-1"/>{time}</Badge>
+                          <div className="flex flex-wrap gap-1">
+                            {itinerary.availableTimes.slice(0, 3).map(time => (
+                              <Badge key={time} variant="outline" className="text-xs font-normal"><Clock className="h-3 w-3 mr-1" />{time}</Badge>
                             ))}
                             {itinerary.availableTimes.length > 3 && <Badge variant="outline" className="text-xs font-normal">...</Badge>}
-                           </div>
+                          </div>
                         ) : (
-                            <span className="text-xs text-muted-foreground">Not set</span>
+                          <span className="text-xs text-muted-foreground">Not set</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right space-x-2">
@@ -70,7 +70,7 @@ export default async function AdminItinerariesPage() {
                             <Edit3 className="h-4 w-4" />
                           </Link>
                         </Button>
-                         <DeleteItineraryButton itineraryId={itinerary.id} itineraryName={itinerary.name} />
+                        <DeleteItineraryButton itineraryId={itinerary.id} itineraryName={itinerary.name} />
                       </TableCell>
                     </TableRow>
                   ))}

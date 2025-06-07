@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,15 +20,23 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast"; // Corrected import path
-import { joinTrip } from '@/actions/tripActions';
-import type { Trip, JoinTripFormValues } from '@/lib/types';
+import { joinTrip, getItineraryDetailsForCalculation } from '@/actions/tripActions';
+import type { Trip, JoinTripFormValues, DistrictSurcharge } from '@/lib/types';
 import { Loader2, Users, MapPin, Phone, FileText, TicketPercent } from "lucide-react";
 import { useRouter } from "next/navigation";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const joinTripFormSchema = z.object({
   tripId: z.string(), // Hidden, will be set from props
@@ -39,18 +46,22 @@ const joinTripFormSchema = z.object({
   address: z.string().min(5, "Address must be at least 5 characters.").max(200), // Their pickup address
   discountCode: z.string().optional(),
   notes: z.string().max(500, "Notes cannot exceed 500 characters.").optional(),
+  district: z.string().optional(), // Add district field
 });
 
 interface JoinTripFormProps {
   trip: Trip;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  districts: DistrictSurcharge[]; // Add districts prop
 }
 
-export default function JoinTripForm({ trip, isOpen, onOpenChange }: JoinTripFormProps) {
+export default function JoinTripForm({ trip, isOpen, onOpenChange, districts }: JoinTripFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [calculatedPrice, setCalculatedPrice] = useState(0);
+  const [priceCalculationLoading, setPriceCalculationLoading] = useState(true); // New state for loading
 
   const form = useForm<z.infer<typeof joinTripFormSchema>>({
     resolver: zodResolver(joinTripFormSchema),
@@ -58,17 +69,57 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange }: JoinTripFor
       tripId: trip.id,
       numberOfPeople: 1,
       notes: "",
+      district: districts.find(d => d.surchargeAmount === 0)?.districtName || districts[0]?.districtName || "", // Default district
     },
   });
+
+  // Watch for changes in numberOfPeople and district
+  const numberOfPeople = form.watch("numberOfPeople");
+  const selectedDistrict = form.watch("district");
+
+  // Effect to recalculate price when inputs change
+  useEffect(() => {
+    const calculatePrice = async () => {
+      setPriceCalculationLoading(true);
+      try {
+        const result = await getItineraryDetailsForCalculation(trip.itineraryId, selectedDistrict);
+        if (result) {
+          let newPrice = result.pricePerPerson * numberOfPeople;
+          newPrice += result.districtSurchargeAmount;
+          // TODO: Implement discount code calculation here if needed on client side
+          setCalculatedPrice(newPrice);
+        } else {
+          setCalculatedPrice(0);
+        }
+      } catch (error) {
+        console.error("Error calculating price:", error);
+        setCalculatedPrice(0);
+      } finally {
+        setPriceCalculationLoading(false);
+      }
+    };
+
+    if (trip.itineraryId && numberOfPeople > 0) {
+      calculatePrice();
+    } else {
+      setCalculatedPrice(0);
+      setPriceCalculationLoading(false);
+    }
+  }, [numberOfPeople, selectedDistrict, trip.itineraryId]);
 
   async function onSubmit(values: z.infer<typeof joinTripFormSchema>) {
     setIsSubmitting(true);
     try {
-      const result = await joinTrip(values);
+      const submissionData: JoinTripFormValues = {
+        ...values,
+        pricePaid: calculatedPrice, // Pass the calculated price
+      };
+
+      const result = await joinTrip(submissionData);
       if (result.success) {
         toast({
           title: "Successfully Joined!",
-          description: result.message,
+          description: result.message, // Use the message from the server action
         });
         onOpenChange(false); // Close dialog
         router.push(`/my-trips?phone=${values.phone}`); // Redirect to my-trips with their phone
@@ -153,6 +204,36 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange }: JoinTripFor
                 </FormItem>
               )}
             />
+
+            {/* Conditionally render District field for relevant itinerary types */}
+            {(trip.itineraryType === 'airport_pickup' || trip.itineraryType === 'airport_dropoff' || trip.itineraryType === 'tourism') && (
+              <FormField
+                control={form.control}
+                name="district"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />District (for pickup/dropoff in Hanoi)</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a district" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {districts.map((district) => (
+                          <SelectItem key={district.districtName} value={district.districtName}>
+                            {district.districtName} {district.surchargeAmount > 0 ? `(+${district.surchargeAmount.toLocaleString()} VND)` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>Surcharges may apply for some districts.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="discountCode"
@@ -183,6 +264,17 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange }: JoinTripFor
                 </FormItem>
               )}
             />
+
+            {/* Display Calculated Price */}
+            <div className="flex items-center justify-between text-lg font-semibold py-2 px-4 bg-secondary/20 rounded-md">
+              <span className="text-primary">Estimated Total Price:</span>
+              {priceCalculationLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              ) : (
+                <span className="text-right">{calculatedPrice.toLocaleString()} VND</span>
+              )}
+            </div>
+
             <DialogFooter className="sm:justify-between gap-2 pt-4">
               <DialogClose asChild>
                 <Button type="button" variant="outline">

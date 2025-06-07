@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getTripsCollection, getItinerariesCollection, getDiscountCodesCollection, getDistrictSurchargesCollection, getAdditionalServicesCollection } from '@/lib/mongodb';
@@ -6,7 +5,7 @@ import type { CreateTripFormValues, Itinerary, Trip, Participant, JoinTripFormVa
 import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { format } from 'date-fns';
+import { format, addWeeks, isBefore } from 'date-fns';
 
 // Helper to map MongoDB document to Trip type
 function mapDocumentToTrip(doc: any): Trip {
@@ -79,9 +78,48 @@ const calculateTotalPrice = async (
   return Math.max(0, price); // Ensure price is not negative
 };
 
+export async function getItineraryDetailsForCalculation(itineraryId: string, districtName?: string): Promise<{ pricePerPerson: number; districtSurchargeAmount: number } | null> {
+  const itinerariesCollection = await getItinerariesCollection();
+  const districtSurchargesCol = await getDistrictSurchargesCollection();
+
+  let itineraryDoc;
+  if (ObjectId.isValid(itineraryId)) {
+    itineraryDoc = await itinerariesCollection.findOne({ _id: new ObjectId(itineraryId) });
+  } else {
+    itineraryDoc = await itinerariesCollection.findOne({ id: itineraryId });
+  }
+
+  if (!itineraryDoc) {
+    return null;
+  }
+
+  let districtSurchargeAmount = 0;
+  if (districtName) {
+    const districtSurcharge = await districtSurchargesCol.findOne({ districtName: districtName });
+    if (districtSurcharge) {
+      districtSurchargeAmount = districtSurcharge.surchargeAmount;
+    }
+  }
+
+  return {
+    pricePerPerson: itineraryDoc.pricePerPerson,
+    districtSurchargeAmount: districtSurchargeAmount,
+  };
+}
+
 const createTripSchema = z.object({
   itineraryId: z.string().min(1, "Itinerary is required."),
-  date: z.string().min(1, "Date is required."), // Will be YYYY-MM-DD string from client
+  date: z.string()
+    .min(1, "Date is required.")
+    .refine((dateString) => {
+      const selectedDate = new Date(dateString);
+      const minDate = addWeeks(new Date(), 1); // Current date + 1 week
+      // Set hours, minutes, seconds, milliseconds to 0 for accurate date comparison
+      selectedDate.setHours(0, 0, 0, 0);
+      minDate.setHours(0, 0, 0, 0);
+
+      return !isBefore(selectedDate, minDate);
+    }, "Date must be at least one week from today."), // Add date validation
   time: z.string().min(1, "Time is required."),
   numberOfPeople: z.number().min(1, "At least one person is required."),
   pickupAddress: z.string().optional(),
@@ -99,7 +137,7 @@ const createTripSchema = z.object({
 export async function createTrip(values: CreateTripFormValues & { date: string }): Promise<{ success: boolean; message: string; tripId?: string }> {
   const validation = createTripSchema.safeParse({
     ...values,
-    numberOfPeople: Number(values.numberOfPeople), 
+    numberOfPeople: Number(values.numberOfPeople),
   });
 
   if (!validation.success) {
@@ -118,11 +156,11 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
   if ((itinerary.type === 'airport_dropoff' || itinerary.type === 'tourism') && !data.pickupAddress) {
     return { success: false, message: 'Pickup address is required for this itinerary type.' };
   }
-  
+
   const totalPrice = await calculateTotalPrice(
-    itinerary, 
-    data.numberOfPeople, 
-    data.district, 
+    itinerary,
+    data.numberOfPeople,
+    data.district,
     data.additionalServiceIds,
     data.discountCode
   );
@@ -132,7 +170,7 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
     itineraryId: itinerary.id,
     itineraryName: itinerary.name,
     itineraryType: itinerary.type,
-    date: data.date, 
+    date: data.date,
     time: data.time,
     numberOfPeople: data.numberOfPeople,
     pickupAddress: data.pickupAddress,
@@ -147,7 +185,7 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
     district: data.district,
     additionalServiceIds: data.additionalServiceIds || [],
     discountCode: data.discountCode,
-    creatorUserId: data.contactPhone, 
+    creatorUserId: data.contactPhone,
     createdAt: new Date().toISOString(),
   };
 
@@ -162,14 +200,14 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
     if (result.insertedId) {
       if (data.discountCode) {
         const discountCodesCol = await getDiscountCodesCollection();
-        await discountCodesCol.updateOne({ code: data.discountCode.toUpperCase() }, { $inc: { timesUsed: 1 }});
+        await discountCodesCol.updateOne({ code: data.discountCode.toUpperCase() }, { $inc: { timesUsed: 1 } });
       }
       revalidatePath('/my-trips');
       revalidatePath('/admin/trips');
       return { success: true, message: 'Trip created successfully! Please proceed to payment.', tripId: newTripObjectId.toString() };
     }
     return { success: false, message: 'Failed to create trip.' };
-  } catch(error) {
+  } catch (error) {
     console.error("Error creating trip:", error);
     return { success: false, message: 'An unexpected error occurred while creating the trip.' };
   }
@@ -188,14 +226,14 @@ export async function getUserTrips(contactPhone: string): Promise<Trip[]> {
 }
 
 export async function getTripById(tripId: string): Promise<Trip | null> {
-    const tripsCollection = await getTripsCollection();
-    let tripDoc;
-    if (ObjectId.isValid(tripId)) {
-        tripDoc = await tripsCollection.findOne({ _id: new ObjectId(tripId) });
-    } else {
-        tripDoc = await tripsCollection.findOne({ id: tripId }); 
-    }
-    return tripDoc ? mapDocumentToTrip(tripDoc) : null;
+  const tripsCollection = await getTripsCollection();
+  let tripDoc;
+  if (ObjectId.isValid(tripId)) {
+    tripDoc = await tripsCollection.findOne({ _id: new ObjectId(tripId) });
+  } else {
+    tripDoc = await tripsCollection.findOne({ id: tripId });
+  }
+  return tripDoc ? mapDocumentToTrip(tripDoc) : null;
 }
 
 export async function getAllTrips(): Promise<Trip[]> {
@@ -206,24 +244,24 @@ export async function getAllTrips(): Promise<Trip[]> {
 
 
 export async function uploadTransferProof(tripId: string, imageUrl: string): Promise<{ success: boolean; message: string }> {
-  const currentTrip = await getTripById(tripId); 
+  const currentTrip = await getTripById(tripId);
   if (!currentTrip || !currentTrip._id) {
-      return { success: false, message: 'Trip not found or invalid Trip ID.' };
+    return { success: false, message: 'Trip not found or invalid Trip ID.' };
   }
   if (!imageUrl) {
-      return { success: false, message: 'Image URL is required.' };
+    return { success: false, message: 'Image URL is required.' };
   }
-  
+
   const tripsCollection = await getTripsCollection();
   const result = await tripsCollection.updateOne(
-    { _id: new ObjectId(currentTrip._id) }, 
-    { $set: { transferProofImageUrl: imageUrl, status: 'pending_payment' } } 
+    { _id: new ObjectId(currentTrip._id) },
+    { $set: { transferProofImageUrl: imageUrl, status: 'pending_payment' } }
   );
 
   if (result.matchedCount > 0) {
     console.log(`Admin Notification: Transfer proof uploaded for Trip ID: ${tripId}. Image URL: ${imageUrl}`);
     revalidatePath('/my-trips');
-    revalidatePath(`/my-trips?tripId=${tripId}`); 
+    revalidatePath(`/my-trips?tripId=${tripId}`);
     revalidatePath('/admin/trips');
     revalidatePath(`/admin/trips/${tripId}`);
     return { success: true, message: 'Transfer proof uploaded. Admin will verify shortly.' };
@@ -231,7 +269,7 @@ export async function uploadTransferProof(tripId: string, imageUrl: string): Pro
   return { success: false, message: 'Failed to update trip with transfer proof.' };
 }
 
-export async function confirmPaymentByAdmin(tripId: string): Promise<{ success: boolean; message: string }> {
+export async function confirmMainBookerPayment(tripId: string): Promise<{ success: boolean; message: string }> {
   const currentTrip = await getTripById(tripId);
   if (!currentTrip || !currentTrip._id) {
     return { success: false, message: 'Trip not found.' };
@@ -248,103 +286,125 @@ export async function confirmPaymentByAdmin(tripId: string): Promise<{ success: 
     revalidatePath('/join-trip');
     revalidatePath('/admin/trips');
     revalidatePath(`/admin/trips/${tripId}`);
-    console.log(`Admin Action: Payment confirmed for Trip ID: ${tripId}.`);
-    return { success: true, message: 'Payment confirmed successfully.' };
+    console.log(`Admin Action: Main booker payment confirmed for Trip ID: ${tripId}.`);
+    return { success: true, message: 'Main booker payment confirmed and trip updated.' };
   }
-  return { success: false, message: 'Failed to confirm payment.' };
+  return { success: false, message: 'Failed to confirm main booker payment.' };
 }
 
+export async function confirmParticipantPayment(tripId: string, participantId: string): Promise<{ success: boolean; message: string }> {
+  const tripsCollection = await getTripsCollection();
+  const result = await tripsCollection.updateOne(
+    { _id: new ObjectId(tripId), 'participants.id': participantId },
+    { $set: { 'participants.$.status': 'payment_confirmed' } }
+  );
+
+  if (result.matchedCount > 0 && result.modifiedCount > 0) {
+    revalidatePath('/my-trips');
+    revalidatePath('/join-trip');
+    revalidatePath('/admin/trips');
+    revalidatePath(`/admin/trips/${tripId}`);
+    console.log(`Admin Action: Payment confirmed for participant ${participantId} in Trip ID: ${tripId}.`);
+    return { success: true, message: 'Participant payment confirmed and trip updated.' };
+  }
+  return { success: false, message: 'Failed to confirm participant payment or participant not found.' };
+}
 
 export async function getConfirmedTrips(): Promise<Trip[]> {
   const tripsCollection = await getTripsCollection();
   const confirmedTripDocs = await tripsCollection.find({
     status: 'payment_confirmed',
-    date: { $gte: format(new Date(), "yyyy-MM-dd") } 
+    date: { $gte: format(new Date(), "yyyy-MM-dd") }
   }).sort({ date: 1, time: 1 }).toArray();
   return confirmedTripDocs.map(mapDocumentToTrip);
 }
 
 
 const joinTripSchema = z.object({
-  tripId: z.string().min(1),
-  name: z.string().min(1, "Name is required."),
-  phone: z.string().min(1, "Phone is required.").regex(/^\+?[0-9\s-]{10,15}$/, "Invalid phone number format."),
-  numberOfPeople: z.number().min(1, "At least one person is required."),
-  address: z.string().min(1, "Address is required for pickup/dropoff coordination."), 
+  tripId: z.string().min(1, "Trip ID is required."),
+  name: z.string().min(2, "Name must be at least 2 characters.").max(100),
+  phone: z.string().regex(/^\+?[0-9\s-]{10,15}$/, "Invalid phone number format."),
+  numberOfPeople: z.coerce.number().min(1, "At least one person is required.").max(10, "Max 10 people to join."),
+  address: z.string().min(5, "Address must be at least 5 characters.").max(200),
   discountCode: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(500, "Notes cannot exceed 500 characters.").optional(),
+  district: z.string().optional(),
+  pricePaid: z.number().min(0, "Price paid cannot be negative."), // Ensure this is passed from client
 });
 
 export async function joinTrip(values: JoinTripFormValues): Promise<{ success: boolean; message: string }> {
-  const validation = joinTripSchema.safeParse({
-      ...values,
-      numberOfPeople: Number(values.numberOfPeople)
-  });
+  const validation = joinTripSchema.safeParse(values);
 
   if (!validation.success) {
     return { success: false, message: validation.error.errors.map(e => e.message).join(', ') };
   }
+
   const data = validation.data;
 
-  const trip = await getTripById(data.tripId);
+  const tripsCollection = await getTripsCollection();
+  const currentTrip = await getTripById(data.tripId);
 
-  if (!trip || !trip._id) {
-    return { success: false, message: 'Trip not found or no longer available.' };
+  if (!currentTrip || !currentTrip._id) {
+    return { success: false, message: 'Trip not found.' };
   }
-  if (trip.status !== 'payment_confirmed') {
-    return { success: false, message: 'This trip is not confirmed or available for joining.' };
-  }
-
-  const itinerary = await getItineraryFromDb(trip.itineraryId);
-  if (!itinerary) {
-    return { success: false, message: 'Itinerary details for this trip are missing.' };
-  }
-  
-  const participantPrice = 0; 
 
   const newParticipant: Participant = {
-    id: `participant_${new ObjectId().toString()}`, 
+    id: new ObjectId().toString(),
     name: data.name,
     phone: data.phone,
     numberOfPeople: data.numberOfPeople,
     address: data.address,
-    discountCode: data.discountCode, 
+    discountCode: data.discountCode,
     notes: data.notes,
-    pricePaid: participantPrice, 
+    district: data.district,
+    pricePaid: data.pricePaid, // Use pricePaid from client
+    status: 'pending_payment', // Set initial status for new participant
   };
 
-  const tripsCollection = await getTripsCollection();
-  const result = await tripsCollection.updateOne(
-    { _id: new ObjectId(trip._id) },
-    { $push: { participants: newParticipant } }
-  );
+  try {
+    const result = await tripsCollection.updateOne(
+      { _id: new ObjectId(currentTrip._id) },
+      { $push: { participants: newParticipant }, $inc: { totalPrice: data.pricePaid } }
+    );
 
-  if (result.matchedCount > 0) {
-    if (data.discountCode) {
-        const discountCodesCol = await getDiscountCodesCollection();
-        await discountCodesCol.updateOne({ code: data.discountCode.toUpperCase() }, { $inc: { timesUsed: 1 }});
+    if (result.matchedCount > 0) {
+      revalidatePath('/my-trips');
+      revalidatePath(`/my-trips?phone=${data.phone}`);
+      revalidatePath('/admin/trips');
+      revalidatePath(`/admin/trips/${data.tripId}`);
+      return { success: true, message: 'Successfully joined the trip! Your payment is pending verification.' };
     }
-    revalidatePath('/my-trips'); 
-    revalidatePath(`/join-trip`);
-    revalidatePath('/admin/trips'); 
-    revalidatePath(`/admin/trips/${trip.id}`);
-    return { success: true, message: `Successfully requested to join trip ${trip.itineraryName}! The trip organizer or admin will contact you regarding payment and confirmation.` };
+    return { success: false, message: 'Failed to join the trip.' };
+  } catch (error) {
+    console.error("Error joining trip:", error);
+    return { success: false, message: 'An unexpected error occurred while joining the trip.' };
   }
-  return { success: false, message: 'Failed to join trip.' };
 }
 
-export async function getTripsForUserFeedback(userIdentifier: string): Promise<{id: string, name: string}[]> {
-    if (!userIdentifier) return [];
-    const tripsCollection = await getTripsCollection();
-    const userTripDocs = await tripsCollection.find({
-      $and: [
-        { $or: [{ contactPhone: userIdentifier }, { 'participants.phone': userIdentifier }] },
-        { $or: [{ status: 'completed' }, { status: 'payment_confirmed' }] }
-      ]
-    }).sort({ date: -1 }).toArray();
-    
-    return userTripDocs.map(trip => ({
-        id: trip.id, 
-        name: `${trip.itineraryName} on ${format(new Date(trip.date), "MMM dd, yyyy")}`
-    }));
+export async function getTripsForUserFeedback(userIdentifier: string): Promise<{ id: string, name: string }[]> {
+  if (!userIdentifier) return [];
+  const tripsCollection = await getTripsCollection();
+  const userTripDocs = await tripsCollection.find({
+    $and: [
+      { $or: [{ contactPhone: userIdentifier }, { 'participants.phone': userIdentifier }] },
+      { $or: [{ status: 'completed' }, { status: 'payment_confirmed' }] }
+    ]
+  }).sort({ date: -1 }).toArray();
+
+  return userTripDocs.map(trip => ({
+    id: trip.id,
+    name: `${trip.itineraryName} on ${format(new Date(trip.date), "MMM dd, yyyy")}`
+  }));
+}
+
+export async function deleteTrip(tripId: string): Promise<{ success: boolean; message: string }> {
+  const tripsCollection = await getTripsCollection();
+  const result = await tripsCollection.deleteOne({ _id: new ObjectId(tripId) });
+
+  if (result.deletedCount > 0) {
+    revalidatePath('/my-trips');
+    revalidatePath('/admin/trips');
+    return { success: true, message: 'Trip deleted successfully.' };
+  }
+  return { success: false, message: 'Failed to delete trip.' };
 }

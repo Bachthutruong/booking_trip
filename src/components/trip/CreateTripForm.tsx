@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,6 +48,18 @@ const createTripFormSchema = z.object({
   additionalServiceIds: z.array(z.string()).optional(),
   discountCode: z.string().optional(),
 }).superRefine((data, ctx) => {
+  const sevenDaysFromNow = new Date();
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+  sevenDaysFromNow.setHours(0, 0, 0, 0); // Normalize to start of day for comparison
+
+  if (data.date && data.date < sevenDaysFromNow) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Trip date must be at least 7 days from today.",
+      path: ["date"],
+    });
+  }
+
   if (data.secondaryContactType && !data.secondaryContactValue) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -139,7 +150,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
     const numPeople = watchNumberOfPeople || 1;
     const districtSurchargeItem = districts.find(d => d.districtName === watchDistrict);
     const districtSurchargeAmount = districtSurchargeItem ? districtSurchargeItem.surchargeAmount : 0;
-    
+
     let servicesPrice = 0;
     if (watchAdditionalServices) {
       servicesPrice = watchAdditionalServices.reduce((total, serviceId) => {
@@ -147,7 +158,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
         return total + (service?.price || 0);
       }, 0);
     }
-    
+
     let basePrice = (itinerary.pricePerPerson * numPeople) + districtSurchargeAmount + servicesPrice;
 
     if (appliedDiscount) {
@@ -170,7 +181,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
       return;
     }
     if ((itinerary.type === 'airport_dropoff' || itinerary.type === 'tourism') && !values.pickupAddress) {
-       form.setError("pickupAddress", { type: "manual", message: "Pickup address is required for this itinerary type." });
+      form.setError("pickupAddress", { type: "manual", message: "Pickup address is required for this itinerary type." });
       setIsSubmitting(false);
       return;
     }
@@ -178,12 +189,13 @@ export default function CreateTripForm({ itinerary, districts, additionalService
 
     const submissionData: FormValues & { date: string; secondaryContact?: string } = {
       ...values,
+      // @ts-ignore
       date: format(values.date, "yyyy-MM-dd"), // Format date to string for server action
       additionalServiceIds: values.additionalServiceIds || [],
       discountCode: appliedDiscount ? appliedDiscount.code : undefined, // Submit the validated code
       secondaryContact: values.secondaryContactType && values.secondaryContactValue ? `${values.secondaryContactType}: ${values.secondaryContactValue}` : undefined,
     };
-    
+
     try {
       const result = await createTrip(submissionData);
 
@@ -210,12 +222,13 @@ export default function CreateTripForm({ itinerary, districts, additionalService
       setIsSubmitting(false);
     }
   }
-  
+
   const addressFields = useMemo(() => {
     switch (itinerary.type) {
       case 'airport_pickup':
-        return (
+        return [
           <FormField
+            key="dropoff-address"
             control={form.control}
             name="dropoffAddress"
             render={({ field }) => (
@@ -228,12 +241,39 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 <FormMessage />
               </FormItem>
             )}
-          />
-        );
-      case 'airport_dropoff': 
-      case 'tourism': 
-        return (
+          />,
           <FormField
+            key="district-dropoff"
+            control={form.control}
+            name="district"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />District (for drop-off in Hanoi)</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a district" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {districts.map((district) => (
+                      <SelectItem key={district.districtName} value={district.districtName}>
+                        {district.districtName} {district.surchargeAmount > 0 ? `(+${district.surchargeAmount.toLocaleString()} VND)` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>Surcharges may apply for some districts.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ];
+      case 'airport_dropoff':
+      case 'tourism':
+        return [
+          <FormField
+            key="pickup-address"
             control={form.control}
             name="pickupAddress"
             render={({ field }) => (
@@ -246,12 +286,38 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 <FormMessage />
               </FormItem>
             )}
+          />,
+          <FormField
+            key="district-pickup"
+            control={form.control}
+            name="district"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />District (for pickup in Hanoi)</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a district" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {districts.map((district) => (
+                      <SelectItem key={district.districtName} value={district.districtName}>
+                        {district.districtName} {district.surchargeAmount > 0 ? `(+${district.surchargeAmount.toLocaleString()} VND)` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>Surcharges may apply for some districts.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        );
+        ];
       default:
         return null;
     }
-  }, [itinerary.type, form.control]);
+  }, [itinerary.type, form.control, districts]);
 
 
   return (
@@ -260,14 +326,14 @@ export default function CreateTripForm({ itinerary, districts, additionalService
         <h2 className="text-2xl font-headline font-semibold mb-4">Selected Itinerary</h2>
         <ItineraryCard itinerary={itinerary} className="shadow-lg sticky top-24" />
         <Card className="mt-6 shadow-lg p-6 bg-primary/5">
-            <h3 className="text-xl font-semibold mb-3 flex items-center"><Tag className="h-5 w-5 mr-2 text-primary"/>Estimated Price</h3>
-            <p className="text-3xl font-bold text-primary">
-              {calculatedPrice.toLocaleString()} VND
-            </p>
-            {discountMessage && <p className={`text-xs mt-1 ${appliedDiscount ? 'text-green-600' : 'text-destructive'}`}>{discountMessage}</p>}
-            <p className="text-xs text-muted-foreground mt-1">
-              Final price based on selections.
-            </p>
+          <h3 className="text-xl font-semibold mb-3 flex items-center"><Tag className="h-5 w-5 mr-2 text-primary" />Estimated Price</h3>
+          <p className="text-3xl font-bold text-primary">
+            {calculatedPrice.toLocaleString()} VND
+          </p>
+          {discountMessage && <p className={`text-xs mt-1 ${appliedDiscount ? 'text-green-600' : 'text-destructive'}`}>{discountMessage}</p>}
+          <p className="text-xs text-muted-foreground mt-1">
+            Final price based on selections.
+          </p>
         </Card>
       </div>
 
@@ -305,7 +371,12 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) }
+                          disabled={(date) => {
+                            const sevenDaysFromNow = new Date();
+                            sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+                            sevenDaysFromNow.setHours(0, 0, 0, 0); // Normalize to start of day for comparison
+                            return date < sevenDaysFromNow;
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
@@ -353,32 +424,6 @@ export default function CreateTripForm({ itinerary, districts, additionalService
             />
 
             {addressFields}
-            
-            <FormField
-              control={form.control}
-              name="district"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center"><Palette className="h-4 w-4 mr-2 text-primary" />District (for pickup/dropoff in Hanoi)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your district" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {districts.map(district => (
-                        <SelectItem key={district.id} value={district.districtName}>
-                          {district.districtName} {district.surchargeAmount > 0 ? `(+${district.surchargeAmount.toLocaleString()} VND)` : '(No surcharge)'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>Surcharges may apply for some districts.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}
@@ -406,42 +451,42 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 </FormItem>
               )}
             />
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
                 control={form.control}
                 name="secondaryContactType"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem>
                     <FormLabel className="flex items-center"><Contact className="h-4 w-4 mr-2 text-primary" />Secondary Contact Type</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
+                      <FormControl>
                         <SelectTrigger>
-                            <SelectValue placeholder="Select contact type (Optional)" />
+                          <SelectValue placeholder="Select contact type (Optional)" />
                         </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
+                      </FormControl>
+                      <SelectContent>
                         {AVAILABLE_SECONDARY_CONTACT_TYPES.map(type => (
-                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
                         ))}
-                        </SelectContent>
+                      </SelectContent>
                     </Select>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
-                <FormField
+              />
+              <FormField
                 control={form.control}
                 name="secondaryContactValue"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem>
                     <FormLabel className="flex items-center opacity-0 md:opacity-100">.</FormLabel> {/* Spacer for alignment */}
                     <FormControl>
-                        <Input placeholder={`Your ${watch("secondaryContactType") || 'contact detail'}`} {...field} disabled={!watch("secondaryContactType")} />
+                      <Input placeholder={`Your ${watch("secondaryContactType") || 'contact detail'}`} {...field} disabled={!watch("secondaryContactType")} />
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
+              />
             </div>
 
             {additionalServices.length > 0 && (
@@ -457,40 +502,40 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                       </FormDescription>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                    {additionalServices.map((service) => (
-                      <FormField
-                        key={service.id}
-                        control={form.control}
-                        name="additionalServiceIds"
-                        render={({ field }) => {
-                          return (
-                            <FormItem
-                              key={service.id}
-                              className="flex flex-row items-center space-x-3 space-y-0"
-                            >
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(service.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...(field.value || []), service.id])
-                                      : field.onChange(
+                      {additionalServices.map((service) => (
+                        <FormField
+                          key={service.id}
+                          control={form.control}
+                          name="additionalServiceIds"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={service.id}
+                                className="flex flex-row items-center space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(service.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...(field.value || []), service.id])
+                                        : field.onChange(
                                           (field.value || []).filter(
                                             (value) => value !== service.id
                                           )
                                         );
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal text-sm">
-                                {service.name} (+{service.price.toLocaleString()} VND)
-                                {service.description && <span className="block text-xs text-muted-foreground">{service.description}</span>}
-                              </FormLabel>
-                            </FormItem>
-                          );
-                        }}
-                      />
-                    ))}
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal text-sm">
+                                  {service.name} (+{service.price.toLocaleString()} VND)
+                                  {service.description && <span className="block text-xs text-muted-foreground">{service.description}</span>}
+                                </FormLabel>
+                              </FormItem>
+                            );
+                          }}
+                        />
+                      ))}
                     </div>
                     <FormMessage />
                   </FormItem>

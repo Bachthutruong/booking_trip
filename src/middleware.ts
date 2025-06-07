@@ -1,39 +1,27 @@
-
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { ObjectId } from 'mongodb';
-import { getAdminUsersCollection } from '@/lib/mongodb'; // Adjust path as necessary
+// import { verifyAdminToken } from '@/actions/adminAuthActions'; // This import will be removed
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const adminAuthCookie = request.cookies.get('admin-auth-token');
-  const adminUserId = adminAuthCookie?.value;
 
-  const isTryingToAccessAdminArea = pathname.startsWith('/admin') && !pathname.startsWith('/admin/login');
+  console.log('Middleware: Pathname:', pathname);
+
+  const isPublicAdminPath = pathname === '/admin/login' || pathname === '/admin/register';
+  const isTryingToAccessProtectedAdminArea = pathname.startsWith('/admin') && !isPublicAdminPath;
   const isTryingToAccessLoginPage = pathname === '/admin/login';
 
-  let isAdminAuthenticated = false;
+  // Check for the presence of the admin-auth-token cookie
+  const isAdminAuthenticated = request.cookies.has('admin-auth-token');
 
-  if (adminUserId && ObjectId.isValid(adminUserId)) {
-    try {
-      const adminUsersCollection = await getAdminUsersCollection();
-      const adminUser = await adminUsersCollection.findOne({ _id: new ObjectId(adminUserId) });
-      if (adminUser) {
-        isAdminAuthenticated = true;
-      }
-    } catch (error) {
-      console.error("Middleware DB Error:", error);
-      // In case of DB error, treat as unauthenticated for safety
-      isAdminAuthenticated = false;
-    }
-  }
+  console.log('Middleware: Is Admin Authenticated (by cookie presence)?', isAdminAuthenticated);
 
-  if (isTryingToAccessAdminArea && !isAdminAuthenticated) {
+  if (isTryingToAccessProtectedAdminArea && !isAdminAuthenticated) {
     const loginUrl = new URL('/admin/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
-  
+
   if (isTryingToAccessLoginPage && isAdminAuthenticated) {
     return NextResponse.redirect(new URL('/admin/dashboard', request.url));
   }

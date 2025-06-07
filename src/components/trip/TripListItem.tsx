@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Trip } from '@/lib/types';
@@ -19,35 +18,44 @@ interface TripListItemProps {
   onActionComplete?: () => void;
 }
 
-const StatusBadge = ({ status }: { status: Trip['status'] }) => {
+const StatusBadge = ({ status, small = false }: { status: Trip['status']; small?: boolean }) => {
   let icon;
   let variant: "default" | "secondary" | "destructive" | "outline" = "default";
   let className = "";
 
   switch (status) {
     case 'pending_payment':
-      icon = <Hourglass className="h-3 w-3 mr-1.5" />;
+      icon = <Hourglass className={cn("mr-1.5", small ? "h-2.5 w-2.5" : "h-3 w-3")} />;
       variant = "outline";
       className = "border-yellow-500 text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/30";
       break;
     case 'payment_confirmed':
-      icon = <CheckCircle2 className="h-3 w-3 mr-1.5" />;
+      icon = <CheckCircle2 className={cn("mr-1.5", small ? "h-2.5 w-2.5" : "h-3 w-3")} />;
       variant = "default";
       className = "bg-green-500 text-white hover:bg-green-600";
       break;
     case 'completed':
-      icon = <CheckCircle2 className="h-3 w-3 mr-1.5" />;
+      icon = <CheckCircle2 className={cn("mr-1.5", small ? "h-2.5 w-2.5" : "h-3 w-3")} />;
       variant = "secondary";
       className = "bg-blue-500 text-white hover:bg-blue-600";
       break;
     case 'cancelled':
-      icon = <Ban className="h-3 w-3 mr-1.5" />;
+      icon = <Ban className={cn("mr-1.5", small ? "h-2.5 w-2.5" : "h-3 w-3")} />;
       variant = "destructive";
       break;
     default:
-      icon = <AlertTriangle className="h-3 w-3 mr-1.5" />;
+      icon = <AlertTriangle className={cn("mr-1.5", small ? "h-2.5 w-2.5" : "h-3 w-3")} />;
   }
-  return <Badge variant={variant} className={cn("capitalize text-xs px-2 py-1", className)}>{icon}{TRIP_STATUSES[status]}</Badge>;
+  return <Badge variant={variant} className={cn("capitalize px-2 py-1", small ? "text-xs" : "text-sm", className)}>{icon}{TRIP_STATUSES[status]}</Badge>;
+};
+
+const ParticipantStatusBadge = ({ status, pricePaid }: { status: Trip['status']; pricePaid: number }) => {
+  if (status === 'payment_confirmed') {
+    return <Badge variant="default" className="bg-green-500 text-white text-xs px-2 py-1"><CheckCircle2 className="h-2.5 w-2.5 mr-1" /> Paid ({pricePaid.toLocaleString()} VND)</Badge>;
+  } else if (status === 'pending_payment') {
+    return <Badge variant="outline" className="border-yellow-500 text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/30 text-xs px-2 py-1"><Hourglass className="h-2.5 w-2.5 mr-1" /> Pending ({pricePaid.toLocaleString()} VND)</Badge>;
+  }
+  return null;
 };
 
 const ItineraryTypeIcon = ({ type }: { type: Trip['itineraryType'] }) => {
@@ -88,19 +96,22 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
           <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Guests:</strong>&nbsp;{trip.numberOfPeople + trip.participants.reduce((sum, p) => sum + p.numberOfPeople, 0)}</p>
           <p className="flex items-center"><CreditCard className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Total:</strong>&nbsp;{trip.totalPrice.toLocaleString()} VND</p>
         </div>
-         <p className="flex items-center"><PhoneCall className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Contact:</strong>&nbsp;{trip.contactName} ({trip.contactPhone})</p>
+        <p className="flex items-center"><PhoneCall className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Contact:</strong>&nbsp;{trip.contactName} ({trip.contactPhone})</p>
         {trip.pickupAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Pickup:</strong>&nbsp;{trip.pickupAddress}</p>}
         {trip.dropoffAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Dropoff:</strong>&nbsp;{trip.dropoffAddress}</p>}
         {trip.district && <p className="text-xs text-muted-foreground"><strong>District:</strong> {trip.district}</p>}
         {trip.additionalServiceIds && trip.additionalServiceIds.length > 0 && <p className="text-xs text-muted-foreground"><strong>Services:</strong> {trip.additionalServiceIds.join(', ')}</p>}
-        {trip.notes && <p className="text-xs text-muted-foreground italic flex items-start"><MessageSquare className="h-3 w-3 mr-1.5 mt-0.5 text-primary flex-shrink-0"/> {trip.notes}</p>}
-        
+        {trip.notes && <p className="text-xs text-muted-foreground italic flex items-start"><MessageSquare className="h-3 w-3 mr-1.5 mt-0.5 text-primary flex-shrink-0" /> {trip.notes}</p>}
+
         {trip.participants.length > 0 && (
           <div className="pt-2 mt-2 border-t">
             <h4 className="text-xs font-semibold text-muted-foreground mb-1">Joined Participants:</h4>
             <ul className="list-disc list-inside pl-1 space-y-0.5 text-xs">
               {trip.participants.map(p => (
-                <li key={p.id}>{p.name} ({p.numberOfPeople} person(s), Phone: {p.phone}) - Pickup: {p.address}</li>
+                <li key={p.id} className="flex items-center justify-between">
+                  <span>{p.name} ({p.numberOfPeople} person(s), Phone: {p.phone}) - Pickup: {p.address}</span>
+                  <ParticipantStatusBadge status={p.status} pricePaid={p.pricePaid} />
+                </li>
               ))}
             </ul>
           </div>
@@ -111,8 +122,8 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
         {trip.status === 'pending_payment' && (
           <>
             {trip.transferProofImageUrl ? (
-              <Badge variant="outline" className="text-green-600 border-green-500 bg-green-50 dark:text-green-400 dark:border-green-600 dark:bg-green-900/30">
-                <CheckCircle2 className="h-3 w-3 mr-1.5"/>Proof Uploaded - Awaiting Confirmation
+              <Badge variant="outline" className="text-green-600 border-green-500 bg-green-50 dark:text-green-400 dark:border-green-600 dark:bg-green-900/30 w-full sm:w-auto text-center">
+                <CheckCircle2 className="h-3 w-3 mr-1.5" />Proof Uploaded - Awaiting Confirmation
               </Badge>
             ) : (
               <Button onClick={() => setIsUploadDialogOpen(true)} className="bg-accent text-accent-foreground hover:bg-accent/90 w-full sm:w-auto">
@@ -121,14 +132,14 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
             )}
           </>
         )}
-        {trip.status === 'payment_confirmed' && new Date(trip.date) >= new Date(new Date().setHours(0,0,0,0)) && (
-             <p className="text-sm text-green-600 font-medium">Your trip is confirmed!</p>
+        {trip.status === 'payment_confirmed' && new Date(trip.date) >= new Date(new Date().setHours(0, 0, 0, 0)) && (
+          <p className="text-sm text-green-600 font-medium">Your trip is confirmed!</p>
         )}
-         {trip.status === 'completed' && (
-             <p className="text-sm text-blue-600 font-medium">This trip has been completed.</p>
+        {trip.status === 'completed' && (
+          <p className="text-sm text-blue-600 font-medium">This trip has been completed.</p>
         )}
-         {trip.status === 'cancelled' && (
-             <p className="text-sm text-destructive font-medium">This trip has been cancelled.</p>
+        {trip.status === 'cancelled' && (
+          <p className="text-sm text-destructive font-medium">This trip has been cancelled.</p>
         )}
       </CardFooter>
       {isUploadDialogOpen && (

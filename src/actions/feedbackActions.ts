@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getFeedbackCollection } from '@/lib/mongodb';
@@ -20,7 +19,7 @@ export async function submitFeedback(values: FeedbackFormValues): Promise<{ succ
   if (!validation.success) {
     return { success: false, message: validation.error.errors.map(e => e.message).join(', ') };
   }
-  
+
   const data = validation.data;
   const feedbackCollection = await getFeedbackCollection();
   const newFeedbackObjectId = new ObjectId();
@@ -60,4 +59,18 @@ export async function getAllFeedback(): Promise<Feedback[]> {
     ...doc,
     id: doc._id.toString(),
   })) as Feedback[];
+}
+
+export async function getFeedbackById(id: string): Promise<Feedback | null> {
+  try {
+    const collection = await getFeedbackCollection();
+    const feedback = await collection.findOne({ _id: new ObjectId(id) });
+    if (!feedback) {
+      return null;
+    }
+    return { ...feedback, id: feedback._id.toHexString() };
+  } catch (error) {
+    console.error(`Failed to fetch feedback by ID ${id}:`, error);
+    return null;
+  }
 }

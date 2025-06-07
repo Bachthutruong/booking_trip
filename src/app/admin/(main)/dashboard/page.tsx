@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getItineraries } from "@/actions/itineraryActions";
 import { getTripsCollection, getFeedbackCollection, getDiscountCodesCollection, getAdditionalServicesCollection, getDistrictSurchargesCollection } from "@/lib/mongodb";
@@ -37,7 +36,7 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
-      
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {summaryCards.map(card => (
           <Card key={card.title} className="hover:shadow-lg transition-shadow">

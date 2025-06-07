@@ -1,66 +1,53 @@
-
 'use server';
 
-import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { getAdminUsersCollection } from '@/lib/mongodb';
 import type { AdminUser } from '@/lib/types';
+import { ObjectId } from 'mongodb';
 
-const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-export async function loginAdmin(formData: FormData, redirectPathOverride?: string): Promise<{ success: boolean; message: string } | void> {
-  const values = Object.fromEntries(formData.entries());
-  const validation = loginSchema.safeParse(values);
-
-  if (!validation.success) {
-    return { success: false, message: validation.error.errors.map(e => e.message).join(', ') };
-  }
-
-  const { username, password } = validation.data;
-
-  try {
-    const adminUsersCollection = await getAdminUsersCollection();
-    const adminUser = await adminUsersCollection.findOne({ username: username.toLowerCase() });
-
-    if (!adminUser) {
-      return { success: false, message: 'Invalid username or password.' };
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, adminUser.passwordHash);
-
-    if (!isPasswordValid) {
-      return { success: false, message: 'Invalid username or password.' };
-    }
-
-    // Password is valid, set session cookie
-    cookies().set('admin-auth-token', adminUser._id.toString(), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      sameSite: 'lax',
-    });
-
-    const finalRedirectPath = redirectPathOverride || '/admin/dashboard';
-    redirect(finalRedirectPath);
-    // The redirect function throws an error, so this line won't be reached if successful.
-
-  } catch (error) {
-    console.error('Admin login error:', error);
-    // Check if it's a redirect error that should be re-thrown
-    if (error && typeof (error as any).digest === 'string' && (error as any).digest.includes('NEXT_REDIRECT')) {
-      throw error;
-    }
-    return { success: false, message: 'An unexpected error occurred during login. Please try again.' };
-  }
+// Ensure JWT_SECRET is available
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined in environment variables.');
 }
 
 export async function logoutAdmin() {
-  cookies().delete('admin-auth-token');
+  (await cookies()).delete('admin-auth-token');
   redirect('/admin/login');
+}
+
+// New server action to verify admin token
+export async function verifyAdminToken(): Promise<{ isAuthenticated: boolean; userId?: string }> {
+  const adminAuthCookie = (await cookies()).get('admin-auth-token');
+  const token = adminAuthCookie?.value;
+
+  if (!token) {
+    return { isAuthenticated: false };
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET!) as jwt.JwtPayload;
+    const adminUserId = decoded.userId;
+
+    if (typeof adminUserId !== 'string' || !ObjectId.isValid(adminUserId)) {
+      console.error('Invalid or missing userId in JWT token:', adminUserId);
+      return { isAuthenticated: false };
+    }
+
+    const adminUsersCollection = await getAdminUsersCollection();
+    const adminUser = await adminUsersCollection.findOne({ _id: new ObjectId(adminUserId) });
+
+    if (adminUser) {
+      return { isAuthenticated: true, userId: adminUserId };
+    } else {
+      console.log('Admin User not found in DB for token userId:', adminUserId);
+      return { isAuthenticated: false };
+    }
+  } catch (error) {
+    console.error('JWT Verification Error:', error);
+    // Token is invalid or expired
+    return { isAuthenticated: false };
+  }
 }

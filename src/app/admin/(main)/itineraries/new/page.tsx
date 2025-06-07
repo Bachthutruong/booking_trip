@@ -10,7 +10,7 @@ export default function NewItineraryPage() {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <Button variant="outline" asChild className="mb-4">
-        <Link href="/admin/itineraries"><ArrowLeft className="mr-2 h-4 w-4"/> Back to Itineraries</Link>
+        <Link href="/admin/itineraries"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Itineraries</Link>
       </Button>
       <Card>
         <CardHeader>

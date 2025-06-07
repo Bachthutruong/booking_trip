@@ -1,4 +1,3 @@
-
 import { getItineraries } from '@/actions/itineraryActions';
 import ItinerarySelectionStep from '@/components/trip/ItinerarySelectionStep';
 import CreateTripFormWrapper from '@/components/trip/CreateTripFormWrapper';
@@ -26,11 +25,23 @@ export default async function CreateTripPage({
 
   const allItineraries = await getItineraries();
 
+  // Convert to plain objects to avoid the "toJSON" error when passing to Client Components
+  const plainItineraries = allItineraries.map(itn => ({
+    id: itn.id, // Mongoose documents have a .id getter that returns _id as a string
+    name: itn.name,
+    type: itn.type,
+    pricePerPerson: itn.pricePerPerson,
+    description: itn.description,
+    imageUrl: itn.imageUrl,
+    availableTimes: itn.availableTimes,
+    // Add any other properties from your Itinerary type that are needed in client components
+  }));
+
   // If initialItineraryType is provided, filter by it. Otherwise, use all itineraries.
   const itinerariesToDisplay = initialItineraryType
-    ? allItineraries.filter(itn => itn.type === initialItineraryType)
-    : allItineraries;
-  
+    ? plainItineraries.filter(itn => itn.type === initialItineraryType)
+    : plainItineraries;
+
   const title = initialItineraryType
     ? `Select a ${initialItineraryType.replace('_', ' ')} Itinerary`
     : "Choose Your Adventure: Select an Itinerary";
@@ -73,4 +84,3 @@ function CreateTripFormSkeleton() {
   )
 }
 
-    

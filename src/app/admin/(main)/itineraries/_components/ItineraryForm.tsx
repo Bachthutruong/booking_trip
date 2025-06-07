@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,10 +25,11 @@ import { Loader2, Save, Package, Type, Tag, Image as ImageIcon, ClockIcon, Info,
 import { uploadFile } from "@/actions/uploadActions";
 import NextImage from "next/image"; // For preview
 import { Label } from "@/components/ui/label"; // Added Label
+import { createItinerary, updateItinerary } from "@/actions/itineraryActions"; // Import server actions
 
 const itineraryFormSchema = z.object({
   name: z.string().min(3, "Name is required and must be at least 3 characters."),
-  type: z.enum(['airport_pickup', 'airport_dropoff', 'tourism'], { required_error: "Itinerary type is required."}),
+  type: z.enum(['airport_pickup', 'airport_dropoff', 'tourism'], { required_error: "Itinerary type is required." }),
   pricePerPerson: z.coerce.number().min(0, "Price must be a positive number."),
   description: z.string().min(10, "Description is required and must be at least 10 characters."),
   imageUrl: z.string().url("Must be a valid URL if provided, or will be auto-generated/uploaded.").optional().or(z.literal('')),
@@ -40,11 +40,12 @@ const itineraryFormSchema = z.object({
 
 interface ItineraryFormProps {
   initialData?: Itinerary | null;
-  onSubmitAction: (values: ItineraryFormValues) => Promise<{ success: boolean; message: string; itineraryId?: string }>;
+  isEditMode?: boolean; // New prop
+  itineraryId?: string; // New prop, optional for new itineraries
   submitButtonText?: string;
 }
 
-export default function ItineraryForm({ initialData, onSubmitAction, submitButtonText = "Save Itinerary" }: ItineraryFormProps) {
+export default function ItineraryForm({ initialData, isEditMode = false, itineraryId, submitButtonText = "Save Itinerary" }: ItineraryFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -64,19 +65,19 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
       availableTimes: initialData?.availableTimes?.join(', ') || "",
     },
   });
-  
+
   useEffect(() => {
     // If initialData.imageUrl changes (e.g. after form submission and re-fetch), update preview
     setImagePreview(initialData?.imageUrl || null);
     form.reset({ // also reset form value for imageUrl
-        name: initialData?.name || "",
-        type: initialData?.type || undefined,
-        pricePerPerson: initialData?.pricePerPerson || 0,
-        description: initialData?.description || "",
-        imageUrl: initialData?.imageUrl || "",
-        availableTimes: initialData?.availableTimes?.join(', ') || "",
+      name: initialData?.name || "",
+      type: initialData?.type || undefined,
+      pricePerPerson: initialData?.pricePerPerson || 0,
+      description: initialData?.description || "",
+      imageUrl: initialData?.imageUrl || "",
+      availableTimes: initialData?.availableTimes?.join(', ') || "",
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData?.imageUrl, initialData?.name, initialData?.type, initialData?.pricePerPerson, initialData?.description, initialData?.availableTimes]); // Added all fields to dependency array for full reset
 
 
@@ -84,13 +85,13 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({ title: "File too large", description: "Please select an image smaller than 5MB.", variant: "destructive"});
+        toast({ title: "File too large", description: "Please select an image smaller than 5MB.", variant: "destructive" });
         setSelectedFile(null);
         setImagePreview(initialData?.imageUrl || null); // Revert to initial on error
         return;
       }
       if (!file.type.startsWith('image/')) {
-        toast({ title: "Invalid file type", description: "Please select an image file (JPG, PNG, GIF, etc.).", variant: "destructive"});
+        toast({ title: "Invalid file type", description: "Please select an image file (JPG, PNG, GIF, etc.).", variant: "destructive" });
         setSelectedFile(null);
         setImagePreview(initialData?.imageUrl || null);
         return;
@@ -104,13 +105,13 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
       form.setValue('imageUrl', ''); // Clear the text input for URL if a file is chosen
     }
   };
-  
+
   const handleClearImage = () => {
     setSelectedFile(null);
     setImagePreview(null);
     form.setValue('imageUrl', ''); // Clear stored URL too
     if (fileInputRef.current) {
-        fileInputRef.current.value = ""; // Reset file input
+      fileInputRef.current.value = ""; // Reset file input
     }
   };
 
@@ -136,10 +137,16 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
           return;
         }
       }
-      
+
       const submissionValues = { ...values, imageUrl: finalImageUrl || "" };
 
-      const result = await onSubmitAction(submissionValues);
+      let result;
+      if (isEditMode && itineraryId) {
+        result = await updateItinerary(itineraryId, submissionValues);
+      } else {
+        result = await createItinerary(submissionValues);
+      }
+
       if (result.success) {
         toast({
           title: initialData ? "Itinerary Updated!" : "Itinerary Created!",
@@ -148,12 +155,12 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
         setSelectedFile(null); // Reset file after successful submission
         //setImagePreview(null); // Preview will be updated by useEffect if initialData.imageUrl changes
         if (result.itineraryId && (!initialData || initialData.id !== result.itineraryId)) { // Check if it's a new itinerary or different ID
-             router.push(`/admin/itineraries/${result.itineraryId}/edit`); // Go to edit page of new/updated
+          router.push(`/admin/itineraries/${result.itineraryId}/edit`); // Go to edit page of new/updated
         } else if (initialData) {
-            router.refresh(); // Refresh current edit page
+          router.refresh(); // Refresh current edit page
         }
-         else { // This case for creation that doesn't return ID, or if no initialData and no new ID
-            router.push('/admin/itineraries');
+        else { // This case for creation that doesn't return ID, or if no initialData and no new ID
+          router.push('/admin/itineraries');
         }
 
       } else {
@@ -174,7 +181,7 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Package className="mr-2 h-4 w-4 text-primary"/>Itinerary Name *</FormLabel>
+              <FormLabel className="flex items-center"><Package className="mr-2 h-4 w-4 text-primary" />Itinerary Name *</FormLabel>
               <FormControl>
                 <Input placeholder="e.g., Hanoi Old Quarter Walking Tour" {...field} />
               </FormControl>
@@ -188,7 +195,7 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
           name="type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Type className="mr-2 h-4 w-4 text-primary"/>Itinerary Type *</FormLabel>
+              <FormLabel className="flex items-center"><Type className="mr-2 h-4 w-4 text-primary" />Itinerary Type *</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -211,7 +218,7 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
           name="pricePerPerson"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary"/>Price Per Person (VND) *</FormLabel>
+              <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />Price Per Person (VND) *</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="e.g., 500000" {...field} />
               </FormControl>
@@ -225,7 +232,7 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary"/>Description *</FormLabel>
+              <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />Description *</FormLabel>
               <FormControl>
                 <Textarea placeholder="Detailed description of the itinerary..." {...field} rows={5} />
               </FormControl>
@@ -233,61 +240,61 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
             </FormItem>
           )}
         />
-        
+
         <FormItem>
-            <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-primary"/>Itinerary Image</FormLabel>
-            <FormControl>
-                <Input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleFileChange}
-                    className="file:text-primary file:font-semibold"
-                    ref={fileInputRef} // Use ref here
-                />
-            </FormControl>
-            <FormDescription>Upload an image for the itinerary (max 5MB). Or paste a URL below.</FormDescription>
+          <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-primary" />Itinerary Image</FormLabel>
+          <FormControl>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="file:text-primary file:font-semibold"
+              ref={fileInputRef} // Use ref here
+            />
+          </FormControl>
+          <FormDescription>Upload an image for the itinerary (max 5MB). Or paste a URL below.</FormDescription>
         </FormItem>
 
         {imagePreview && (
           <div className="space-y-2">
             <Label>Image Preview:</Label>
             <div className="relative group w-full max-w-sm border rounded-md p-2">
-                <NextImage src={imagePreview} alt="Itinerary preview" width={400} height={250} className="rounded-md object-contain max-h-[200px]" data-ai-hint="travel itinerary photo" />
-                <Button 
-                    type="button" 
-                    variant="destructive" 
-                    size="icon" 
-                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={handleClearImage}
-                    title="Remove image"
-                >
-                    <XCircle className="h-5 w-5"/>
-                </Button>
+              <NextImage src={imagePreview} alt="Itinerary preview" width={400} height={250} className="rounded-md object-contain max-h-[200px]" data-ai-hint="travel itinerary photo" />
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={handleClearImage}
+                title="Remove image"
+              >
+                <XCircle className="h-5 w-5" />
+              </Button>
             </div>
           </div>
         )}
-         {!selectedFile && ( // Show current imageUrl input only if no file selected for upload
-            <FormField
+        {!selectedFile && ( // Show current imageUrl input only if no file selected for upload
+          <FormField
             control={form.control}
             name="imageUrl"
             render={({ field }) => (
-                <FormItem>
+              <FormItem>
                 <FormLabel className="text-xs text-muted-foreground">Or paste Image URL</FormLabel>
                 <FormControl>
-                    <Input 
-                        placeholder="https://example.com/image.png" 
-                        {...field} 
-                        disabled={!!selectedFile} // Disable if a file is selected
-                        onChange={(e) => {
-                            field.onChange(e);
-                            if (!selectedFile) setImagePreview(e.target.value);
-                        }}
-                    />
+                  <Input
+                    placeholder="https://example.com/image.png"
+                    {...field}
+                    disabled={!!selectedFile} // Disable if a file is selected
+                    onChange={(e) => {
+                      field.onChange(e);
+                      if (!selectedFile) setImagePreview(e.target.value);
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
-                </FormItem>
+              </FormItem>
             )}
-            />
+          />
         )}
 
 
@@ -296,7 +303,7 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
           name="availableTimes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><ClockIcon className="mr-2 h-4 w-4 text-primary"/>Available Times *</FormLabel>
+              <FormLabel className="flex items-center"><ClockIcon className="mr-2 h-4 w-4 text-primary" />Available Times *</FormLabel>
               <FormControl>
                 <Input placeholder="e.g., 08:00, 09:30, 14:00, 15:30" {...field} />
               </FormControl>

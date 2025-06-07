@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getItinerariesCollection } from '@/lib/mongodb';
@@ -63,7 +62,7 @@ export async function createItinerary(values: ItineraryFormValues): Promise<{ su
     type: data.type,
     pricePerPerson: data.pricePerPerson,
     description: data.description,
-    imageUrl: data.imageUrl || `https://placehold.co/600x400.png?text=${encodeURIComponent(data.name.substring(0,15))}`,
+    imageUrl: data.imageUrl || `https://placehold.co/600x400.png?text=${encodeURIComponent(data.name.substring(0, 15))}`,
     availableTimes: data.availableTimes.split(',').map(t => t.trim()).filter(t => t),
   };
 
@@ -94,7 +93,7 @@ export async function updateItinerary(id: string, values: ItineraryFormValues): 
   } else {
     const currentItinerary = await getItineraryById(id); // Try to find by string id
     if (!currentItinerary || !currentItinerary._id) {
-        return { success: false, message: "Itinerary not found or invalid ID." };
+      return { success: false, message: "Itinerary not found or invalid ID." };
     }
     objectIdToUpdate = currentItinerary._id;
   }
@@ -106,7 +105,7 @@ export async function updateItinerary(id: string, values: ItineraryFormValues): 
     type: data.type,
     pricePerPerson: data.pricePerPerson,
     description: data.description,
-    imageUrl: data.imageUrl || `https://placehold.co/600x400.png?text=${encodeURIComponent(data.name.substring(0,15))}`,
+    imageUrl: data.imageUrl || `https://placehold.co/600x400.png?text=${encodeURIComponent(data.name.substring(0, 15))}`,
     availableTimes: data.availableTimes.split(',').map(t => t.trim()).filter(t => t),
   };
 
@@ -128,16 +127,16 @@ export async function updateItinerary(id: string, values: ItineraryFormValues): 
 }
 
 export async function deleteItinerary(id: string): Promise<{ success: boolean; message: string }> {
-   let objectIdToDelete: ObjectId;
-   if (ObjectId.isValid(id)) {
+  let objectIdToDelete: ObjectId;
+  if (ObjectId.isValid(id)) {
     objectIdToDelete = new ObjectId(id);
-   } else {
+  } else {
     const itinerary = await getItineraryById(id);
     if (!itinerary || !itinerary._id) {
-        return { success: false, message: "Itinerary not found or invalid ID." };
+      return { success: false, message: "Itinerary not found or invalid ID." };
     }
     objectIdToDelete = itinerary._id;
-   }
+  }
 
   const itinerariesCollection = await getItinerariesCollection();
   try {

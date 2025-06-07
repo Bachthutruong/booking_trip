@@ -1,7 +1,5 @@
-
 'use client';
 
-import { loginAdmin } from '@/actions/adminAuthActions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { KeyRound, Loader2, LogIn, UserCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useState, FormEvent } from 'react'; // Removed useTransition, added FormEvent
+import Link from 'next/link'; // Corrected import from next/link
 
 export default function AdminLoginPage() {
   const searchParams = useSearchParams();
@@ -26,42 +25,29 @@ export default function AdminLoginPage() {
     const redirectPath = searchParams.get('redirect') || '/admin/dashboard';
 
     try {
-      // The loginAdmin action will redirect on success (throws NEXT_REDIRECT),
-      // or return an error object on failure.
-      const result = await loginAdmin(formData, redirectPath);
-      
-      // This part should only execute if loginAdmin returns (i.e., login failed, no redirect)
-      if (result && !result.success) {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(Object.fromEntries(formData.entries())),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Login successful, redirect
+        window.location.href = redirectPath; // Client-side redirect
+      } else {
+        // Login failed, display error message
         setError(result.message);
         toast({ title: 'Login Failed', description: result.message, variant: 'destructive' });
       }
-      // If loginAdmin was successful and called redirect(), it would have thrown an error
-      // which is caught by the catch block below.
-      // If 'result' is undefined here AND no error was thrown, it's an unexpected state.
-
     } catch (e: any) {
-      // For errors thrown by `redirect()`, e.digest will contain "NEXT_REDIRECT"
-      // We must re-throw this specific error for Next.js to handle the redirection.
-      if (e && typeof e.digest === 'string' && e.digest.includes('NEXT_REDIRECT')) {
-        setIsLoading(false); // Important to reset loading before re-throwing
-        throw e; 
-      }
-      
-      // Handle other, unexpected errors
       setError(e.message || "An unexpected error occurred during login.");
       toast({ title: 'Login Error', description: e.message || "An unexpected error occurred.", variant: 'destructive' });
     } finally {
-      // Only set isLoading to false if it wasn't a redirect error that was re-thrown
-      // However, if throw e happens, this finally block might still execute.
-      // It's safer to set isLoading false before the throw, or ensure it's handled if an error occurs.
-      // If an error (non-redirect) occurred, or if login failed (result.success === false), set loading to false.
-      // If a redirect is happening, the page will navigate away, so setIsLoading might not be strictly necessary here.
-      // For simplicity and robustness, ensure it's false if we're not redirecting.
-      // The setIsLoading(false) before `throw e` for redirect errors is important.
-      // If we reach here and it's not a re-thrown redirect error, then loading should stop.
-       if (!(e && typeof e.digest === 'string' && e.digest.includes('NEXT_REDIRECT'))) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   };
 
@@ -90,6 +76,11 @@ export default function AdminLoginPage() {
               {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <LogIn className="mr-2 h-5 w-5" />}
               Sign In
             </Button>
+            <div className="text-center mt-4">
+              <Link href="/admin/register" className="text-primary hover:underline">
+                Don't have an admin account? Register here.
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>
