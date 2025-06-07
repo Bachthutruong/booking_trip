@@ -1,7 +1,9 @@
+
 'use server';
 
-import { feedbackDB } from '@/lib/data';
+import { getFeedbackCollection } from '@/lib/mongodb';
 import type { Feedback, FeedbackFormValues } from '@/lib/types';
+import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
@@ -20,9 +22,10 @@ export async function submitFeedback(values: FeedbackFormValues): Promise<{ succ
   }
   
   const data = validation.data;
+  const feedbackCollection = await getFeedbackCollection();
+  const newFeedbackObjectId = new ObjectId();
 
-  const newFeedback: Feedback = {
-    id: `feedback_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+  const newFeedbackData: Omit<Feedback, '_id' | 'id'> = {
     name: data.name,
     email: data.email,
     tripId: data.tripId,
@@ -30,11 +33,31 @@ export async function submitFeedback(values: FeedbackFormValues): Promise<{ succ
     submittedAt: new Date().toISOString(),
   };
 
-  feedbackDB.push(newFeedback);
-  // console.log('New feedback submitted:', newFeedback);
-  
-  // Potentially revalidate a path if there's an admin page for feedback
-  // revalidatePath('/admin/feedback');
+  try {
+    const result = await feedbackCollection.insertOne({
+      _id: newFeedbackObjectId,
+      id: newFeedbackObjectId.toString(),
+      ...newFeedbackData
+    });
 
-  return { success: true, message: 'Thank you for your feedback!' };
+    if (result.insertedId) {
+      // Potentially revalidate an admin feedback page
+      // revalidatePath('/admin/feedback');
+      return { success: true, message: 'Thank you for your feedback!' };
+    }
+    return { success: false, message: 'Failed to submit feedback.' };
+  } catch (error) {
+    console.error("Error submitting feedback:", error);
+    return { success: false, message: 'An unexpected error occurred while submitting feedback.' };
+  }
+}
+
+// Admin action to get all feedback (example)
+export async function getAllFeedback(): Promise<Feedback[]> {
+  const feedbackCollection = await getFeedbackCollection();
+  const feedbackDocs = await feedbackCollection.find({}).sort({ submittedAt: -1 }).toArray();
+  return feedbackDocs.map(doc => ({
+    ...doc,
+    id: doc._id.toString(),
+  })) as Feedback[];
 }
