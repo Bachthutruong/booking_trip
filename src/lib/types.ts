@@ -60,6 +60,7 @@ export interface Trip {
   createdAt: string; // ISO date string
   // updatedAd: string; // ISO date string
   overallStatus: TripStatus; // Add overallStatus to Trip interface
+  additionalServices?: AdditionalService[]; // Add populated services to Trip interface
 }
 
 export interface DiscountCode {

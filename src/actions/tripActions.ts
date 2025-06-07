@@ -76,9 +76,18 @@ async function mapDocumentToTrip(doc: any): Promise<Trip> {
     createdAt: restOfDoc.createdAt,
   };
 
+  // Populate additional services for the trip itself
+  let tripPopulatedAdditionalServices: AdditionalService[] = [];
+  if (restOfDoc.additionalServiceIds && restOfDoc.additionalServiceIds.length > 0) {
+    const additionalServicesCol = await getAdditionalServicesCollection();
+    const serviceObjectIds = restOfDoc.additionalServiceIds.filter((id: string) => ObjectId.isValid(id)).map((id: string) => new ObjectId(id));
+    tripPopulatedAdditionalServices = await additionalServicesCol.find({ _id: { $in: serviceObjectIds } }).toArray();
+  }
+
   const trip: Trip = {
     ...partialTrip,
     overallStatus: getOverallTripStatus(partialTrip as Trip),
+    additionalServices: tripPopulatedAdditionalServices, // Assign populated services
   };
 
   return trip;
@@ -310,7 +319,7 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
     discountCodeString: data.discountCode || undefined,
     discountCode: populatedMainBookerDiscountCode,
     notes: data.notes || '',
-    pricePaid: 0, // Initial payment status
+    pricePaid: totalPrice,
     district: data.district || '',
     status: 'pending_payment',
     transferProofImageUrl: undefined,
