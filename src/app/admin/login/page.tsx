@@ -25,8 +25,8 @@ export default function AdminLoginPage() {
 
     startTransition(async () => {
       try {
-        // The loginAdmin action will redirect on success, so 'result' will be undefined.
-        // If it returns a value, it means login failed.
+        // The loginAdmin action will redirect on success, so 'result' will be undefined
+        // if the redirect happens. If it returns a value, it means login failed.
         const result = await loginAdmin(formData, redirectPath);
         
         if (result) { 
@@ -36,16 +36,16 @@ export default function AdminLoginPage() {
             toast({ title: 'Login Failed', description: result.message, variant: 'destructive' });
           }
         }
-        // If 'result' is undefined, it implies a successful server-side redirect occurred,
-        // and Next.js is handling the page transition. No client-side action needed here.
+        // If 'result' is undefined, it implies a server-side redirect occurred or is in progress.
+        // Next.js handles the page transition in that case.
 
       } catch (e: any) {
         // Check if the error is the specific NEXT_REDIRECT error
-        if (e.digest === 'NEXT_REDIRECT') {
+        if (e?.digest?.startsWith('NEXT_REDIRECT')) {
           // This is an expected error thrown by redirect().
-          // Next.js will handle the actual redirection. We don't need to show a toast.
-          // We can simply let it propagate or return here.
-          return; 
+          // Next.js will handle the actual redirection.
+          // Re-throw the error to let Next.js complete the redirection process.
+          throw e; 
         }
         
         // Handle other, unexpected errors
