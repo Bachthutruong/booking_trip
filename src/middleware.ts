@@ -6,16 +6,19 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const adminAuthCookie = request.cookies.get('admin-auth-token');
 
+  // IMPORTANT: This value must exactly match how the cookie value is generated in adminAuthActions.ts
+  // It relies on ADMIN_USERNAME and ADMIN_PASSWORD being set in the environment.
+  const expectedAdminCookieValue = (process.env.ADMIN_USERNAME || '') + (process.env.ADMIN_PASSWORD || '');
+
   if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
-    // A more robust check would involve verifying the token's validity
-    if (!adminAuthCookie || adminAuthCookie.value !== process.env.ADMIN_SESSION_TOKEN_SECRET_VALUE) { // Example simple check
+    if (!adminAuthCookie || adminAuthCookie.value !== expectedAdminCookieValue) {
       const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirect', pathname); // Optional: redirect back after login
       return NextResponse.redirect(loginUrl);
     }
   }
   
-  if (pathname === '/admin/login' && adminAuthCookie && adminAuthCookie.value === process.env.ADMIN_SESSION_TOKEN_SECRET_VALUE) {
+  if (pathname === '/admin/login' && adminAuthCookie && adminAuthCookie.value === expectedAdminCookieValue) {
     return NextResponse.redirect(new URL('/admin/dashboard', request.url));
   }
 
@@ -25,3 +28,4 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/admin/:path*', '/admin/login'],
 };
+
