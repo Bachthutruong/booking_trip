@@ -1,4 +1,4 @@
-// This file is intentionally left with only a comment
-// to prevent it from being treated as a page by Next.js.
-// This is to avoid a "parallel pages" conflict with the actual
-// dashboard page located at src/app/admin/(main)/dashboard/page.tsx.
+// This file is intentionally made non-functional as a Next.js page
+// to resolve a parallel route conflict.
+// The actual dashboard page is at src/app/admin/(main)/dashboard/page.tsx.
+export const DUMMY_CONSTANT_TO_PREVENT_PAGE_DETECTION_DASHBOARD = true;
