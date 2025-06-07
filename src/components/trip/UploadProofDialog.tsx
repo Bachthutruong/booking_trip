@@ -14,9 +14,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast'; // Ensure this path is correct
+import { useToast } from '@/hooks/use-toast';
 import { uploadTransferProof } from '@/actions/tripActions';
-import { Loader2, UploadCloud, FileImage } from 'lucide-react';
+import { uploadFile } from '@/actions/uploadActions'; // New action for Cloudinary
+import { Loader2, UploadCloud, FileImage, FileText as FilePdfIcon } from 'lucide-react'; // Added FilePdfIcon
 import Image from 'next/image';
 
 interface UploadProofDialogProps {
@@ -29,7 +30,7 @@ interface UploadProofDialogProps {
 
 export default function UploadProofDialog({ tripId, isOpen, onOpenChange, onUploadSuccess, onUploadStart }: UploadProofDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null); // For image preview
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,13 +39,13 @@ export default function UploadProofDialog({ tripId, isOpen, onOpenChange, onUplo
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({ title: "File too large", description: "Please select an image smaller than 5MB.", variant: "destructive"});
+        toast({ title: "File too large", description: "Please select an image or PDF smaller than 5MB.", variant: "destructive"});
         setSelectedFile(null);
         setPreviewUrl(null);
         if(fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
-      if (!['image/jpeg', 'image/png', 'image/gif', 'application/pdf'].includes(file.type)) { // Added PDF
+      if (!['image/jpeg', 'image/png', 'image/gif', 'application/pdf'].includes(file.type)) {
         toast({ title: "Invalid file type", description: "Please select a JPG, PNG, GIF, or PDF file.", variant: "destructive"});
         setSelectedFile(null);
         setPreviewUrl(null);
@@ -53,9 +54,15 @@ export default function UploadProofDialog({ tripId, isOpen, onOpenChange, onUplo
       }
       setSelectedFile(file);
       if (file.type.startsWith('image/')) {
-        setPreviewUrl(URL.createObjectURL(file));
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewUrl(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else if (file.type === 'application/pdf') {
+        setPreviewUrl('pdf'); // Special value for PDF
       } else {
-        setPreviewUrl(null); // No preview for PDF, or show a generic PDF icon
+        setPreviewUrl(null);
       }
     } else {
       setSelectedFile(null);
@@ -72,32 +79,49 @@ export default function UploadProofDialog({ tripId, isOpen, onOpenChange, onUplo
     if (onUploadStart) onUploadStart();
 
     try {
-      // SIMULATE UPLOAD TO A STORAGE SERVICE AND GET URL
-      // In a real app, replace this with actual upload logic (e.g., to Firebase Storage, S3, Cloudinary)
-      // For now, we'll use a placeholder, but log the file name to simulate.
-      console.log("Simulating upload of file:", selectedFile.name);
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate upload delay
-      const mockImageUrl = `https://placehold.co/600x400.png?text=Proof_${tripId.slice(-4)}_${selectedFile.name.substring(0,10)}`;
+      const reader = new FileReader();
+      reader.readAsDataURL(selectedFile);
       
-      const result = await uploadTransferProof(tripId, mockImageUrl);
-
-      if (result.success) {
-        toast({ title: 'Upload Successful', description: result.message });
-        if (onUploadSuccess) onUploadSuccess();
-        handleCloseDialog(true); // Close dialog on success
-      } else {
-        toast({ title: 'Upload Failed', description: result.message, variant: 'destructive' });
+      // Wait for reader to load
+      await new Promise<void>((resolve, reject) => {
+        reader.onloadend = () => resolve();
+        reader.onerror = reject;
+      });
+      
+      const dataUri = reader.result as string;
+      if (!dataUri) {
+        throw new Error("Could not read file data.");
       }
-    } catch (error) {
+
+      // Determine resource type for Cloudinary
+      const resourceType = selectedFile.type === 'application/pdf' ? 'image' : 'image'; 
+      // Cloudinary often treats PDFs as 'image' type for transformations and delivery, 
+      // or 'raw' if you need the exact raw file. For display, 'image' is usually fine.
+
+      const cloudinaryResult = await uploadFile(dataUri, 'payment_proofs', resourceType);
+
+      if (cloudinaryResult.success && cloudinaryResult.url) {
+        const dbUpdateResult = await uploadTransferProof(tripId, cloudinaryResult.url);
+        if (dbUpdateResult.success) {
+          toast({ title: 'Upload Successful', description: dbUpdateResult.message });
+          if (onUploadSuccess) onUploadSuccess();
+          handleCloseDialog(true);
+        } else {
+          toast({ title: 'Database Update Failed', description: dbUpdateResult.message, variant: 'destructive' });
+        }
+      } else {
+        toast({ title: 'Cloudinary Upload Failed', description: cloudinaryResult.message || 'Could not upload to Cloudinary.', variant: 'destructive' });
+      }
+    } catch (error: any) {
       console.error("Upload error:", error);
-      toast({ title: 'Error', description: 'An unexpected error occurred during upload.', variant: 'destructive' });
+      toast({ title: 'Error', description: error.message || 'An unexpected error occurred during upload.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
   };
   
   const handleCloseDialog = (isSuccess = false) => {
-    if (!isSuccess) { // Only reset if not a successful submission (which might trigger parent re-render)
+    if (!isSuccess) {
         setSelectedFile(null);
         setPreviewUrl(null);
         if(fileInputRef.current) fileInputRef.current.value = "";
@@ -128,18 +152,18 @@ export default function UploadProofDialog({ tripId, isOpen, onOpenChange, onUplo
               disabled={isSubmitting}
             />
           </div>
-          {previewUrl && selectedFile?.type.startsWith('image/') && (
+          {previewUrl === 'pdf' && selectedFile && (
+            <div className="mt-4 border border-dashed border-border rounded-md p-4 flex flex-col items-center justify-center text-muted-foreground h-[150px]">
+                <FilePdfIcon className="h-12 w-12 mb-2 text-destructive" />
+                <p className="text-sm font-medium">{selectedFile.name}</p>
+                <p className="text-xs">PDF selected</p>
+             </div>
+          )}
+          {previewUrl && previewUrl !== 'pdf' && selectedFile?.type.startsWith('image/') && (
             <div className="mt-4 border border-dashed border-border rounded-md p-2">
               <p className="text-sm font-medium mb-2 text-center text-muted-foreground">Image Preview:</p>
-              <Image src={previewUrl} alt="Payment proof preview" width={400} height={300} className="rounded-md object-contain max-h-[200px] mx-auto" />
+              <Image src={previewUrl} alt="Payment proof preview" width={400} height={300} className="rounded-md object-contain max-h-[200px] mx-auto" data-ai-hint="payment proof document"/>
             </div>
-          )}
-          {selectedFile && selectedFile.type === 'application/pdf' && (
-            <div className="mt-4 border border-dashed border-border rounded-md p-4 flex flex-col items-center justify-center text-muted-foreground h-[100px]">
-                <FileImage className="h-8 w-8 mb-1 text-destructive" />
-                <p className="text-sm font-medium">{selectedFile.name}</p>
-                <p className="text-xs">PDF selected (no preview available)</p>
-             </div>
           )}
           {!selectedFile && (
              <div className="mt-4 border border-dashed border-border rounded-md p-6 flex flex-col items-center justify-center text-muted-foreground h-[150px]">

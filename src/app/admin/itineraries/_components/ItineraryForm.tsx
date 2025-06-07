@@ -20,16 +20,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { Itinerary, ItineraryFormValues, ItineraryType } from '@/lib/types';
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { ITINERARY_TYPES } from "@/lib/constants";
-import { Loader2, Save, Package, Type, Tag, Image as ImageIcon, ClockIcon, Info } from "lucide-react";
+import { Loader2, Save, Package, Type, Tag, Image as ImageIcon, ClockIcon, Info, UploadCloud, XCircle } from "lucide-react";
+import { uploadFile } from "@/actions/uploadActions";
+import NextImage from "next/image"; // For preview
 
 const itineraryFormSchema = z.object({
   name: z.string().min(3, "Name is required and must be at least 3 characters."),
   type: z.enum(['airport_pickup', 'airport_dropoff', 'tourism'], { required_error: "Itinerary type is required."}),
   pricePerPerson: z.coerce.number().min(0, "Price must be a positive number."),
   description: z.string().min(10, "Description is required and must be at least 10 characters."),
-  imageUrl: z.string().url("Must be a valid URL if provided.").optional().or(z.literal('')),
+  imageUrl: z.string().url("Must be a valid URL if provided, or will be auto-generated/uploaded.").optional().or(z.literal('')),
   availableTimes: z.string().min(1, "Available times are required (e.g., 08:00,09:00,14:00).")
     .regex(/^(\d{2}:\d{2})(,\s*\d{2}:\d{2})*$/, "Times must be in HH:MM format, comma-separated."),
 });
@@ -45,6 +47,10 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
+  const fileInputRef = useState<HTMLInputElement | null>(null);
+
 
   const form = useForm<z.infer<typeof itineraryFormSchema>>({
     resolver: zodResolver(itineraryFormSchema),
@@ -57,17 +63,98 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
       availableTimes: initialData?.availableTimes?.join(', ') || "",
     },
   });
+  
+  useEffect(() => {
+    // If initialData.imageUrl changes (e.g. after form submission and re-fetch), update preview
+    setImagePreview(initialData?.imageUrl || null);
+    form.reset({ // also reset form value for imageUrl
+        name: initialData?.name || "",
+        type: initialData?.type || undefined,
+        pricePerPerson: initialData?.pricePerPerson || 0,
+        description: initialData?.description || "",
+        imageUrl: initialData?.imageUrl || "",
+        availableTimes: initialData?.availableTimes?.join(', ') || "",
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData?.imageUrl]);
+
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({ title: "File too large", description: "Please select an image smaller than 5MB.", variant: "destructive"});
+        setSelectedFile(null);
+        setImagePreview(initialData?.imageUrl || null); // Revert to initial on error
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast({ title: "Invalid file type", description: "Please select an image file (JPG, PNG, GIF, etc.).", variant: "destructive"});
+        setSelectedFile(null);
+        setImagePreview(initialData?.imageUrl || null);
+        return;
+      }
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      form.setValue('imageUrl', ''); // Clear the text input for URL if a file is chosen
+    }
+  };
+  
+  const handleClearImage = () => {
+    setSelectedFile(null);
+    setImagePreview(null);
+    form.setValue('imageUrl', ''); // Clear stored URL too
+    if (fileInputRef.current) {
+        fileInputRef.current.value = ""; // Reset file input
+    }
+  };
+
 
   async function onSubmit(values: z.infer<typeof itineraryFormSchema>) {
     startTransition(async () => {
-      const result = await onSubmitAction(values);
+      let finalImageUrl = values.imageUrl; // Use existing URL if no new file or if manually entered
+
+      if (selectedFile) {
+        const reader = new FileReader();
+        reader.readAsDataURL(selectedFile);
+        await new Promise<void>((resolve, reject) => {
+          reader.onloadend = () => resolve();
+          reader.onerror = (error) => reject(error);
+        });
+        const dataUri = reader.result as string;
+
+        const uploadResult = await uploadFile(dataUri, 'itineraries', 'image');
+        if (uploadResult.success && uploadResult.url) {
+          finalImageUrl = uploadResult.url;
+        } else {
+          toast({ title: "Image Upload Failed", description: uploadResult.message || "Could not upload image.", variant: "destructive" });
+          return;
+        }
+      }
+      
+      const submissionValues = { ...values, imageUrl: finalImageUrl || "" };
+
+      const result = await onSubmitAction(submissionValues);
       if (result.success) {
         toast({
           title: initialData ? "Itinerary Updated!" : "Itinerary Created!",
           description: result.message,
         });
-        router.push('/admin/itineraries');
-        router.refresh(); 
+        setSelectedFile(null); // Reset file after successful submission
+        //setImagePreview(null); // Preview will be updated by useEffect if initialData.imageUrl changes
+        if (result.itineraryId && initialData?.id !== result.itineraryId) {
+             router.push(`/admin/itineraries/${result.itineraryId}/edit`); // Go to edit page of new/updated
+        } else if (initialData) {
+            router.refresh(); // Refresh current edit page
+        }
+         else {
+            router.push('/admin/itineraries');
+        }
+
       } else {
         toast({
           title: "Error",
@@ -109,7 +196,7 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
                 </FormControl>
                 <SelectContent>
                   {Object.entries(ITINERARY_TYPES).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                    <SelectItem key={key} value={key as ItineraryType}>{label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -146,20 +233,62 @@ export default function ItineraryForm({ initialData, onSubmitAction, submitButto
           )}
         />
         
-        <FormField
-          control={form.control}
-          name="imageUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-primary"/>Image URL</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/image.png" {...field} />
-              </FormControl>
-              <FormDescription>Enter a direct URL to an image. Cloudinary integration can be added later.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormItem>
+            <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-primary"/>Itinerary Image</FormLabel>
+            <FormControl>
+                <Input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileChange}
+                    className="file:text-primary file:font-semibold"
+                    ref={fileInputRef as any}
+                />
+            </FormControl>
+            <FormDescription>Upload an image for the itinerary (max 5MB). Or paste a URL below.</FormDescription>
+        </FormItem>
+
+        {imagePreview && (
+          <div className="space-y-2">
+            <Label>Image Preview:</Label>
+            <div className="relative group w-full max-w-sm border rounded-md p-2">
+                <NextImage src={imagePreview} alt="Itinerary preview" width={400} height={250} className="rounded-md object-contain max-h-[200px]" data-ai-hint="travel itinerary photo" />
+                <Button 
+                    type="button" 
+                    variant="destructive" 
+                    size="icon" 
+                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={handleClearImage}
+                    title="Remove image"
+                >
+                    <XCircle className="h-5 w-5"/>
+                </Button>
+            </div>
+          </div>
+        )}
+         {!selectedFile && ( // Show current imageUrl input only if no file selected for upload
+            <FormField
+            control={form.control}
+            name="imageUrl"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel className="text-xs text-muted-foreground">Or paste Image URL</FormLabel>
+                <FormControl>
+                    <Input 
+                        placeholder="https://example.com/image.png" 
+                        {...field} 
+                        disabled={!!selectedFile} // Disable if a file is selected
+                        onChange={(e) => {
+                            field.onChange(e);
+                            if (!selectedFile) setImagePreview(e.target.value);
+                        }}
+                    />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        )}
+
 
         <FormField
           control={form.control}

@@ -61,7 +61,8 @@ const calculateTotalPrice = async (
 
   if (serviceIds && serviceIds.length > 0) {
     const additionalServicesCol = await getAdditionalServicesCollection();
-    const services = await additionalServicesCol.find({ id: { $in: serviceIds } }).toArray();
+    const serviceObjectIds = serviceIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
+    const services = await additionalServicesCol.find({ _id: { $in: serviceObjectIds } }).toArray();
     services.forEach(service => {
       price += service.price;
     });
@@ -98,8 +99,7 @@ const createTripSchema = z.object({
 export async function createTrip(values: CreateTripFormValues & { date: string }): Promise<{ success: boolean; message: string; tripId?: string }> {
   const validation = createTripSchema.safeParse({
     ...values,
-    numberOfPeople: Number(values.numberOfPeople), // Ensure it's a number
-    // date is already string
+    numberOfPeople: Number(values.numberOfPeople), 
   });
 
   if (!validation.success) {
@@ -132,7 +132,7 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
     itineraryId: itinerary.id,
     itineraryName: itinerary.name,
     itineraryType: itinerary.type,
-    date: data.date, // YYYY-MM-DD string
+    date: data.date, 
     time: data.time,
     numberOfPeople: data.numberOfPeople,
     pickupAddress: data.pickupAddress,
@@ -147,7 +147,7 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
     district: data.district,
     additionalServiceIds: data.additionalServiceIds || [],
     discountCode: data.discountCode,
-    creatorUserId: data.contactPhone, // Using phone as a simple user identifier
+    creatorUserId: data.contactPhone, 
     createdAt: new Date().toISOString(),
   };
 
@@ -160,7 +160,10 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
     });
 
     if (result.insertedId) {
-      // TODO: If discount code was used, increment its timesUsed count in DB
+      if (data.discountCode) {
+        const discountCodesCol = await getDiscountCodesCollection();
+        await discountCodesCol.updateOne({ code: data.discountCode.toUpperCase() }, { $inc: { timesUsed: 1 }});
+      }
       revalidatePath('/my-trips');
       revalidatePath('/admin/trips');
       return { success: true, message: 'Trip created successfully! Please proceed to payment.', tripId: newTripObjectId.toString() };
@@ -190,7 +193,6 @@ export async function getTripById(tripId: string): Promise<Trip | null> {
     if (ObjectId.isValid(tripId)) {
         tripDoc = await tripsCollection.findOne({ _id: new ObjectId(tripId) });
     } else {
-        // Fallback for user-friendly ID if it's not an ObjectId
         tripDoc = await tripsCollection.findOne({ id: tripId }); 
     }
     return tripDoc ? mapDocumentToTrip(tripDoc) : null;
@@ -204,26 +206,29 @@ export async function getAllTrips(): Promise<Trip[]> {
 
 
 export async function uploadTransferProof(tripId: string, imageUrl: string): Promise<{ success: boolean; message: string }> {
-  const currentTrip = await getTripById(tripId); // This handles both ObjectId and string ID
+  const currentTrip = await getTripById(tripId); 
   if (!currentTrip || !currentTrip._id) {
       return { success: false, message: 'Trip not found or invalid Trip ID.' };
+  }
+  if (!imageUrl) {
+      return { success: false, message: 'Image URL is required.' };
   }
   
   const tripsCollection = await getTripsCollection();
   const result = await tripsCollection.updateOne(
-    { _id: new ObjectId(currentTrip._id) }, // Use the actual MongoDB _id for update
-    { $set: { transferProofImageUrl: imageUrl, status: 'pending_payment' } } // Keep status as pending_payment or specific admin review status
+    { _id: new ObjectId(currentTrip._id) }, 
+    { $set: { transferProofImageUrl: imageUrl, status: 'pending_payment' } } 
   );
 
   if (result.matchedCount > 0) {
     console.log(`Admin Notification: Transfer proof uploaded for Trip ID: ${tripId}. Image URL: ${imageUrl}`);
     revalidatePath('/my-trips');
-    revalidatePath(`/my-trips?tripId=${tripId}`); // Revalidate specific trip if on that page
+    revalidatePath(`/my-trips?tripId=${tripId}`); 
     revalidatePath('/admin/trips');
     revalidatePath(`/admin/trips/${tripId}`);
     return { success: true, message: 'Transfer proof uploaded. Admin will verify shortly.' };
   }
-  return { success: false, message: 'Failed to upload transfer proof.' };
+  return { success: false, message: 'Failed to update trip with transfer proof.' };
 }
 
 export async function confirmPaymentByAdmin(tripId: string): Promise<{ success: boolean; message: string }> {
@@ -231,10 +236,6 @@ export async function confirmPaymentByAdmin(tripId: string): Promise<{ success: 
   if (!currentTrip || !currentTrip._id) {
     return { success: false, message: 'Trip not found.' };
   }
-  // Admin can confirm even if proof wasn't "required" by the system, e.g. cash payment.
-  // if (currentTrip.status !== 'pending_payment' && !currentTrip.transferProofImageUrl) {
-  //    return { success: false, message: 'Trip is not awaiting payment or no proof submitted.' };
-  // }
 
   const tripsCollection = await getTripsCollection();
   const result = await tripsCollection.updateOne(
@@ -248,7 +249,6 @@ export async function confirmPaymentByAdmin(tripId: string): Promise<{ success: 
     revalidatePath('/admin/trips');
     revalidatePath(`/admin/trips/${tripId}`);
     console.log(`Admin Action: Payment confirmed for Trip ID: ${tripId}.`);
-    // TODO: Send notification to user (e.g., via email if secondaryContact is email)
     return { success: true, message: 'Payment confirmed successfully.' };
   }
   return { success: false, message: 'Failed to confirm payment.' };
@@ -259,7 +259,7 @@ export async function getConfirmedTrips(): Promise<Trip[]> {
   const tripsCollection = await getTripsCollection();
   const confirmedTripDocs = await tripsCollection.find({
     status: 'payment_confirmed',
-    date: { $gte: format(new Date(), "yyyy-MM-dd") } // Ensure date is today or in future
+    date: { $gte: format(new Date(), "yyyy-MM-dd") } 
   }).sort({ date: 1, time: 1 }).toArray();
   return confirmedTripDocs.map(mapDocumentToTrip);
 }
@@ -270,7 +270,7 @@ const joinTripSchema = z.object({
   name: z.string().min(1, "Name is required."),
   phone: z.string().min(1, "Phone is required.").regex(/^\+?[0-9\s-]{10,15}$/, "Invalid phone number format."),
   numberOfPeople: z.number().min(1, "At least one person is required."),
-  address: z.string().min(1, "Address is required for pickup/dropoff coordination."), // Participant's pickup/dropoff
+  address: z.string().min(1, "Address is required for pickup/dropoff coordination."), 
   discountCode: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -299,21 +299,16 @@ export async function joinTrip(values: JoinTripFormValues): Promise<{ success: b
   if (!itinerary) {
     return { success: false, message: 'Itinerary details for this trip are missing.' };
   }
-
-  // Calculate price for this participant (could be 0 if admin handles payment or main booker covers)
-  // For simplicity now, pricePaid for participant is 0. Admin can coordinate payment.
-  // More complex: calculate individual share based on itinerary.pricePerPerson * data.numberOfPeople and apply discount.
+  
   const participantPrice = 0; 
-  // const participantPrice = await calculateTotalPrice(itinerary, data.numberOfPeople, undefined, undefined, data.discountCode);
-
 
   const newParticipant: Participant = {
-    id: `participant_${new ObjectId().toString()}`, // Unique ID for participant
+    id: `participant_${new ObjectId().toString()}`, 
     name: data.name,
     phone: data.phone,
     numberOfPeople: data.numberOfPeople,
     address: data.address,
-    discountCode: data.discountCode, // Store for record, actual discount applied to main trip or handled by admin
+    discountCode: data.discountCode, 
     notes: data.notes,
     pricePaid: participantPrice, 
   };
@@ -325,11 +320,14 @@ export async function joinTrip(values: JoinTripFormValues): Promise<{ success: b
   );
 
   if (result.matchedCount > 0) {
-    revalidatePath('/my-trips'); // User might see this trip if they join
+    if (data.discountCode) {
+        const discountCodesCol = await getDiscountCodesCollection();
+        await discountCodesCol.updateOne({ code: data.discountCode.toUpperCase() }, { $inc: { timesUsed: 1 }});
+    }
+    revalidatePath('/my-trips'); 
     revalidatePath(`/join-trip`);
-    revalidatePath('/admin/trips'); // Admin sees updated participant list
+    revalidatePath('/admin/trips'); 
     revalidatePath(`/admin/trips/${trip.id}`);
-    // TODO: Notify trip creator and admin about the new participant
     return { success: true, message: `Successfully requested to join trip ${trip.itineraryName}! The trip organizer or admin will contact you regarding payment and confirmation.` };
   }
   return { success: false, message: 'Failed to join trip.' };
@@ -338,7 +336,6 @@ export async function joinTrip(values: JoinTripFormValues): Promise<{ success: b
 export async function getTripsForUserFeedback(userIdentifier: string): Promise<{id: string, name: string}[]> {
     if (!userIdentifier) return [];
     const tripsCollection = await getTripsCollection();
-    // Fetch trips where the user is the creator or a participant, and trip is completed or confirmed
     const userTripDocs = await tripsCollection.find({
       $and: [
         { $or: [{ contactPhone: userIdentifier }, { 'participants.phone': userIdentifier }] },
@@ -347,10 +344,7 @@ export async function getTripsForUserFeedback(userIdentifier: string): Promise<{
     }).sort({ date: -1 }).toArray();
     
     return userTripDocs.map(trip => ({
-        id: trip.id, // Use the string ID
+        id: trip.id, 
         name: `${trip.itineraryName} on ${format(new Date(trip.date), "MMM dd, yyyy")}`
     }));
 }
-
-// Admin action to get all trips (already exists, can be used by admin trip management page)
-// export async function getAllTrips(): Promise<Trip[]> - defined above

@@ -70,6 +70,8 @@ export async function createItinerary(values: ItineraryFormValues): Promise<{ su
   try {
     await itinerariesCollection.insertOne(newItinerary as any);
     revalidatePath('/admin/itineraries');
+    revalidatePath('/admin/itineraries/new');
+    revalidatePath(`/admin/itineraries/${newItinerary.id}/edit`);
     revalidatePath('/create-trip');
     revalidatePath('/');
     return { success: true, message: 'Itinerary created successfully.', itineraryId: newItinerary.id };
@@ -79,20 +81,22 @@ export async function createItinerary(values: ItineraryFormValues): Promise<{ su
   }
 }
 
-export async function updateItinerary(id: string, values: ItineraryFormValues): Promise<{ success: boolean; message: string }> {
+export async function updateItinerary(id: string, values: ItineraryFormValues): Promise<{ success: boolean; message: string, itineraryId?: string }> {
   const validation = itineraryFormSchema.safeParse(values);
   if (!validation.success) {
     return { success: false, message: validation.error.errors.map(e => e.message).join(', ') };
   }
   const data = validation.data;
 
-  if (!ObjectId.isValid(id)) {
-    // Attempt to find by user-friendly ID if not an ObjectId
-    const currentItinerary = await getItineraryById(id);
+  let objectIdToUpdate: ObjectId;
+  if (ObjectId.isValid(id)) {
+    objectIdToUpdate = new ObjectId(id);
+  } else {
+    const currentItinerary = await getItineraryById(id); // Try to find by string id
     if (!currentItinerary || !currentItinerary._id) {
         return { success: false, message: "Itinerary not found or invalid ID." };
     }
-    id = currentItinerary._id.toString(); // Use the actual MongoDB ObjectId string
+    objectIdToUpdate = currentItinerary._id;
   }
 
 
@@ -107,13 +111,14 @@ export async function updateItinerary(id: string, values: ItineraryFormValues): 
   };
 
   try {
-    const result = await itinerariesCollection.updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+    const result = await itinerariesCollection.updateOne({ _id: objectIdToUpdate }, { $set: updateData });
     if (result.matchedCount > 0) {
       revalidatePath('/admin/itineraries');
-      revalidatePath(`/admin/itineraries/${id}/edit`);
+      revalidatePath(`/admin/itineraries/${id}/edit`); // Use original id for revalidation path
+      revalidatePath(`/admin/itineraries/${objectIdToUpdate.toString()}/edit`);
       revalidatePath('/create-trip');
       revalidatePath('/');
-      return { success: true, message: 'Itinerary updated successfully.' };
+      return { success: true, message: 'Itinerary updated successfully.', itineraryId: id };
     }
     return { success: false, message: 'Itinerary not found or no changes made.' };
   } catch (error) {
@@ -127,7 +132,6 @@ export async function deleteItinerary(id: string): Promise<{ success: boolean; m
    if (ObjectId.isValid(id)) {
     objectIdToDelete = new ObjectId(id);
    } else {
-    // If it's a friendly ID, find the document to get its _id
     const itinerary = await getItineraryById(id);
     if (!itinerary || !itinerary._id) {
         return { success: false, message: "Itinerary not found or invalid ID." };
@@ -137,6 +141,9 @@ export async function deleteItinerary(id: string): Promise<{ success: boolean; m
 
   const itinerariesCollection = await getItinerariesCollection();
   try {
+    // TODO: Before deleting, check if this itinerary is used in any Trips.
+    // If so, prevent deletion or handle accordingly (e.g., soft delete, anonymize trips).
+    // For now, direct deletion.
     const result = await itinerariesCollection.deleteOne({ _id: objectIdToDelete });
     if (result.deletedCount > 0) {
       revalidatePath('/admin/itineraries');
