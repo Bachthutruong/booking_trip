@@ -164,7 +164,9 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
         {trip.pickupAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Pickup:</strong>&nbsp;{trip.pickupAddress}</p>}
         {trip.dropoffAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Dropoff:</strong>&nbsp;{trip.dropoffAddress}</p>}
         {trip.district && <p className="text-xs text-muted-foreground"><strong>District:</strong> {trip.district}</p>}
-        {trip.additionalServiceIds && trip.additionalServiceIds.length > 0 && <p className="text-xs text-muted-foreground"><strong>Services:</strong> {trip.additionalServiceIds.join(', ')}</p>}
+        {trip.additionalServices && trip.additionalServices.length > 0 && (
+          <p className="text-xs text-muted-foreground"><strong>Services:</strong> {trip.additionalServices.map(s => s.name).join(', ')}</p>
+        )}
         {trip.notes && <p className="text-xs text-muted-foreground italic flex items-start"><MessageSquare className="h-3 w-3 mr-1.5 mt-0.5 text-primary flex-shrink-0" /> {trip.notes}</p>}
 
         {trip.participants.length > 0 && (
