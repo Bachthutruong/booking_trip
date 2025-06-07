@@ -96,6 +96,17 @@ export interface Feedback {
   submittedAt: string; // ISO date string
 }
 
+// Admin User type
+export interface AdminUser {
+  _id: ObjectId;
+  id: string;
+  username: string;
+  passwordHash: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+
 // Form specific types
 export interface CreateTripFormValues {
   itineraryId: string;

@@ -1,6 +1,6 @@
 
 import { MongoClient, Db, Collection } from 'mongodb';
-import type { Itinerary, Trip, Feedback, DiscountCode, DistrictSurcharge, AdditionalService } from './types';
+import type { Itinerary, Trip, Feedback, DiscountCode, DistrictSurcharge, AdditionalService, AdminUser } from './types';
 
 const uri = process.env.MONGODB_URI;
 if (!uri) {
@@ -60,4 +60,9 @@ export async function getDistrictSurchargesCollection(): Promise<Collection<Dist
 export async function getAdditionalServicesCollection(): Promise<Collection<AdditionalService>> {
   const db = await getDb();
   return db.collection<AdditionalService>('additional_services');
+}
+
+export async function getAdminUsersCollection(): Promise<Collection<AdminUser>> {
+  const db = await getDb();
+  return db.collection<AdminUser>('admin_users');
 }
