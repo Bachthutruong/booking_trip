@@ -1,10 +1,16 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaneTakeoff, PlaneLanding, Waypoints, MessageCircleQuestion, Search, PencilLine } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { getItineraries } from "@/actions/itineraryActions"; // Import the action
 
-export default function Home() {
+export default async function Home() { // Make the component async
+  const allItineraries = await getItineraries();
+  // Display the first 3 itineraries or fewer if not enough data
+  const popularItineraries = allItineraries.slice(0, 3);
+
   return (
     <div className="space-y-12">
       <section className="text-center py-12 bg-gradient-to-br from-primary to-secondary rounded-xl shadow-lg animate-fadeIn">
@@ -71,27 +77,35 @@ export default function Home() {
       
       <section id="itineraries" className="container mx-auto px-4 animate-slideInUp" style={{animationDelay: '0.4s'}}>
          <h2 className="text-3xl font-headline font-semibold text-center mb-10">Popular Itineraries</h2>
-         {/* Placeholder for ItineraryList - will be implemented in a separate step */}
-         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { name: "Hanoi Old Quarter Discovery", description: "A walking tour through the historic 36 streets.", image: "https://placehold.co/600x400.png", dataAiHint:"old quarter" },
-              { name: "Ha Long Bay Day Trip", description: "Experience the majestic beauty of Ha Long Bay.", image: "https://placehold.co/600x400.png", dataAiHint:"halong bay" },
-              { name: "Ninh Binh Ancient Capital", description: "Visit Hoa Lu, Tam Coc, and Bich Dong Pagoda.", image: "https://placehold.co/600x400.png", dataAiHint:"ninh binh" },
-            ].map(itinerary => (
-              <Card key={itinerary.name} className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                <Image src={itinerary.image} alt={itinerary.name} width={600} height={400} className="w-full h-48 object-cover" data-ai-hint={itinerary.dataAiHint} />
-                <CardHeader>
-                  <CardTitle className="font-headline">{itinerary.name}</CardTitle>
-                  <CardDescription>{itinerary.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" asChild>
-                    <Link href={`/create-trip`}>View Details & Book</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-         </div>
+         {popularItineraries.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {popularItineraries.map(itinerary => (
+                <Card key={itinerary.id} className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                    <Image 
+                        src={itinerary.imageUrl || "https://placehold.co/600x400.png"} 
+                        alt={itinerary.name} 
+                        width={600} 
+                        height={400} 
+                        className="w-full h-48 object-cover" 
+                        // For data-ai-hint, you might use itinerary type or keywords from its name/description
+                        data-ai-hint={`${itinerary.type} ${itinerary.name.split(" ")[0] || 'travel'}`}
+                    />
+                    <CardHeader>
+                    <CardTitle className="font-headline">{itinerary.name}</CardTitle>
+                    <CardDescription className="line-clamp-3">{itinerary.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+                        {/* Link to the specific itinerary if you have a dedicated page, or to create-trip pre-filled */}
+                        <Link href={`/create-trip?itineraryId=${itinerary.id}`}>View Details & Book</Link>
+                    </Button>
+                    </CardContent>
+                </Card>
+                ))}
+            </div>
+         ) : (
+            <p className="text-center text-muted-foreground">No popular itineraries to display at the moment. Check back soon!</p>
+         )}
          <div className="text-center mt-8">
             <Button variant="outline" asChild>
                 <Link href="/create-trip">See All Itineraries</Link>
@@ -137,3 +151,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

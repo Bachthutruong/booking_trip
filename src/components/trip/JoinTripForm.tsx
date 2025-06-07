@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,7 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast"; // Corrected import path
 import { joinTrip } from '@/actions/tripActions';
 import type { Trip, JoinTripFormValues } from '@/lib/types';
 import { Loader2, Users, MapPin, Phone, FileText, TicketPercent } from "lucide-react";
