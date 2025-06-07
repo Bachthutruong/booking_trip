@@ -8,11 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { KeyRound, Loader2, LogIn, UserCircle } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation'; // useRouter might not be needed anymore for push
+import { useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 export default function AdminLoginPage() {
-  const router = useRouter(); // Keep for potential future use, but not for current redirect logic
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -29,16 +28,21 @@ export default function AdminLoginPage() {
         // Pass the redirectPath to the server action
         const result = await loginAdmin(formData, redirectPath);
         
-        // This part will only be reached if loginAdmin did NOT redirect (i.e., on failure)
-        if (result && !result.success) {
-          setError(result.message);
-          toast({ title: 'Login Failed', description: result.message, variant: 'destructive' });
+        // If 'result' is defined, it means the server action returned,
+        // which implies a login failure (because success cases redirect and don't return).
+        if (result) {
+          if (!result.success) { // Check if login was explicitly unsuccessful
+            setError(result.message);
+            toast({ title: 'Login Failed', description: result.message, variant: 'destructive' });
+          }
         }
-        // If login was successful, loginAdmin would have called redirect() and this point wouldn't be reached.
+        // If 'result' is undefined, it implies a successful server-side redirect occurred,
+        // and Next.js is handling the page transition. No client-side action needed here.
+
       } catch (e: any) {
-        // Catching errors that might occur if redirect itself throws an error that isn't handled by Next.js
-        // or if another error occurs in the action.
-        // NEXT_REDIRECT errors are typically handled by Next.js itself and won't be caught here.
+        // This catch block handles unexpected errors during the action call itself,
+        // or if the action throws an error that isn't a Next.js redirect.
+        // NEXT_REDIRECT errors are typically handled by Next.js before reaching here.
         setError(e.message || "An unexpected error occurred during login.");
         toast({ title: 'Login Error', description: e.message || "An unexpected error occurred.", variant: 'destructive' });
       }
