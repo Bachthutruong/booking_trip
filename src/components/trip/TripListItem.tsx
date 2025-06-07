@@ -16,6 +16,7 @@ interface TripListItemProps {
   highlight?: boolean;
   onActionStart?: () => void;
   onActionComplete?: () => void;
+  currentUsersPhone?: string;
 }
 
 const StatusBadge = ({ status, small = false }: { status: Trip['status']; small?: boolean }) => {
@@ -49,11 +50,41 @@ const StatusBadge = ({ status, small = false }: { status: Trip['status']; small?
   return <Badge variant={variant} className={cn("capitalize px-2 py-1", small ? "text-xs" : "text-sm", className)}>{icon}{TRIP_STATUSES[status]}</Badge>;
 };
 
-const ParticipantStatusBadge = ({ status, pricePaid }: { status: Trip['status']; pricePaid: number }) => {
+const ParticipantStatusBadge = ({ status, pricePaid, transferProofImageUrl, participantId, tripId, onActionStart, onActionComplete }: { status: Trip['status']; pricePaid: number; transferProofImageUrl?: string; participantId: string; tripId: string; onActionStart?: () => void; onActionComplete?: () => void; }) => {
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+
   if (status === 'payment_confirmed') {
     return <Badge variant="default" className="bg-green-500 text-white text-xs px-2 py-1"><CheckCircle2 className="h-2.5 w-2.5 mr-1" /> Paid ({pricePaid.toLocaleString()} VND)</Badge>;
   } else if (status === 'pending_payment') {
-    return <Badge variant="outline" className="border-yellow-500 text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/30 text-xs px-2 py-1"><Hourglass className="h-2.5 w-2.5 mr-1" /> Pending ({pricePaid.toLocaleString()} VND)</Badge>;
+    const hasProofUploaded = transferProofImageUrl && transferProofImageUrl.trim() !== '';
+    return (
+      <div className="flex items-center gap-1">
+        <Badge variant="outline" className="border-yellow-500 text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/30 text-xs px-2 py-1">
+          <Hourglass className="h-2.5 w-2.5 mr-1" /> Pending ({pricePaid.toLocaleString()} VND)
+        </Badge>
+        {hasProofUploaded ? (
+          <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" className="text-green-600 border-green-500 bg-green-50 dark:text-green-400 dark:border-green-600 dark:bg-green-900/30 text-xs h-6 px-2 py-1">
+            <CheckCircle2 className="h-3 w-3 mr-1" />Proof Uploaded
+          </Button>
+        ) : (
+          <Button onClick={() => setIsUploadDialogOpen(true)} className="bg-accent text-accent-foreground hover:bg-accent/90 text-xs h-6 px-2 py-1">
+            <CreditCard className="mr-1 h-3 w-3" /> Upload Proof
+          </Button>
+        )}
+        {isUploadDialogOpen && (
+          <UploadProofDialog
+            tripId={tripId}
+            participantId={participantId}
+            isOpen={isUploadDialogOpen}
+            onOpenChange={setIsUploadDialogOpen}
+            onUploadSuccess={() => {
+              if (onActionComplete) onActionComplete();
+            }}
+            onUploadStart={onActionStart}
+          />
+        )}
+      </div>
+    );
   }
   return null;
 };
@@ -71,10 +102,43 @@ const ItineraryTypeIcon = ({ type }: { type: Trip['itineraryType'] }) => {
   }
 }
 
-export default function TripListItem({ trip, highlight = false, onActionStart, onActionComplete }: TripListItemProps) {
+const getOverallTripStatus = (trip: Trip): Trip['status'] => {
+  if (trip.participants.length === 0) {
+    return trip.status; // Fallback if for some reason no participants (shouldn't happen with creator always added)
+  }
+
+  const allConfirmed = trip.participants.every(p => p.status === 'payment_confirmed');
+  const anyPending = trip.participants.some(p => p.status === 'pending_payment');
+  const allCompleted = trip.participants.every(p => p.status === 'completed');
+  const anyCancelled = trip.participants.some(p => p.status === 'cancelled');
+
+  if (allConfirmed) {
+    // Check if trip date is in the past to mark as completed
+    const tripDate = new Date(trip.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
+    if (tripDate < today) {
+      return 'completed';
+    }
+    return 'payment_confirmed';
+  } else if (anyPending) {
+    return 'pending_payment';
+  } else if (allCompleted) {
+    return 'completed';
+  } else if (anyCancelled) {
+    return 'cancelled'; // If any participant cancelled, the trip could be considered cancelled or require review
+  }
+  return trip.status; // Default to existing trip status if no clear derived status
+};
+
+export default function TripListItem({ trip, highlight = false, onActionStart, onActionComplete, currentUsersPhone }: TripListItemProps) {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const overallStatus = getOverallTripStatus(trip); // Calculate overall status
 
   const formattedDate = format(new Date(trip.date), 'EEE, MMM dd, yyyy');
+
+  // Find the current user's participant entry based on the phone number from searchParams
+  const currentUserParticipant = trip.participants.find(p => p.phone === currentUsersPhone);
 
   return (
     <Card className={cn("transition-all duration-300", highlight ? "ring-2 ring-accent shadow-2xl transform scale-[1.01]" : "hover:shadow-lg")}>
@@ -86,17 +150,17 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
               <ItineraryTypeIcon type={trip.itineraryType} /> {ITINERARY_TYPES[trip.itineraryType]}
             </CardDescription>
           </div>
-          <StatusBadge status={trip.status} />
+          <StatusBadge status={overallStatus} />
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
           <p className="flex items-center"><CalendarDays className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Date:</strong>&nbsp;{formattedDate}</p>
           <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Time:</strong>&nbsp;{trip.time}</p>
-          <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Guests:</strong>&nbsp;{trip.numberOfPeople + trip.participants.reduce((sum, p) => sum + p.numberOfPeople, 0)}</p>
-          <p className="flex items-center"><CreditCard className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Total:</strong>&nbsp;{trip.totalPrice.toLocaleString()} VND</p>
+          <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Total Guests:</strong>&nbsp;{trip.participants.reduce((sum, p) => sum + p.numberOfPeople, 0)}</p>
+          <p className="flex items-center"><CreditCard className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Total Price:</strong>&nbsp;{trip.totalPrice.toLocaleString()} VND</p>
         </div>
-        <p className="flex items-center"><PhoneCall className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Contact:</strong>&nbsp;{trip.contactName} ({trip.contactPhone})</p>
+        <p className="flex items-center"><PhoneCall className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Main Contact:</strong>&nbsp;{trip.contactName} ({trip.contactPhone})</p>
         {trip.pickupAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Pickup:</strong>&nbsp;{trip.pickupAddress}</p>}
         {trip.dropoffAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Dropoff:</strong>&nbsp;{trip.dropoffAddress}</p>}
         {trip.district && <p className="text-xs text-muted-foreground"><strong>District:</strong> {trip.district}</p>}
@@ -105,12 +169,20 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
 
         {trip.participants.length > 0 && (
           <div className="pt-2 mt-2 border-t">
-            <h4 className="text-xs font-semibold text-muted-foreground mb-1">Joined Participants:</h4>
+            <h4 className="text-xs font-semibold text-muted-foreground mb-1">Participants:</h4>
             <ul className="list-disc list-inside pl-1 space-y-0.5 text-xs">
               {trip.participants.map(p => (
-                <li key={p.id} className="flex items-center justify-between">
-                  <span>{p.name} ({p.numberOfPeople} person(s), Phone: {p.phone}) - Pickup: {p.address}</span>
-                  <ParticipantStatusBadge status={p.status} pricePaid={p.pricePaid} />
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-x-2">
+                  <span>{p.name} ({p.numberOfPeople} guest(s), Phone: {p.phone})</span>
+                  <ParticipantStatusBadge
+                    status={p.status}
+                    pricePaid={p.pricePaid}
+                    transferProofImageUrl={p.transferProofImageUrl}
+                    participantId={p.id}
+                    tripId={trip.id}
+                    onActionStart={onActionStart}
+                    onActionComplete={onActionComplete}
+                  />
                 </li>
               ))}
             </ul>
@@ -119,32 +191,21 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
 
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-4 border-t">
-        {trip.status === 'pending_payment' && (
-          <>
-            {trip.transferProofImageUrl ? (
-              <Badge variant="outline" className="text-green-600 border-green-500 bg-green-50 dark:text-green-400 dark:border-green-600 dark:bg-green-900/30 w-full sm:w-auto text-center">
-                <CheckCircle2 className="h-3 w-3 mr-1.5" />Proof Uploaded - Awaiting Confirmation
-              </Badge>
-            ) : (
-              <Button onClick={() => setIsUploadDialogOpen(true)} className="bg-accent text-accent-foreground hover:bg-accent/90 w-full sm:w-auto">
-                <CreditCard className="mr-2 h-4 w-4" /> Upload Payment Proof
-              </Button>
-            )}
-          </>
-        )}
-        {trip.status === 'payment_confirmed' && new Date(trip.date) >= new Date(new Date().setHours(0, 0, 0, 0)) && (
+        {overallStatus === 'payment_confirmed' && new Date(trip.date) >= new Date(new Date().setHours(0, 0, 0, 0)) && (
           <p className="text-sm text-green-600 font-medium">Your trip is confirmed!</p>
         )}
-        {trip.status === 'completed' && (
+        {overallStatus === 'completed' && (
           <p className="text-sm text-blue-600 font-medium">This trip has been completed.</p>
         )}
-        {trip.status === 'cancelled' && (
+        {overallStatus === 'cancelled' && (
           <p className="text-sm text-destructive font-medium">This trip has been cancelled.</p>
         )}
       </CardFooter>
-      {isUploadDialogOpen && (
+      {/* This dialog is now specifically for the current user (participant) if they are the one viewing/uploading for themselves. */}
+      {isUploadDialogOpen && currentUserParticipant && (
         <UploadProofDialog
           tripId={trip.id}
+          participantId={currentUserParticipant.id} // Pass current user's participant ID
           isOpen={isUploadDialogOpen}
           onOpenChange={setIsUploadDialogOpen}
           onUploadSuccess={() => {

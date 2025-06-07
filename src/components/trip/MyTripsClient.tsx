@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -49,13 +48,13 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam }: MyTri
       }
     });
   };
-  
+
   useEffect(() => {
     if (phoneFromParam && phoneFromParam.trim() !== '') {
       setPhone(phoneFromParam); // Set phone from param
       handleFetchTrips();    // Fetch immediately
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phoneFromParam]); // Only run when phoneFromParam changes
 
 
@@ -90,7 +89,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam }: MyTri
           {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
         </CardContent>
       </Card>
-      
+
 
       {isLoading && (
         <div className="text-center py-10">
@@ -103,23 +102,24 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam }: MyTri
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold font-headline">Your Booked Trips</h2>
           {trips.map(trip => (
-            <TripListItem 
-              key={trip.id} 
-              trip={trip} 
-              highlight={trip.id === tripIdFromParam} 
-              onActionStart={() => startTransition(() => {})} // Indicate loading state for actions within item
+            <TripListItem
+              key={trip.id}
+              trip={trip}
+              highlight={trip.id === tripIdFromParam}
+              onActionStart={() => startTransition(() => { })} // Indicate loading state for actions within item
               onActionComplete={() => handleFetchTrips()} // Re-fetch to update list after an action like upload
+              currentUsersPhone={phone} // Pass the current user's phone number
             />
           ))}
         </div>
       )}
       {!isLoading && trips.length === 0 && phone.trim() !== '' && !error && (
-         <Alert>
-            <Info className="h-4 w-4" />
-            <AlertTitle>No Trips Found</AlertTitle>
-            <AlertDescription>
-                No trips were found for the phone number <strong>{phone}</strong>. You can create a new trip or try a different phone number.
-            </AlertDescription>
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>No Trips Found</AlertTitle>
+          <AlertDescription>
+            No trips were found for the phone number <strong>{phone}</strong>. You can create a new trip or try a different phone number.
+          </AlertDescription>
         </Alert>
       )}
     </div>

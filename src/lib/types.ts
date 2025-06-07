@@ -19,11 +19,18 @@ export interface Participant {
   phone: string;
   numberOfPeople: number;
   address: string; // Their pickup/dropoff address for this leg of the shared trip
-  discountCode?: string;
+  email?: string; // New field
+  dob?: string; // New field (Date of Birth)
+  identityNumber?: string; // New field (e.g., ID card, passport number)
+  additionalServiceIds?: string[]; // Keep IDs for storage
+  additionalServices?: AdditionalService[]; // New field for populated service objects
+  discountCodeString?: string; // Keep string for storage
+  discountCode?: DiscountCode; // New field for populated discount code object
   notes?: string;
   pricePaid: number; // Price this participant is responsible for (can be 0 if main booker covers)
   district?: string; // Participant's pickup/dropoff district for surcharge calculation
   status: TripStatus; // If individual payment tracking is needed
+  transferProofImageUrl?: string; // Individual participant's payment proof
 }
 
 export type TripStatus = 'pending_payment' | 'payment_confirmed' | 'completed' | 'cancelled';
@@ -43,7 +50,6 @@ export interface Trip {
   contactPhone: string;
   secondaryContact?: string; // Format "Type: Value", e.g., "Email: test@example.com"
   notes?: string;
-  transferProofImageUrl?: string;
   status: TripStatus;
   creatorUserId?: string; // e.g., contactPhone of the creator, or a dedicated user ID if auth is added
   participants: Participant[];
@@ -53,6 +59,7 @@ export interface Trip {
   discountCode?: string; // Applied discount code
   createdAt: string; // ISO date string
   // updatedAd: string; // ISO date string
+  overallStatus: TripStatus; // Add overallStatus to Trip interface
 }
 
 export interface DiscountCode {
@@ -61,7 +68,7 @@ export interface DiscountCode {
   code: string;
   type: 'fixed' | 'percentage';
   value: number;
-  discountPercentage: number;
+  discountPercentage?: number;
   isActive: boolean;
   description?: string;
   usageLimit?: number;
@@ -137,6 +144,7 @@ export interface JoinTripFormValues {
   notes?: string;
   district?: string; // Add district field to JoinTripFormValues
   pricePaid: number; // Add pricePaid field to JoinTripFormValues
+  additionalServiceIds?: string[]; // Add additionalServiceIds to JoinTripFormValues
 }
 
 export interface FeedbackFormValues {

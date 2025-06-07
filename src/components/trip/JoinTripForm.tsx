@@ -27,7 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast"; // Corrected import path
 import { joinTrip, getItineraryDetailsForCalculation } from '@/actions/tripActions';
-import type { Trip, JoinTripFormValues, DistrictSurcharge } from '@/lib/types';
+import type { Trip, JoinTripFormValues, DistrictSurcharge, DiscountCode, AdditionalService } from '@/lib/types';
 import { Loader2, Users, MapPin, Phone, FileText, TicketPercent } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -37,6 +37,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getDiscountCodeDetails } from "@/actions/configActions"; // Import for discount validation
+import { useDebounce } from '@/hooks/use-debounce'; // Assuming a useDebounce hook exists
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from "@/components/ui/checkbox";
 
 const joinTripFormSchema = z.object({
   tripId: z.string(), // Hidden, will be set from props
@@ -47,6 +51,7 @@ const joinTripFormSchema = z.object({
   discountCode: z.string().optional(),
   notes: z.string().max(500, "Notes cannot exceed 500 characters.").optional(),
   district: z.string().optional(), // Add district field
+  additionalServiceIds: z.array(z.string()).optional(), // Add additionalServiceIds field
 });
 
 interface JoinTripFormProps {
@@ -54,14 +59,19 @@ interface JoinTripFormProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   districts: DistrictSurcharge[]; // Add districts prop
+  additionalServices: AdditionalService[]; // Add additionalServices prop
 }
 
-export default function JoinTripForm({ trip, isOpen, onOpenChange, districts }: JoinTripFormProps) {
+export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, additionalServices }: JoinTripFormProps) {
+  console.log('Additional Services in JoinTripForm:', additionalServices);
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calculatedPrice, setCalculatedPrice] = useState(0);
-  const [priceCalculationLoading, setPriceCalculationLoading] = useState(true); // New state for loading
+  const [initialCalculatedPrice, setInitialCalculatedPrice] = useState(0); // New state for price before discount
+  const [priceCalculationLoading, setPriceCalculationLoading] = useState(true);
+  const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
+  const [discountMessage, setDiscountMessage] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof joinTripFormSchema>>({
     resolver: zodResolver(joinTripFormSchema),
@@ -70,12 +80,36 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts }: 
       numberOfPeople: 1,
       notes: "",
       district: districts.find(d => d.surchargeAmount === 0)?.districtName || districts[0]?.districtName || "", // Default district
+      additionalServiceIds: [], // Initialize additionalServiceIds
     },
   });
 
   // Watch for changes in numberOfPeople and district
   const numberOfPeople = form.watch("numberOfPeople");
   const selectedDistrict = form.watch("district");
+  const watchDiscountCode = form.watch("discountCode");
+  const watchAdditionalServices = form.watch("additionalServiceIds"); // Watch additional services
+  const debouncedDiscountCode = useDebounce(watchDiscountCode, 500); // Debounce discount code
+
+  // Effect to validate and apply discount
+  useEffect(() => {
+    const validateAndApplyDiscount = async () => {
+      if (typeof debouncedDiscountCode !== 'string' || debouncedDiscountCode.trim() === '') {
+        setAppliedDiscount(null);
+        setDiscountMessage(null);
+        return;
+      }
+      const discountDetails = await getDiscountCodeDetails(debouncedDiscountCode);
+      if (discountDetails && discountDetails.isActive) {
+        setAppliedDiscount(discountDetails);
+        setDiscountMessage(`Applied: ${discountDetails.description || discountDetails.code} (${discountDetails.type === 'fixed' ? discountDetails.value.toLocaleString() + ' VND' : discountDetails.value + '%'})`);
+      } else {
+        setAppliedDiscount(null);
+        setDiscountMessage("Invalid or expired discount code.");
+      }
+    };
+    validateAndApplyDiscount();
+  }, [debouncedDiscountCode]);
 
   // Effect to recalculate price when inputs change
   useEffect(() => {
@@ -86,14 +120,36 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts }: 
         if (result) {
           let newPrice = result.pricePerPerson * numberOfPeople;
           newPrice += result.districtSurchargeAmount;
-          // TODO: Implement discount code calculation here if needed on client side
-          setCalculatedPrice(newPrice);
+
+          // Calculate additional services price
+          let servicesPrice = 0;
+          if (watchAdditionalServices) {
+            servicesPrice = watchAdditionalServices.reduce((total, serviceId) => {
+              const service = additionalServices.find(s => s.id === serviceId);
+              return total + (service?.price || 0);
+            }, 0);
+          }
+          newPrice += servicesPrice;
+
+          // Apply discount if available
+          let priceAfterDiscount = newPrice;
+          if (appliedDiscount) {
+            if (appliedDiscount.type === 'fixed') {
+              priceAfterDiscount -= appliedDiscount.value;
+            } else if (appliedDiscount.type === 'percentage') {
+              priceAfterDiscount -= priceAfterDiscount * (appliedDiscount.value / 100);
+            }
+          }
+          setInitialCalculatedPrice(newPrice); // Store price before discount
+          setCalculatedPrice(Math.max(0, priceAfterDiscount));
         } else {
           setCalculatedPrice(0);
+          setInitialCalculatedPrice(0);
         }
       } catch (error) {
         console.error("Error calculating price:", error);
         setCalculatedPrice(0);
+        setInitialCalculatedPrice(0);
       } finally {
         setPriceCalculationLoading(false);
       }
@@ -103,9 +159,10 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts }: 
       calculatePrice();
     } else {
       setCalculatedPrice(0);
+      setInitialCalculatedPrice(0);
       setPriceCalculationLoading(false);
     }
-  }, [numberOfPeople, selectedDistrict, trip.itineraryId]);
+  }, [numberOfPeople, selectedDistrict, trip.itineraryId, appliedDiscount, watchAdditionalServices]); // Add watchAdditionalServices to dependencies
 
   async function onSubmit(values: z.infer<typeof joinTripFormSchema>) {
     setIsSubmitting(true);
@@ -113,6 +170,8 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts }: 
       const submissionData: JoinTripFormValues = {
         ...values,
         pricePaid: calculatedPrice, // Pass the calculated price
+        discountCode: appliedDiscount ? appliedDiscount.code : undefined, // Pass the applied discount code
+        additionalServiceIds: values.additionalServiceIds || [], // Pass selected services
       };
 
       const result = await joinTrip(submissionData);
@@ -143,7 +202,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Join Trip: {trip.itineraryName}</DialogTitle>
           <DialogDescription>
@@ -152,6 +211,30 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts }: 
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+            <div className="mt-8 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
+              <h3 className="text-xl font-bold font-headline mb-2 flex items-center">
+                <TicketPercent className="h-5 w-5 mr-2 text-primary" />
+                Estimated Price for You:
+              </h3>
+              {priceCalculationLoading ? (
+                <p className="text-lg text-muted-foreground flex items-center">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" /> Calculating price...
+                </p>
+              ) : (
+                <>
+                  {appliedDiscount && calculatedPrice < initialCalculatedPrice ? (
+                    <div className="flex flex-col">
+                      <p className="text-sm text-muted-foreground line-through">Original: {initialCalculatedPrice.toLocaleString()} VND</p>
+                      <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} VND</p>
+                      <p className="text-sm text-green-600 dark:text-green-400 mt-1">{discountMessage}</p>
+                    </div>
+                  ) : (
+                    <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} VND</p>
+                  )}
+                </>
+              )}
+              <FormDescription className="mt-2">This is the estimated price for your portion of the trip. Final price may vary.</FormDescription>
+            </div>
             <FormField
               control={form.control}
               name="name"
@@ -247,6 +330,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts }: 
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="notes"
@@ -265,15 +349,54 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts }: 
               )}
             />
 
-            {/* Display Calculated Price */}
-            <div className="flex items-center justify-between text-lg font-semibold py-2 px-4 bg-secondary/20 rounded-md">
-              <span className="text-primary">Estimated Total Price:</span>
-              {priceCalculationLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              ) : (
-                <span className="text-right">{calculatedPrice.toLocaleString()} VND</span>
-              )}
-            </div>
+            {/* Conditionally render additional services field */}
+            {additionalServices.length > 0 && (
+              <FormField
+                control={form.control}
+                name="additionalServiceIds"
+                render={({ field }) => (
+                  <FormItem className="space-y-4">
+                    <FormLabel className="text-base">Additional Services</FormLabel>
+                    <FormDescription>Select any extra services you'd like to include.</FormDescription>
+                    {additionalServices.map((service) => (
+                      <FormField
+                        key={service.id}
+                        control={form.control}
+                        name="additionalServiceIds"
+                        render={({ field: itemField }) => {
+                          return (
+                            <FormItem
+                              key={service.id}
+                              className="flex flex-row items-start space-x-3 space-y-0"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={itemField.value?.includes(service.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? itemField.onChange([...(itemField.value || []), service.id])
+                                      : itemField.onChange(
+                                        itemField.value?.filter(
+                                          (value) => value !== service.id
+                                        )
+                                      );
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal flex-grow cursor-pointer">
+                                {service.name} (+{service.price.toLocaleString()} VND)
+                                {service.description && <p className="text-xs text-muted-foreground italic">{service.description}</p>}
+                              </FormLabel>
+                            </FormItem>
+                          );
+                        }}
+                      />
+                    ))}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <DialogFooter className="sm:justify-between gap-2 pt-4">
               <DialogClose asChild>

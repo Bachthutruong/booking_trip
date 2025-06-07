@@ -8,38 +8,23 @@ import { ITINERARY_TYPES, TRIP_STATUSES } from '@/lib/constants';
 import { format } from 'date-fns';
 import NextImage from 'next/image'; // Using NextImage for optimization
 import { cn } from '@/lib/utils';
+import { getAdditionalServicesByIds } from '@/actions/configActions'; // Import the new function
+import ImagePreviewDialog from '@/components/common/ImagePreviewDialog';
+import PaymentProofPreviewButton from '@/components/admin/PaymentProofPreviewButton'; // New import
+import { ConfirmPaymentButton as ClientConfirmPaymentButton } from '@/components/admin/ConfirmPaymentButton'; // Import the client component
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'; // New import
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'; // New import
 
-async function ConfirmPaymentButton({ tripId }: { tripId: string }) {
-  const action = async () => {
-    "use server";
-    await confirmMainBookerPayment(tripId);
-    // Revalidation is handled by the action itself
-  };
-  return (
-    <form action={action}>
-      <Button type="submit" className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white">
-        <CheckCircle className="mr-2 h-4 w-4" /> Confirm Main Booker Payment
-      </Button>
-    </form>
-  );
-}
-
-async function ConfirmParticipantPaymentButton({ tripId, participantId }: { tripId: string; participantId: string }) {
-  const action = async () => {
-    "use server";
-    await confirmParticipantPayment(tripId, participantId);
-  };
-  return (
-    <form action={action} className="inline-block ml-2">
-      <Button type="submit" size="sm" variant="outline" className="bg-green-100 hover:bg-green-200 text-green-700 border-green-300">
-        <CheckCircle className="mr-1 h-3 w-3" /> Confirm Payment
-      </Button>
-    </form>
-  );
-}
+// Cosmetic change to trigger TypeScript re-evaluation
+const WandIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-3.54 3.54a2 2 0 0 1-2.83-2.83l.35-.35" /><path d="M14.73 2.39 5.86 11.26" />
+  </svg>
+);
 
 export default async function AdminTripDetailPage({ params }: { params: { tripId: string } }) {
   const trip = await getTripById(params.tripId);
+  console.log(trip, 'tripppppp');
 
   if (!trip) {
     return (
@@ -52,7 +37,10 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
     );
   }
 
-  const totalGuests = trip.numberOfPeople + trip.participants.reduce((sum, p) => sum + p.numberOfPeople, 0);
+  const totalGuests = trip.participants.reduce((sum, p) => sum + p.numberOfPeople, 0);
+  const selectedAdditionalServices = trip.additionalServiceIds && trip.additionalServiceIds.length > 0
+    ? await getAdditionalServicesByIds(trip.additionalServiceIds)
+    : [];
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -103,7 +91,9 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
         {trip.additionalServiceIds && trip.additionalServiceIds.length > 0 && (
           <CardSection title="Additional Services" icon={<WandIcon />}>
             <ul className="list-disc list-inside text-sm">
-              {trip.additionalServiceIds.map(service => <li key={service}>{service}</li>)} {/* Ideally, fetch service names */}
+              {selectedAdditionalServices.map(service => (
+                <li key={service.id}>{service.name} (+{service.price.toLocaleString()} VND)</li>
+              ))}
             </ul>
           </CardSection>
         )}
@@ -112,53 +102,79 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
           <CardSection title="Joined Participants" icon={<Users />}>
             <div className="space-y-3">
               {trip.participants.map(p => (
-                <div key={p.id} className="p-3 border rounded-md bg-muted/30 text-sm flex items-center justify-between flex-wrap gap-2">
-                  <div>
-                    <p><strong className="font-medium">{p.name}</strong> ({p.numberOfPeople} person(s))</p>
-                    <p className="text-xs text-muted-foreground">Phone: {p.phone} | Address: {p.address}</p>
-                    {p.notes && <p className="text-xs italic mt-1">Note: {p.notes}</p>}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={p.status === 'payment_confirmed' ? 'default' : 'outline'}
-                      className={cn("capitalize px-2 py-1 text-xs",
-                        p.status === 'payment_confirmed' ? 'bg-green-500 text-white' : 'border-yellow-500 text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/30')}
-                    >
-                      {TRIP_STATUSES[p.status]} ({p.pricePaid.toLocaleString()} VND)
-                    </Badge>
-                    {p.status === 'pending_payment' && (
-                      <ConfirmParticipantPaymentButton tripId={trip.id} participantId={p.id} />
-                    )}
-                  </div>
-                </div>
+                <Accordion type="single" collapsible key={p.id} className="w-full">
+                  <AccordionItem value={p.id}>
+                    <AccordionTrigger className="flex items-center justify-between gap-4 group-hover:no-underline p-4">
+                      <div className="flex flex-col flex-grow min-w-0">
+                        <strong className="font-medium">{p.name}</strong> ({p.numberOfPeople} person(s))
+                        <p className="text-xs text-muted-foreground">Phone: {p.phone} | Address: {p.address}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Badge
+                          variant={p.status === 'payment_confirmed' ? 'default' : 'outline'}
+                          className={cn("capitalize px-2 py-1 text-xs",
+                            p.status === 'payment_confirmed' ? 'bg-green-500 text-white' : 'border-yellow-500 text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/30')}
+                        >
+                          {TRIP_STATUSES[p.status]} ({p.pricePaid.toLocaleString()} VND)
+                        </Badge>
+                        {p.status === 'pending_payment' && p.transferProofImageUrl && (
+                          <PaymentProofPreviewButton imageUrl={p.transferProofImageUrl} />
+                        )}
+                        {p.status === 'pending_payment' && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="default" size="sm" className="bg-green-500 text-white hover:bg-green-600">
+                                <CheckCircle className="mr-2 h-4 w-4" /> Confirm Payment
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirm Payment for {p.name}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will mark the participant's payment as confirmed.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction asChild>
+                                  <ClientConfirmPaymentButton tripId={trip.id} participantId={p.id} isMainBooker={false} />
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="pl-4 py-2 border-l-2 border-primary/50 space-y-2 text-sm">
+                        {p.email && <p><strong className="font-medium text-muted-foreground">Email:</strong> {p.email}</p>}
+                        {p.dob && <p><strong className="font-medium text-muted-foreground">Date of Birth:</strong> {format(new Date(p.dob), "MMM dd, yyyy")}</p>}
+                        {p.identityNumber && <p><strong className="font-medium text-muted-foreground">Identity No.:</strong> {p.identityNumber}</p>}
+                        {p.discountCode && p.discountCode.code && (
+                          <p><strong className="font-medium text-muted-foreground">Discount Code:</strong> <Badge variant="secondary">{p.discountCode.code} ({p.discountCode.type === 'percentage' ? `${p.discountCode.value}%` : `${p.discountCode.value.toLocaleString()} VND`})</Badge></p>
+                        )}
+                        {p.additionalServices && p.additionalServices.length > 0 && (
+                          <div>
+                            <strong className="font-medium text-muted-foreground">Services:</strong>
+                            <ul className="list-disc list-inside ml-4">
+                              {p.additionalServices.map(service => (
+                                <li key={service.id}>{service.name} (+{service.price.toLocaleString()} VND)</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {p.notes && <p><strong className="font-medium text-muted-foreground">Notes:</strong> {p.notes}</p>}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               ))}
             </div>
           </CardSection>
         )}
 
-        {trip.status === 'pending_payment' && (
-          <CardSection title="Main Booker Payment Verification" icon={<DollarSign />}>
-            {trip.transferProofImageUrl ? (
-              <div className="space-y-4">
-                <p className="text-sm">Payment proof has been uploaded by the main booker.</p>
-                <div className="border rounded-md overflow-hidden max-w-md">
-                  <NextImage src={trip.transferProofImageUrl} alt="Payment Proof" width={600} height={400} className="object-contain" data-ai-hint="payment proof" />
-                </div>
-                <ConfirmPaymentButton tripId={trip.id} />
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No payment proof has been uploaded by the main booker yet.</p>
-            )}
-          </CardSection>
-        )}
-        {trip.status === 'payment_confirmed' && trip.transferProofImageUrl && (
-          <CardSection title="Main Booker Payment Proof" icon={<ImageIcon />}>
-            <div className="border rounded-md overflow-hidden max-w-md">
-              <NextImage src={trip.transferProofImageUrl} alt="Payment Proof" width={600} height={400} className="object-contain" data-ai-hint="payment proof" />
-            </div>
-            <p className="text-sm text-green-600 mt-2">Main booker payment has been confirmed for this trip.</p>
-          </CardSection>
-        )}
+        {/* Consolidated Payment Proof Section */}
+        {/* This section is removed as individual participant proof is now handled */}
 
         <CardFooter className="border-t pt-6">
           {/* Add other actions like "Cancel Trip" or "Edit Trip" for admin if needed */}
@@ -168,10 +184,3 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
     </div>
   );
 }
-
-
-const WandIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-3.54 3.54a2 2 0 0 1-2.83-2.83l.35-.35" /><path d="M14.73 2.39 5.86 11.26" />
-  </svg>
-);

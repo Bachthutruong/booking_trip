@@ -8,21 +8,24 @@ import { useState, useEffect } from 'react';
 import JoinTripForm from './JoinTripForm'; // This will be the dialog/form component
 import { ITINERARY_TYPES } from '@/lib/constants';
 import Image from 'next/image'; // Assuming itineraries might have images
-import { getDistrictSurcharges } from '@/actions/configActions'; // Import the action
-import type { DistrictSurcharge } from '@/lib/types'; // Import DistrictSurcharge type
+import { getDistrictSurcharges, getAdditionalServices } from '@/actions/configActions'; // Import the action
+import type { DistrictSurcharge, AdditionalService } from '@/lib/types'; // Import DistrictSurcharge type
 
 export default function JoinableTripCard({ trip }: { trip: Trip }) {
   const [isJoinFormOpen, setIsJoinFormOpen] = useState(false);
   const [districts, setDistricts] = useState<DistrictSurcharge[]>([]); // State to store districts
+  const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([]); // State to store additional services
 
-  // Fetch districts when the component mounts or when the form is opened
+  // Fetch districts and additional services when the component mounts or when the form is opened
   useEffect(() => {
     if (isJoinFormOpen) {
-      const fetchDistricts = async () => {
+      const fetchData = async () => {
         const fetchedDistricts = await getDistrictSurcharges();
         setDistricts(fetchedDistricts);
+        const fetchedServices = await getAdditionalServices();
+        setAdditionalServices(fetchedServices);
       };
-      fetchDistricts();
+      fetchData();
     }
   }, [isJoinFormOpen]);
 
@@ -70,6 +73,7 @@ export default function JoinableTripCard({ trip }: { trip: Trip }) {
           isOpen={isJoinFormOpen}
           onOpenChange={setIsJoinFormOpen}
           districts={districts}
+          additionalServices={additionalServices}
         />
       )}
     </>

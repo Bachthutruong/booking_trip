@@ -1,10 +1,9 @@
-
 'use server';
 
-import { 
-  getDistrictSurchargesCollection, 
-  getAdditionalServicesCollection, 
-  getDiscountCodesCollection 
+import {
+  getDistrictSurchargesCollection,
+  getAdditionalServicesCollection,
+  getDiscountCodesCollection
 } from '@/lib/mongodb';
 import type { DistrictSurcharge, AdditionalService, DiscountCode, DiscountCodeFormValues, DistrictSurchargeFormValues, AdditionalServiceFormValues, ItineraryType } from '@/lib/types';
 import { ObjectId } from 'mongodb';
@@ -12,9 +11,9 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
 // --- Helper for MongoDB document mapping ---
-function mapMongoDocument<T extends { _id?: ObjectId }>(doc: T): Omit<T, '_id'> & { id: string } {
+function mapMongoDocument<T>(doc: any): T {
   const { _id, ...rest } = doc;
-  return { ...rest, id: _id!.toString() } as Omit<T, '_id'> & { id: string };
+  return { ...rest, id: _id!.toString() } as T;
 }
 
 
@@ -22,7 +21,7 @@ function mapMongoDocument<T extends { _id?: ObjectId }>(doc: T): Omit<T, '_id'> 
 export async function getDistrictSurcharges(): Promise<DistrictSurcharge[]> {
   const collection = await getDistrictSurchargesCollection();
   const docs = await collection.find({}).toArray();
-  return docs.map(doc => mapMongoDocument(doc as any));
+  return docs.map(doc => mapMongoDocument<DistrictSurcharge>(doc));
 }
 
 const districtSurchargeSchema = z.object({
@@ -38,7 +37,7 @@ export async function createDistrictSurcharge(values: DistrictSurchargeFormValue
   const collection = await getDistrictSurchargesCollection();
   const newId = new ObjectId();
   const newDoc = { _id: newId, id: newId.toString(), ...validation.data };
-  
+
   try {
     await collection.insertOne(newDoc as any);
     revalidatePath('/admin/districts');
@@ -54,7 +53,7 @@ export async function updateDistrictSurcharge(id: string, values: DistrictSurcha
   if (!ObjectId.isValid(id)) return { success: false, message: "Invalid ID format." };
   const validation = districtSurchargeSchema.safeParse(values);
   if (!validation.success) return { success: false, message: validation.error.errors.map(e => e.message).join(', ') };
-  
+
   const collection = await getDistrictSurchargesCollection();
   try {
     const result = await collection.updateOne({ _id: new ObjectId(id) }, { $set: validation.data });
@@ -84,10 +83,10 @@ export async function deleteDistrictSurcharge(id: string): Promise<{ success: bo
   }
 }
 export async function getDistrictSurchargeById(id: string): Promise<DistrictSurcharge | null> {
-    if (!ObjectId.isValid(id)) return null;
-    const collection = await getDistrictSurchargesCollection();
-    const doc = await collection.findOne({ _id: new ObjectId(id) });
-    return doc ? mapMongoDocument(doc as any) : null;
+  if (!ObjectId.isValid(id)) return null;
+  const collection = await getDistrictSurchargesCollection();
+  const doc = await collection.findOne({ _id: new ObjectId(id) });
+  return doc ? mapMongoDocument<DistrictSurcharge>(doc) : null;
 }
 
 
@@ -95,7 +94,7 @@ export async function getDistrictSurchargeById(id: string): Promise<DistrictSurc
 export async function getAdditionalServices(): Promise<AdditionalService[]> {
   const collection = await getAdditionalServicesCollection();
   const docs = await collection.find({}).toArray();
-  return docs.map(doc => mapMongoDocument(doc as any));
+  return docs.map(doc => mapMongoDocument<AdditionalService>(doc));
 }
 
 const additionalServiceSchema = z.object({
@@ -114,7 +113,7 @@ export async function createAdditionalService(values: AdditionalServiceFormValue
   const collection = await getAdditionalServicesCollection();
   const newId = new ObjectId();
   const newDoc = { _id: newId, id: newId.toString(), ...validation.data };
-  
+
   try {
     await collection.insertOne(newDoc as any);
     revalidatePath('/admin/services');
@@ -129,7 +128,7 @@ export async function updateAdditionalService(id: string, values: AdditionalServ
   if (!ObjectId.isValid(id)) return { success: false, message: "Invalid ID format." };
   const validation = additionalServiceSchema.safeParse(values);
   if (!validation.success) return { success: false, message: validation.error.errors.map(e => e.message).join(', ') };
-  
+
   const collection = await getAdditionalServicesCollection();
   try {
     const result = await collection.updateOne({ _id: new ObjectId(id) }, { $set: validation.data });
@@ -159,10 +158,19 @@ export async function deleteAdditionalService(id: string): Promise<{ success: bo
   }
 }
 export async function getAdditionalServiceById(id: string): Promise<AdditionalService | null> {
-    if (!ObjectId.isValid(id)) return null;
-    const collection = await getAdditionalServicesCollection();
-    const doc = await collection.findOne({ _id: new ObjectId(id) });
-    return doc ? mapMongoDocument(doc as any) : null;
+  if (!ObjectId.isValid(id)) return null;
+  const collection = await getAdditionalServicesCollection();
+  const doc = await collection.findOne({ _id: new ObjectId(id) });
+  return doc ? mapMongoDocument<AdditionalService>(doc) : null;
+}
+
+export async function getAdditionalServicesByIds(ids: string[]): Promise<AdditionalService[]> {
+  if (ids.length === 0) return [];
+  const collection = await getAdditionalServicesCollection();
+  const objectIds = ids.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
+  if (objectIds.length === 0) return [];
+  const docs = await collection.find({ _id: { $in: objectIds } }).toArray();
+  return docs.map(doc => mapMongoDocument<AdditionalService>(doc));
 }
 
 
@@ -170,14 +178,14 @@ export async function getAdditionalServiceById(id: string): Promise<AdditionalSe
 export async function getDiscountCodes(): Promise<DiscountCode[]> {
   const collection = await getDiscountCodesCollection();
   const docs = await collection.find({}).sort({ code: 1 }).toArray();
-  return docs.map(doc => mapMongoDocument(doc as any));
+  return docs.map(doc => mapMongoDocument<DiscountCode>(doc));
 }
 
 export async function getDiscountCodeDetails(code: string): Promise<DiscountCode | null> {
   const collection = await getDiscountCodesCollection();
   const doc = await collection.findOne({ code: code.toUpperCase(), isActive: true });
   // Add logic for usageLimit, validFrom, validTo if implemented
-  return doc ? mapMongoDocument(doc as any) : null;
+  return doc ? mapMongoDocument<DiscountCode>(doc) : null;
 }
 
 const discountCodeSchema = z.object({
@@ -195,7 +203,7 @@ export async function createDiscountCode(values: DiscountCodeFormValues): Promis
   }
   const data = validation.data;
   const collection = await getDiscountCodesCollection();
-  
+
   // Check for duplicate code
   const existing = await collection.findOne({ code: data.code });
   if (existing) {
@@ -209,7 +217,7 @@ export async function createDiscountCode(values: DiscountCodeFormValues): Promis
     ...data,
     timesUsed: 0, // Initialize timesUsed
   };
-  
+
   try {
     await collection.insertOne(newDoc as any);
     revalidatePath('/admin/discounts');
@@ -224,7 +232,7 @@ export async function updateDiscountCode(id: string, values: DiscountCodeFormVal
   if (!ObjectId.isValid(id)) return { success: false, message: "Invalid ID format." };
   const validation = discountCodeSchema.safeParse(values);
   if (!validation.success) return { success: false, message: validation.error.errors.map(e => e.message).join(', ') };
-  
+
   const collection = await getDiscountCodesCollection();
   try {
     const result = await collection.updateOne({ _id: new ObjectId(id) }, { $set: validation.data });
@@ -255,8 +263,8 @@ export async function deleteDiscountCode(id: string): Promise<{ success: boolean
 }
 
 export async function getDiscountCodeById(id: string): Promise<DiscountCode | null> {
-    if (!ObjectId.isValid(id)) return null;
-    const collection = await getDiscountCodesCollection();
-    const doc = await collection.findOne({ _id: new ObjectId(id) });
-    return doc ? mapMongoDocument(doc as any) : null;
+  if (!ObjectId.isValid(id)) return null;
+  const collection = await getDiscountCodesCollection();
+  const doc = await collection.findOne({ _id: new ObjectId(id) });
+  return doc ? mapMongoDocument<DiscountCode>(doc) : null;
 }

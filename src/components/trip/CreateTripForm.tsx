@@ -89,6 +89,7 @@ interface CreateTripFormProps {
 }
 
 export default function CreateTripForm({ itinerary, districts, additionalServices }: CreateTripFormProps) {
+  console.log('Additional Services in CreateTripForm:', additionalServices);
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,6 +97,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
   const [discountMessage, setDiscountMessage] = useState<string | null>(null);
   const [debouncedDiscountCode, setDebouncedDiscountCode] = useState<string>('');
+  const [initialCalculatedPrice, setInitialCalculatedPrice] = useState(itinerary.pricePerPerson);
 
   const form = useForm<z.infer<typeof createTripFormSchema>>({
     resolver: zodResolver(createTripFormSchema),
@@ -169,6 +171,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
       }
     }
     setCalculatedPrice(Math.max(0, basePrice));
+    setInitialCalculatedPrice(Math.max(0, basePrice));
 
   }, [watchNumberOfPeople, watchDistrict, watchAdditionalServices, appliedDiscount, itinerary.pricePerPerson, districts, additionalServices]);
 
@@ -325,21 +328,21 @@ export default function CreateTripForm({ itinerary, districts, additionalService
       <div className="lg:col-span-1 order-last lg:order-first mt-8 lg:mt-0">
         <h2 className="text-2xl font-headline font-semibold mb-4">Selected Itinerary</h2>
         <ItineraryCard itinerary={itinerary} className="shadow-lg sticky top-24" />
-        <Card className="mt-6 shadow-lg p-6 bg-primary/5">
-          <h3 className="text-xl font-semibold mb-3 flex items-center"><Tag className="h-5 w-5 mr-2 text-primary" />Estimated Price</h3>
-          <p className="text-3xl font-bold text-primary">
-            {calculatedPrice.toLocaleString()} VND
-          </p>
-          {discountMessage && <p className={`text-xs mt-1 ${appliedDiscount ? 'text-green-600' : 'text-destructive'}`}>{discountMessage}</p>}
-          <p className="text-xs text-muted-foreground mt-1">
-            Final price based on selections.
-          </p>
-        </Card>
       </div>
 
       <div className="lg:col-span-2">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 bg-card p-6 sm:p-10 rounded-xl shadow-2xl">
+            <Card className="mb-6 shadow-lg p-6 bg-primary/5">
+              <h3 className="text-xl font-semibold mb-3 flex items-center"><Tag className="h-5 w-5 mr-2 text-primary" />Estimated Price</h3>
+              <p className="text-3xl font-bold text-primary">
+                {calculatedPrice.toLocaleString()} VND
+              </p>
+              {discountMessage && <p className={`text-xs mt-1 ${appliedDiscount ? 'text-green-600' : 'text-destructive'}`}>{discountMessage}</p>}
+              <p className="text-xs text-muted-foreground mt-1">
+                Final price based on selections.
+              </p>
+            </Card>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
@@ -489,54 +492,49 @@ export default function CreateTripForm({ itinerary, districts, additionalService
               />
             </div>
 
+            {/* Conditionally render additional services field */}
             {additionalServices.length > 0 && (
               <FormField
                 control={form.control}
                 name="additionalServiceIds"
-                render={() => (
-                  <FormItem>
-                    <div className="mb-4">
-                      <FormLabel className="text-base flex items-center"><Wand2 className="h-4 w-4 mr-2 text-primary" />Additional Services</FormLabel>
-                      <FormDescription>
-                        Enhance your trip with these optional services.
-                      </FormDescription>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                      {additionalServices.map((service) => (
-                        <FormField
-                          key={service.id}
-                          control={form.control}
-                          name="additionalServiceIds"
-                          render={({ field }) => {
-                            return (
-                              <FormItem
-                                key={service.id}
-                                className="flex flex-row items-center space-x-3 space-y-0"
-                              >
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value?.includes(service.id)}
-                                    onCheckedChange={(checked) => {
-                                      return checked
-                                        ? field.onChange([...(field.value || []), service.id])
-                                        : field.onChange(
-                                          (field.value || []).filter(
-                                            (value) => value !== service.id
-                                          )
-                                        );
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormLabel className="font-normal text-sm">
-                                  {service.name} (+{service.price.toLocaleString()} VND)
-                                  {service.description && <span className="block text-xs text-muted-foreground">{service.description}</span>}
-                                </FormLabel>
-                              </FormItem>
-                            );
-                          }}
-                        />
-                      ))}
-                    </div>
+                render={({ field }) => (
+                  <FormItem className="space-y-4">
+                    <FormLabel className="text-base">Additional Services</FormLabel>
+                    <FormDescription>Select any extra services you'd like to include.</FormDescription>
+                    {additionalServices.map((service) => (
+                      <FormField
+                        key={service.id}
+                        control={form.control}
+                        name="additionalServiceIds"
+                        render={({ field: itemField }) => {
+                          return (
+                            <FormItem
+                              key={service.id}
+                              className="flex flex-row items-start space-x-3 space-y-0"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={itemField.value?.includes(service.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? itemField.onChange([...(itemField.value || []), service.id])
+                                      : itemField.onChange(
+                                        itemField.value?.filter(
+                                          (value) => value !== service.id
+                                        )
+                                      );
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal flex-grow cursor-pointer">
+                                {service.name} (+{service.price.toLocaleString()} VND)
+                                {service.description && <p className="text-xs text-muted-foreground italic">{service.description}</p>}
+                              </FormLabel>
+                            </FormItem>
+                          );
+                        }}
+                      />
+                    ))}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -574,6 +572,23 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 </FormItem>
               )}
             />
+
+            <div className="mt-8 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
+              <h3 className="text-xl font-bold font-headline mb-2 flex items-center">
+                <Tag className="h-5 w-5 mr-2 text-primary" />
+                Estimated Total Price:
+              </h3>
+              {appliedDiscount && calculatedPrice < initialCalculatedPrice ? (
+                <div className="flex flex-col">
+                  <p className="text-sm text-muted-foreground line-through">Original: {initialCalculatedPrice.toLocaleString()} VND</p>
+                  <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} VND</p>
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-1">{discountMessage}</p>
+                </div>
+              ) : (
+                <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} VND</p>
+              )}
+              <FormDescription className="mt-2">Final price may vary based on exact details and currency conversion.</FormDescription>
+            </div>
 
             <Button type="submit" className="w-full text-lg py-6" disabled={isSubmitting}>
               {isSubmitting ? (
