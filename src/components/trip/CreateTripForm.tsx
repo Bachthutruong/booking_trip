@@ -20,11 +20,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Info, Loader2, Users, MapPin, Phone, Mail, FileText, Tag, Palette, Wand2, TicketPercent } from "lucide-react";
+import { CalendarIcon, Info, Loader2, Users, MapPin, Phone, Mail, FileText, Tag, Palette, Wand2, TicketPercent, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect, useMemo } from "react";
 import { createTrip } from "@/actions/tripActions";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast"; // Corrected import path
 import type { Itinerary, DistrictSurcharge, AdditionalService, CreateTripFormValues as FormValues } from '@/lib/types'; // Renamed to FormValues
 import { useRouter } from "next/navigation";
 import { AVAILABLE_SECONDARY_CONTACT_TYPES } from "@/lib/constants";
@@ -139,7 +139,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
           title: "Trip Created!",
           description: result.message,
         });
-        router.push(`/my-trips?tripId=${result.tripId}`); // Redirect to manage the new trip
+        router.push(`/my-trips?tripId=${result.tripId}&phone=${submissionData.contactPhone}`); // Redirect to manage the new trip, include phone
       } else {
         toast({
           title: "Error",
