@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { getUserTrips } from '@/actions/tripActions';
 import type { Trip } from '@/lib/types';
 import TripListItem from './TripListItem';
-import { useToast } from '@/components/ui/toast';
+import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
