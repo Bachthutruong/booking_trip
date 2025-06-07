@@ -5,17 +5,21 @@ import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+// Ensure robust handling of environment variables
+const ADMIN_USERNAME_ENV = process.env.ADMIN_USERNAME || '';
+const ADMIN_PASSWORD_ENV = process.env.ADMIN_PASSWORD || '';
+
 // For a real app, use a secure random string for the session token value.
 // Store this in your .env file and ensure it's not committed to your repository.
-// For this example, we'll simulate it.
-const ADMIN_SESSION_TOKEN_SECRET_VALUE = process.env.ADMIN_USERNAME + process.env.ADMIN_PASSWORD; // Simplistic, replace with secure token
+// This value must be consistent with how it's checked in the middleware.
+const ADMIN_SESSION_TOKEN_SECRET_VALUE = ADMIN_USERNAME_ENV + ADMIN_PASSWORD_ENV;
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
 });
 
-export async function loginAdmin(formData: FormData, redirectPathOverride?: string): Promise<{ success: boolean; message: string }> {
+export async function loginAdmin(formData: FormData, redirectPathOverride?: string): Promise<{ success: boolean; message: string } | void> {
   const values = Object.fromEntries(formData.entries());
   const validation = loginSchema.safeParse(values);
 
@@ -26,7 +30,17 @@ export async function loginAdmin(formData: FormData, redirectPathOverride?: stri
   const { username, password } = validation.data;
 
   // IMPORTANT: Replace with secure password hashing and comparison in a real app!
-  if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+  // Compare against environment variables, ensuring they are treated as empty strings if not set.
+  if (username === ADMIN_USERNAME_ENV && password === ADMIN_PASSWORD_ENV) {
+    // Critical check: if ADMIN_SESSION_TOKEN_SECRET_VALUE is an empty string because env vars are not set,
+    // this means authentication is effectively disabled or highly insecure.
+    // A real app should throw an error here or prevent login if env vars are missing.
+    if (ADMIN_SESSION_TOKEN_SECRET_VALUE === '') {
+        console.error("CRITICAL: Admin username or password environment variables are not set. Login is insecure.");
+        // Optionally, prevent login:
+        // return { success: false, message: 'Server configuration error. Please contact support.' };
+    }
+
     cookies().set('admin-auth-token', ADMIN_SESSION_TOKEN_SECRET_VALUE, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -36,9 +50,7 @@ export async function loginAdmin(formData: FormData, redirectPathOverride?: stri
     });
     const finalRedirectPath = redirectPathOverride || '/admin/dashboard';
     redirect(finalRedirectPath); // Perform server-side redirect
-    // The following line is effectively unreachable due to redirect,
-    // but might be needed if redirect was conditional and types expect a return.
-    // For now, Next.js handles the thrown redirect error.
+    // The redirect function throws an error, so code below this line in the success path won't execute.
   } else {
     return { success: false, message: 'Invalid username or password.' };
   }
