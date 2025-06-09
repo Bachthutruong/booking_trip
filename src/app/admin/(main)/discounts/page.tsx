@@ -71,7 +71,7 @@ export default async function AdminDiscountsPage() {
                                                 }
                                             )}>
                                                 <TableCell className="font-medium">{discount.code}</TableCell>
-                                                <TableCell>{discount.type === 'percentage' ? `${discount.value}%` : `${discount.value.toLocaleString()} VND`}</TableCell>
+                                                <TableCell>{discount.type === 'percentage' ? `${discount.value}%` : `${discount.value.toLocaleString()} 元`}</TableCell>
                                                 <TableCell>
                                                     {discount.expiryDate ? format(new Date(discount.expiryDate), "MMM dd, yyyy") : "N/A"}
                                                 </TableCell>

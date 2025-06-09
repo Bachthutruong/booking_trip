@@ -138,7 +138,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
       const discountDetails = await getDiscountCodeDetails(debouncedDiscountCode);
       if (discountDetails && discountDetails.isActive) {
         setAppliedDiscount(discountDetails);
-        setDiscountMessage(`Applied: ${discountDetails.description || discountDetails.code} (${discountDetails.type === 'fixed' ? discountDetails.value.toLocaleString() + ' VND' : discountDetails.value + '%'})`);
+        setDiscountMessage(`Applied: ${discountDetails.description || discountDetails.code} (${discountDetails.type === 'fixed' ? discountDetails.value.toLocaleString() + ' 元' : discountDetails.value + '%'})`);
       } else {
         setAppliedDiscount(null);
         setDiscountMessage("Invalid or expired discount code.");
@@ -174,6 +174,49 @@ export default function CreateTripForm({ itinerary, districts, additionalService
     setInitialCalculatedPrice(Math.max(0, basePrice));
 
   }, [watchNumberOfPeople, watchDistrict, watchAdditionalServices, appliedDiscount, itinerary.pricePerPerson, districts, additionalServices]);
+
+  // --- BEGIN: Price breakdown calculation ---
+  const priceBreakdown = useMemo(() => {
+    const numPeople = watchNumberOfPeople || 1;
+    const districtSurchargeItem = districts.find(d => d.districtName === watchDistrict);
+    const districtSurchargeAmount = districtSurchargeItem ? districtSurchargeItem.surchargeAmount : 0;
+    const districtSurchargeLabel = districtSurchargeItem && districtSurchargeItem.surchargeAmount > 0
+      ? `${districtSurchargeItem.districtName}: +${districtSurchargeItem.surchargeAmount.toLocaleString()} 元`
+      : null;
+
+    let services: { name: string; price: number }[] = [];
+    if (watchAdditionalServices) {
+      services = watchAdditionalServices.map(serviceId => {
+        const service = additionalServices.find(s => s.id === serviceId);
+        return service ? { name: service.name, price: service.price } : null;
+      }).filter(Boolean) as { name: string; price: number }[];
+    }
+
+    let basePrice = itinerary.pricePerPerson * numPeople;
+    let discountValue = 0;
+    let discountLabel = null;
+    let subtotal = basePrice + districtSurchargeAmount + services.reduce((t, s) => t + s.price, 0);
+    if (appliedDiscount) {
+      if (appliedDiscount.type === 'fixed') {
+        discountValue = appliedDiscount.value;
+        discountLabel = `Discount: -${appliedDiscount.value.toLocaleString()} 元`;
+      } else if (appliedDiscount.type === 'percentage') {
+        discountValue = subtotal * (appliedDiscount.value / 100);
+        discountLabel = `Discount: -${appliedDiscount.value}% (-${discountValue.toLocaleString()} 元)`;
+      }
+    }
+    return {
+      basePrice,
+      numPeople,
+      districtSurchargeAmount,
+      districtSurchargeLabel,
+      services,
+      discountValue,
+      discountLabel,
+      subtotal,
+    };
+  }, [watchNumberOfPeople, watchDistrict, watchAdditionalServices, appliedDiscount, itinerary.pricePerPerson, districts, additionalServices]);
+  // --- END: Price breakdown calculation ---
 
   async function onSubmit(values: z.infer<typeof createTripFormSchema>) {
     setIsSubmitting(true);
@@ -231,21 +274,6 @@ export default function CreateTripForm({ itinerary, districts, additionalService
       case 'airport_pickup':
         return [
           <FormField
-            key="dropoff-address"
-            control={form.control}
-            name="dropoffAddress"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />Drop-off Address in Hanoi *</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., 123 P. Hàng Bông, Hoàn Kiếm" {...field} />
-                </FormControl>
-                <FormDescription>Where should we drop you off in Hanoi?</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />,
-          <FormField
             key="district-dropoff"
             control={form.control}
             name="district"
@@ -261,7 +289,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                   <SelectContent>
                     {districts.map((district) => (
                       <SelectItem key={district.districtName} value={district.districtName}>
-                        {district.districtName} {district.surchargeAmount > 0 ? `(+${district.surchargeAmount.toLocaleString()} VND)` : ''}
+                        {district.districtName} {district.surchargeAmount > 0 ? `(+${district.surchargeAmount.toLocaleString()} 元)` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -270,26 +298,27 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 <FormMessage />
               </FormItem>
             )}
-          />
-        ];
-      case 'airport_dropoff':
-      case 'tourism':
-        return [
+          />,
           <FormField
-            key="pickup-address"
+            key="dropoff-address"
             control={form.control}
-            name="pickupAddress"
+            name="dropoffAddress"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />Pickup Address in Hanoi *</FormLabel>
+                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />Drop-off Address in Hanoi *</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., 456 P. Lý Thường Kiệt, Hoàn Kiếm" {...field} />
+                  <Input placeholder="e.g., 123 P. Hàng Bông, Hoàn Kiếm" {...field} />
                 </FormControl>
-                <FormDescription>Where should we pick you up from?</FormDescription>
+                <FormDescription>Where should we drop you off in Hanoi?</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />,
+          
+        ];
+      case 'airport_dropoff':
+      case 'tourism':
+        return [
           <FormField
             key="district-pickup"
             control={form.control}
@@ -306,7 +335,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                   <SelectContent>
                     {districts.map((district) => (
                       <SelectItem key={district.districtName} value={district.districtName}>
-                        {district.districtName} {district.surchargeAmount > 0 ? `(+${district.surchargeAmount.toLocaleString()} VND)` : ''}
+                        {district.districtName} {district.surchargeAmount > 0 ? `(+${district.surchargeAmount.toLocaleString()} 元)` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -315,7 +344,23 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 <FormMessage />
               </FormItem>
             )}
+          />,
+          <FormField
+            key="pickup-address"
+            control={form.control}
+            name="pickupAddress"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />Pickup Address in Hanoi *</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., 456 P. Lý Thường Kiệt, Hoàn Kiếm" {...field} />
+                </FormControl>
+                <FormDescription>Where should we pick you up from?</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
           />
+
         ];
       default:
         return null;
@@ -324,7 +369,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
 
 
   return (
-    <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+    <div className=" mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
       <div className="lg:col-span-1 order-last lg:order-first mt-8 lg:mt-0">
         <h2 className="text-2xl font-headline font-semibold mb-4">Selected Itinerary</h2>
         <ItineraryCard itinerary={itinerary} className="shadow-lg sticky top-24" />
@@ -336,12 +381,53 @@ export default function CreateTripForm({ itinerary, districts, additionalService
             <Card className="mb-6 shadow-lg p-6 bg-primary/5">
               <h3 className="text-xl font-semibold mb-3 flex items-center"><Tag className="h-5 w-5 mr-2 text-primary" />Estimated Price</h3>
               <p className="text-3xl font-bold text-primary">
-                {calculatedPrice.toLocaleString()} VND
+                {calculatedPrice.toLocaleString()} 元
               </p>
               {discountMessage && <p className={`text-xs mt-1 ${appliedDiscount ? 'text-green-600' : 'text-destructive'}`}>{discountMessage}</p>}
               <p className="text-xs text-muted-foreground mt-1">
                 Final price based on selections.
               </p>
+              {/* --- BEGIN: Price breakdown details --- */}
+              <div className="mt-4 bg-white dark:bg-muted/30 rounded-lg border p-4 text-sm">
+                <div className="flex justify-between mb-1">
+                  <span>Itinerary price ({priceBreakdown.numPeople} person{priceBreakdown.numPeople > 1 ? 's' : ''}):</span>
+                  <span>{(priceBreakdown.basePrice).toLocaleString()} 元</span>
+                </div>
+                {priceBreakdown.districtSurchargeLabel && (
+                  <div className="flex justify-between mb-1">
+                    <span>District surcharge</span>
+                    <span>{priceBreakdown.districtSurchargeLabel}</span>
+                  </div>
+                )}
+                {priceBreakdown.services.length > 0 && (
+                  <div className="mb-1">
+                    <span>Additional services:</span>
+                    <ul className="ml-4 mt-1">
+                      {priceBreakdown.services.map((s, idx) => (
+                        <li key={idx} className="flex justify-between">
+                          <span>{s.name}</span>
+                          <span>+{s.price.toLocaleString()} 元</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold border-t pt-2 mt-2">
+                  <span>Subtotal:</span>
+                  <span>{priceBreakdown.subtotal.toLocaleString()} 元</span>
+                </div>
+                {priceBreakdown.discountLabel && (
+                  <div className="flex justify-between text-green-700 dark:text-green-400">
+                    <span>{priceBreakdown.discountLabel.replace('Giảm giá:', 'Discount')}</span>
+                    <span>-{priceBreakdown.discountValue.toLocaleString()} 元</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold border-t pt-2 mt-2 text-primary text-lg">
+                  <span>Total:</span>
+                  <span>{calculatedPrice.toLocaleString()} 元</span>
+                </div>
+              </div>
+              {/* --- END: Price breakdown details --- */}
             </Card>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
@@ -527,7 +613,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                                 />
                               </FormControl>
                               <FormLabel className="font-normal flex-grow cursor-pointer">
-                                {service.name} (+{service.price.toLocaleString()} VND)
+                                {service.name} (+{service.price.toLocaleString()} 元)
                                 {service.description && <p className="text-xs text-muted-foreground italic">{service.description}</p>}
                               </FormLabel>
                             </FormItem>
@@ -580,12 +666,12 @@ export default function CreateTripForm({ itinerary, districts, additionalService
               </h3>
               {appliedDiscount && calculatedPrice < initialCalculatedPrice ? (
                 <div className="flex flex-col">
-                  <p className="text-sm text-muted-foreground line-through">Original: {initialCalculatedPrice.toLocaleString()} VND</p>
-                  <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} VND</p>
+                  <p className="text-sm text-muted-foreground line-through">Original: {initialCalculatedPrice.toLocaleString()} 元</p>
+                  <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} 元</p>
                   <p className="text-sm text-green-600 dark:text-green-400 mt-1">{discountMessage}</p>
                 </div>
               ) : (
-                <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} VND</p>
+                <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} 元</p>
               )}
               <FormDescription className="mt-2">Final price may vary based on exact details and currency conversion.</FormDescription>
             </div>

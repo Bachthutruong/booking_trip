@@ -349,11 +349,14 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
   }
 }
 
-export async function getUserTrips(userIdentifier: string): Promise<Trip[]> {
-  if (!userIdentifier) return [];
+export async function getUserTrips(phone: string, name: string): Promise<Trip[]> {
+  if (!phone || !name) return [];
   const tripsCollection = await getTripsCollection();
   const userTripDocs = await tripsCollection.find({
-    $or: [{ contactPhone: userIdentifier }, { 'participants.phone': userIdentifier }],
+    $or: [
+      { $and: [{ contactPhone: phone }, { contactName: name }] },
+      { participants: { $elemMatch: { phone: phone, name: name } } }
+    ]
   }).sort({ createdAt: -1 }).toArray();
   return await Promise.all(userTripDocs.map(mapDocumentToTrip));
 }
@@ -615,4 +618,61 @@ export async function submitConfirmMainBookerPaymentFromList(tripId: string) {
 export async function submitConfirmParticipantPaymentFromList(tripId: string, participantId: string) {
   await confirmParticipantPayment(tripId, participantId);
   revalidatePath('/admin/trips'); // Revalidate the list page
+}
+
+// Get paginated trips with minimal fields for admin list
+export async function getTripsPaginated(limit: number, skip: number): Promise<any[]> {
+  const tripsCollection = await getTripsCollection();
+  const tripDocs = await tripsCollection.find({}, {
+    projection: {
+      _id: 1,
+      id: 1,
+      itineraryName: 1,
+      itineraryType: 1,
+      date: 1,
+      time: 1,
+      contactName: 1,
+      contactPhone: 1,
+      totalPrice: 1,
+      status: 1,
+      participants: 1,
+      createdAt: 1,
+    }
+  })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+  return tripDocs.map(doc => {
+    const participants = Array.isArray(doc.participants) ? doc.participants : [];
+    const participantsCount = participants.length;
+    // overallStatus logic: nếu còn ai chưa thanh toán thì pending_payment, nếu tất cả đã thanh toán thì payment_confirmed, nếu qua ngày thì completed
+    let overallStatus = 'pending_payment';
+    if (participantsCount > 0) {
+      if (participants.every((p: any) => p.status === 'payment_confirmed' || p.status === 'completed')) {
+        const tripDate = new Date(doc.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (tripDate < today) {
+          overallStatus = 'completed';
+        } else {
+          overallStatus = 'payment_confirmed';
+        }
+      }
+    }
+    return {
+      id: doc.id || doc._id?.toString(),
+      itineraryName: doc.itineraryName,
+      itineraryType: doc.itineraryType,
+      date: doc.date,
+      time: doc.time,
+      contactName: doc.contactName,
+      contactPhone: doc.contactPhone,
+      totalPrice: doc.totalPrice,
+      status: doc.status,
+      participantsCount,
+      overallStatus,
+      createdAt: doc.createdAt,
+    };
+  });
 }

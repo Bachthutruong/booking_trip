@@ -111,7 +111,7 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                     name="price"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />Price (VND) *</FormLabel>
+                            <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />Price (元) *</FormLabel>
                             <FormControl>
                                 <Input type="number" placeholder="e.g., 200000" {...field} />
                             </FormControl>

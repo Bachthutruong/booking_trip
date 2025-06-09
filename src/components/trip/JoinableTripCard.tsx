@@ -33,8 +33,8 @@ export default function JoinableTripCard({ trip }: { trip: Trip }) {
     year: 'numeric', month: 'long', day: 'numeric'
   });
 
-  // Calculate total participants already in the trip
-  const totalCurrentParticipants = trip.numberOfPeople + trip.participants.reduce((sum, p) => sum + p.numberOfPeople, 0);
+  // Calculate total participants already in the trip (main booker + all participants)
+  const totalCurrentParticipants = trip.participants.reduce((sum, p) => sum + (p.numberOfPeople || 0), 0);
 
   return (
     <>

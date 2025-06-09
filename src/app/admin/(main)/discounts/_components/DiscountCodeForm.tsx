@@ -152,10 +152,10 @@ export default function DiscountCodeForm({ initialData, isEditMode = false, disc
                         <FormItem>
                             <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />Discount Value *</FormLabel>
                             <FormControl>
-                                <Input type="number" placeholder="e.g., 50000 (VND for fixed) or 10 (for percentage)" {...field} />
+                                <Input type="number" placeholder="e.g., 50000 (元 for fixed) or 10 (for percentage)" {...field} />
                             </FormControl>
                             <FormDescription>
-                                {selectedType === "fixed" ? "The fixed amount of discount in VND." : "The percentage of discount (e.g., 10 for 10%)."}
+                                {selectedType === "fixed" ? "The fixed amount of discount in 元." : "The percentage of discount (e.g., 10 for 10%)."}
                             </FormDescription>
                             <FormMessage />
                         </FormItem>

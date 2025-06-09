@@ -56,7 +56,7 @@ export default function ItineraryCard({ itinerary, onSelect, showSelectButton = 
       <CardContent className="flex-grow space-y-3">
         <div className="flex items-center text-sm text-foreground">
           <Tag className="h-4 w-4 mr-2 text-primary" />
-          Price: <span className="font-semibold ml-1">{itinerary.pricePerPerson.toLocaleString()} VND</span> / person
+          Price: <span className="font-semibold ml-1">{itinerary.pricePerPerson.toLocaleString()} 元</span> / person
         </div>
          {itinerary.availableTimes && itinerary.availableTimes.length > 0 && (
           <div className="flex items-center text-sm text-foreground">

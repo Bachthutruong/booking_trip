@@ -39,7 +39,7 @@ export default async function AdminDistrictsPage() {
                                     {districtSurcharges.map((district) => (
                                         <TableRow key={district.id}>
                                             <TableCell className="font-medium">{district.districtName}</TableCell>
-                                            <TableCell>{district.surchargeAmount.toLocaleString()} VND</TableCell>
+                                            <TableCell>{district.surchargeAmount.toLocaleString()} 元</TableCell>
                                             <TableCell className="text-right">
                                                 <Button variant="outline" size="sm" asChild>
                                                     <Link href={`/admin/districts/${district.id}/edit`}>Edit</Link>
