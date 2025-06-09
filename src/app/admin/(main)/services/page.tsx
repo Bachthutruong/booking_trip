@@ -44,7 +44,7 @@ export default async function AdminServicesPage() {
                                     {additionalServices.map((service: AdditionalService) => (
                                         <TableRow key={service.id}>
                                             <TableCell className="font-medium">{service.name}</TableCell>
-                                            <TableCell>{service.price.toLocaleString()} VND</TableCell>
+                                            <TableCell>{service.price.toLocaleString()} 元</TableCell>
                                             <TableCell className="text-muted-foreground text-sm">{service.description || 'N/A'}</TableCell>
                                             <TableCell>
                                                 {service.applicableTo && service.applicableTo.length > 0 ? (

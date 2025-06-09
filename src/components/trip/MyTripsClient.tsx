@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { getDistrictSurcharges } from '@/actions/configActions';
+import type { DistrictSurcharge } from '@/lib/types';
 
 interface MyTripsClientProps {
   tripIdFromParam?: string;
@@ -18,15 +20,22 @@ interface MyTripsClientProps {
 
 export default function MyTripsClient({ tripIdFromParam, phoneFromParam }: MyTripsClientProps) {
   const [phone, setPhone] = useState(phoneFromParam || '');
+  const [name, setName] = useState('');
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(false); // For initial load or explicit search
   const [error, setError] = useState<string | null>(null);
   const [isTransitioning, startTransition] = useTransition(); // For actions within list items like proof upload revalidation
   const { toast } = useToast();
+  const [districts, setDistricts] = useState<DistrictSurcharge[]>([]);
+
+  // Fetch districts once on mount
+  useEffect(() => {
+    getDistrictSurcharges().then(setDistricts);
+  }, []);
 
   const handleFetchTrips = () => {
-    if (!phone.trim()) {
-      setError('Please enter your phone number.');
+    if (!phone.trim() || !name.trim()) {
+      setError('Please enter both your phone number and name.');
       setTrips([]); // Clear previous results if any
       return;
     }
@@ -34,10 +43,10 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam }: MyTri
     setIsLoading(true); // Explicit search loading state
     startTransition(async () => {
       try {
-        const fetchedTrips = await getUserTrips(phone);
+        const fetchedTrips = await getUserTrips(phone, name);
         setTrips(fetchedTrips);
         if (fetchedTrips.length === 0) {
-          toast({ title: "No Trips Found", description: "We couldn't find any trips associated with this phone number." });
+          toast({ title: "No Trips Found", description: "We couldn't find any trips associated with this phone number and name." });
         }
       } catch (err) {
         console.error("Error fetching trips:", err);
@@ -51,11 +60,10 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam }: MyTri
 
   useEffect(() => {
     if (phoneFromParam && phoneFromParam.trim() !== '') {
-      setPhone(phoneFromParam); // Set phone from param
-      handleFetchTrips();    // Fetch immediately
+      setPhone(phoneFromParam);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phoneFromParam]); // Only run when phoneFromParam changes
+  }, [phoneFromParam]);
 
 
   return (
@@ -80,8 +88,20 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam }: MyTri
                 className="text-base"
                 disabled={isLoading || isTransitioning}
               />
+              <label htmlFor="nameInput" className="block text-sm font-medium text-foreground mt-4 mb-1">
+                Your Name
+              </label>
+              <Input
+                id="nameInput"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., John Doe"
+                className="text-base"
+                disabled={isLoading || isTransitioning}
+              />
             </div>
-            <Button onClick={handleFetchTrips} disabled={isLoading || isTransitioning || !phone.trim()} className="h-10 w-full sm:w-auto">
+            <Button onClick={handleFetchTrips} disabled={isLoading || isTransitioning || !phone.trim() || !name.trim()} className="h-10 w-full sm:w-auto">
               {(isLoading || isTransitioning) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
               Search Trips
             </Button>
@@ -106,21 +126,13 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam }: MyTri
               key={trip.id}
               trip={trip}
               highlight={trip.id === tripIdFromParam}
-              onActionStart={() => startTransition(() => { })} // Indicate loading state for actions within item
-              onActionComplete={() => handleFetchTrips()} // Re-fetch to update list after an action like upload
-              currentUsersPhone={phone} // Pass the current user's phone number
+              onActionStart={() => startTransition(() => { })}
+              onActionComplete={() => handleFetchTrips()}
+              currentUsersPhone={phone}
+              districts={districts}
             />
           ))}
         </div>
-      )}
-      {!isLoading && trips.length === 0 && phone.trim() !== '' && !error && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertTitle>No Trips Found</AlertTitle>
-          <AlertDescription>
-            No trips were found for the phone number <strong>{phone}</strong>. You can create a new trip or try a different phone number.
-          </AlertDescription>
-        </Alert>
       )}
     </div>
   );

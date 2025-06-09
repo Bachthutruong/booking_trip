@@ -42,6 +42,21 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
     ? await getAdditionalServicesByIds(trip.additionalServiceIds)
     : [];
 
+  // Tính trạng thái tổng (overallStatus) cho chi tiết
+  let overallStatus = 'pending_payment';
+  if (trip.participants.length > 0) {
+    if (trip.participants.every((p: any) => p.status === 'payment_confirmed' || p.status === 'completed')) {
+      const tripDate = new Date(trip.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (tripDate < today) {
+        overallStatus = 'completed';
+      } else {
+        overallStatus = 'payment_confirmed';
+      }
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <Button variant="outline" asChild className="mb-4">
@@ -58,10 +73,10 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
               </CardDescription>
             </div>
             <Badge
-              variant={trip.status === 'payment_confirmed' ? 'default' : trip.status === 'pending_payment' ? 'outline' : 'secondary'}
-              className={`mt-2 sm:mt-0 text-lg px-4 py-2 ${trip.status === 'payment_confirmed' ? 'bg-green-500 text-white' : trip.status === 'pending_payment' ? 'border-yellow-500 text-yellow-600' : ''}`}
+              variant={overallStatus === 'payment_confirmed' ? 'default' : overallStatus === 'pending_payment' ? 'outline' : 'secondary'}
+              className={`mt-2 sm:mt-0 text-lg px-4 py-2 ${overallStatus === 'payment_confirmed' ? 'bg-green-500 text-white' : overallStatus === 'pending_payment' ? 'border-yellow-500 text-yellow-600' : ''}`}
             >
-              {TRIP_STATUSES[trip.status]}
+              {overallStatus === 'payment_confirmed' ? 'Paid' : overallStatus === 'pending_payment' ? 'Pending Payment' : 'Completed'}
             </Badge>
           </div>
         </CardHeader>
@@ -71,7 +86,7 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
             <p><strong className="font-medium text-muted-foreground">Date:</strong> {format(new Date(trip.date), "EEEE, MMM dd, yyyy")}</p>
             <p><strong className="font-medium text-muted-foreground">Time:</strong> {trip.time}</p>
             <p><strong className="font-medium text-muted-foreground">Total Guests:</strong> {totalGuests}</p>
-            <p><strong className="font-medium text-muted-foreground">Total Price:</strong> {trip.totalPrice.toLocaleString()} VND</p>
+            <p><strong className="font-medium text-muted-foreground">Total Price:</strong> {trip.totalPrice.toLocaleString()} 元</p>
             {trip.pickupAddress && <p className="md:col-span-2"><strong className="font-medium text-muted-foreground">Pickup Address:</strong> {trip.pickupAddress}</p>}
             {trip.dropoffAddress && <p className="md:col-span-2"><strong className="font-medium text-muted-foreground">Dropoff Address:</strong> {trip.dropoffAddress}</p>}
             {trip.district && <p><strong className="font-medium text-muted-foreground">District:</strong> {trip.district}</p>}
@@ -92,7 +107,7 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
           <CardSection title="Additional Services" icon={<WandIcon />}>
             <ul className="list-disc list-inside text-sm">
               {selectedAdditionalServices.map(service => (
-                <li key={service.id}>{service.name} (+{service.price.toLocaleString()} VND)</li>
+                <li key={service.id}>{service.name} (+{service.price.toLocaleString()} 元)</li>
               ))}
             </ul>
           </CardSection>
@@ -115,7 +130,7 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
                           className={cn("capitalize px-2 py-1 text-xs",
                             p.status === 'payment_confirmed' ? 'bg-green-500 text-white' : 'border-yellow-500 text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/30')}
                         >
-                          {TRIP_STATUSES[p.status]} ({p.pricePaid.toLocaleString()} VND)
+                          {TRIP_STATUSES[p.status]} ({p.pricePaid.toLocaleString()} 元)
                         </Badge>
                         {p.status === 'pending_payment' && p.transferProofImageUrl && (
                           <PaymentProofPreviewButton imageUrl={p.transferProofImageUrl} />
@@ -151,14 +166,14 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
                         {p.dob && <p><strong className="font-medium text-muted-foreground">Date of Birth:</strong> {format(new Date(p.dob), "MMM dd, yyyy")}</p>}
                         {p.identityNumber && <p><strong className="font-medium text-muted-foreground">Identity No.:</strong> {p.identityNumber}</p>}
                         {p.discountCode && p.discountCode.code && (
-                          <p><strong className="font-medium text-muted-foreground">Discount Code:</strong> <Badge variant="secondary">{p.discountCode.code} ({p.discountCode.type === 'percentage' ? `${p.discountCode.value}%` : `${p.discountCode.value.toLocaleString()} VND`})</Badge></p>
+                          <p><strong className="font-medium text-muted-foreground">Discount Code:</strong> <Badge variant="secondary">{p.discountCode.code} ({p.discountCode.type === 'percentage' ? `${p.discountCode.value}%` : `${p.discountCode.value.toLocaleString()} 元`})</Badge></p>
                         )}
                         {p.additionalServices && p.additionalServices.length > 0 && (
                           <div>
                             <strong className="font-medium text-muted-foreground">Services:</strong>
                             <ul className="list-disc list-inside ml-4">
                               {p.additionalServices.map(service => (
-                                <li key={service.id}>{service.name} (+{service.price.toLocaleString()} VND)</li>
+                                <li key={service.id}>{service.name} (+{service.price.toLocaleString()} 元)</li>
                               ))}
                             </ul>
                           </div>

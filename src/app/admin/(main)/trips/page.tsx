@@ -1,4 +1,5 @@
-import { getAllTrips, confirmMainBookerPayment, confirmParticipantPayment, submitConfirmMainBookerPaymentFromList, submitConfirmParticipantPaymentFromList } from '@/actions/tripActions';
+import { getTripsPaginated } from '@/actions/tripActions';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -45,47 +46,34 @@ const getOverallTripStatus = (trip: Trip): TripStatus => {
   return trip.status; // Default to existing trip status if no clear derived status
 };
 
-export default async function AdminTripsPage({
-  searchParams,
-}: {
-  searchParams?: { status?: string; search?: string };
-}) {
+export default async function AdminTripsPage({ searchParams }: { searchParams?: { status?: string; search?: string; page?: string } }) {
   const statusFilter = searchParams?.status ?? '';
   const searchTerm = searchParams?.search?.toLowerCase() ?? '';
+  const page = parseInt(searchParams?.page || '1', 10);
+  const PAGE_SIZE = 20;
 
-  let trips = await getAllTrips();
-
-  // Convert trips to plain JavaScript objects to avoid passing non-plain objects to client components
-  trips = JSON.parse(JSON.stringify(trips));
-
-  trips = trips.map(trip => ({ ...trip, overallStatus: getOverallTripStatus(trip) }));
-
-  if (statusFilter && TRIP_STATUSES[statusFilter as keyof typeof TRIP_STATUSES]) {
-    trips = trips.filter(trip => trip.overallStatus === statusFilter);
-  }
-
-  if (searchTerm) {
-    trips = trips.filter(trip =>
-      trip.itineraryName.toLowerCase().includes(searchTerm) ||
-      trip.contactName.toLowerCase().includes(searchTerm) ||
-      trip.contactPhone.includes(searchTerm) ||
-      trip.id.toLowerCase().includes(searchTerm) ||
-      trip.participants.some(p => p.name.toLowerCase().includes(searchTerm) || p.phone.includes(searchTerm))
-    );
-  }
+  // Lazy load paginated trips
+  const skip = (page - 1) * PAGE_SIZE;
+  const trips = await getTripsPaginated(PAGE_SIZE, skip);
+  // Không có tổng số trips, nên disable số trang nếu chưa có count API
+  const pagedTrips = trips;
+  console.log(pagedTrips, 'pagedTrips');
+  // Không có totalTrips, totalPages, currentPage nếu chưa có count
+  // Nếu muốn chuẩn, cần thêm API count trips
+  // Tạm thời chỉ có nút next/prev nếu trips.length === PAGE_SIZE
+  const hasNextPage = trips.length === PAGE_SIZE;
+  const currentPage = page;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold font-headline">Manage Trip Bookings ({trips.length})</h1>
-        {/* Add Filter Component Here if needed */}
+        <h1 className="text-3xl font-bold font-headline">Manage Trip Bookings</h1>
       </div>
 
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle>Booking List</CardTitle>
           <CardDescription>View and manage all customer trip bookings.</CardDescription>
-          {/* Basic Search Form */}
           <form method="GET" className="mt-4 flex gap-2">
             <input type="text" name="search" placeholder="Search name, phone, itinerary..." defaultValue={searchParams?.search ? String(searchParams.search) : ''} className="border p-2 rounded-md flex-grow text-sm" />
             <select name="status" defaultValue={searchParams?.status ?? ''} className="border p-2 rounded-md text-sm">
@@ -99,7 +87,7 @@ export default async function AdminTripsPage({
           </form>
         </CardHeader>
         <CardContent>
-          {trips.length === 0 ? (
+          {pagedTrips.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No trips found matching your criteria.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -108,80 +96,34 @@ export default async function AdminTripsPage({
                   <TableRow>
                     <TableHead className="min-w-[150px]">Itinerary</TableHead>
                     <TableHead>Main Booker</TableHead>
-                    <TableHead>Participants</TableHead>
-                    <TableHead>Date & Time</TableHead>
-                    <TableHead>Total Guests</TableHead>
+                    <TableHead>Date</TableHead>
                     <TableHead>Total Price</TableHead>
-                    <TableHead>Overall Status</TableHead>
-                    <TableHead className="min-w-[200px]">Actions</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="min-w-[120px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {trips.map((trip) => (
-                    <TableRow key={trip.id} className={trip.overallStatus === 'pending_payment' ? 'bg-yellow-50/50 hover:bg-yellow-100/50' : ''}>
+                  {pagedTrips.map((trip) => (
+                    <TableRow key={trip.id}>
                       <TableCell className="font-medium">
                         {trip.itineraryName}
-                        <Badge variant="outline" className="ml-2 text-xs">{ITINERARY_TYPES[trip.itineraryType]}</Badge>
+                        <Badge variant="outline" className="ml-2 text-xs">{trip.itineraryType ? trip.itineraryType.charAt(0).toUpperCase() + trip.itineraryType.slice(1) : ''}</Badge>
                       </TableCell>
                       <TableCell>
                         {trip.contactName}<br />
                         <span className="text-xs text-muted-foreground">{trip.contactPhone}</span>
-                        {trip.participants[0]?.status === 'pending_payment' && trip.participants[0]?.transferProofImageUrl && (
-                          <div className="mt-1">
-                            <ConfirmPaymentButton tripId={trip.id} isMainBooker={true} />
-                            <p className="text-xs text-muted-foreground mt-1">Proof Uploaded</p>
-                            <Image src={trip.participants[0].transferProofImageUrl} alt="Transfer Proof" width={80} height={80} className="mt-2 rounded" />
-                          </div>
-                        )}
-                        {trip.participants[0]?.status === 'pending_payment' && !trip.participants[0]?.transferProofImageUrl && (
-                          <Badge variant="outline" className="text-xs border-orange-400 text-orange-500 mt-1">No Proof Yet</Badge>
-                        )}
-                        {trip.participants[0] && (
-                          <Badge
-                            variant={trip.participants[0].status === 'payment_confirmed' ? 'default' : trip.participants[0].status === 'pending_payment' ? 'outline' : 'secondary'}
-                            className={`mt-1 ${trip.participants[0].status === 'payment_confirmed' ? 'bg-green-500 text-white' : trip.participants[0].status === 'pending_payment' ? 'border-yellow-500 text-yellow-600' : ''}`}
-                          >
-                            {TRIP_STATUSES[trip.participants[0].status ?? 'pending_payment' as keyof typeof TRIP_STATUSES]} ({trip.participants[0].pricePaid?.toLocaleString() || '0'} VND)
-                          </Badge>
-                        )}
                       </TableCell>
                       <TableCell>
-                        {trip.participants.slice(1).length > 0 ? (
-                          <ul className="list-disc list-inside pl-1 space-y-1 text-xs">
-                            {trip.participants.slice(1).map(p => (
-                              <li key={p.id} className="flex flex-col items-start">
-                                <span>{p.name} ({p.numberOfPeople} guest(s))</span>
-                                <span className="text-muted-foreground">{p.phone}</span>
-                                <Badge
-                                  variant={p.status === 'payment_confirmed' ? 'default' : p.status === 'pending_payment' ? 'outline' : 'secondary'}
-                                  className={`mt-1 ${p.status === 'payment_confirmed' ? 'bg-green-500 text-white' : p.status === 'pending_payment' ? 'border-yellow-500 text-yellow-600' : ''}`}
-                                >
-                                  {TRIP_STATUSES[p.status]} ({p.pricePaid.toLocaleString()} VND)
-                                </Badge>
-                                {p.status === 'pending_payment' && (
-                                  <div className="mt-1">
-                                    <ConfirmPaymentButton tripId={trip.id} participantId={p.id} isMainBooker={false} />
-                                  </div>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">No additional participants</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(trip.date), "MMM dd, yyyy")}<br />
+                        {trip.date ? format(new Date(trip.date), "MMM dd, yyyy") : ''}<br />
                         <span className="text-xs text-muted-foreground">{trip.time}</span>
                       </TableCell>
-                      <TableCell className="text-center">{trip.participants.reduce((sum, p) => sum + p.numberOfPeople, 0)}</TableCell>
-                      <TableCell>{trip.totalPrice.toLocaleString()} VND</TableCell>
+                      <TableCell>{trip.totalPrice?.toLocaleString?.() || 0} 元</TableCell>
                       <TableCell>
                         <Badge
-                          variant={(trip.overallStatus ?? 'pending_payment') === 'payment_confirmed' ? 'default' : (trip.overallStatus ?? 'pending_payment') === 'pending_payment' ? 'outline' : 'secondary'}
-                          className={(trip.overallStatus ?? 'pending_payment') === 'payment_confirmed' ? 'bg-green-500 text-white' : (trip.overallStatus ?? 'pending_payment') === 'pending_payment' ? 'border-yellow-500 text-yellow-600' : ''}
+                          variant={trip.overallStatus === 'payment_confirmed' ? 'default' : trip.overallStatus === 'pending_payment' ? 'outline' : 'secondary'}
+                          className={trip.overallStatus === 'payment_confirmed' ? 'bg-green-500 text-white' : trip.overallStatus === 'pending_payment' ? 'border-yellow-500 text-yellow-600' : ''}
                         >
-                          {TRIP_STATUSES[(trip.overallStatus ?? 'pending_payment') as TripStatus]}
+                          {trip.overallStatus === 'payment_confirmed' ? 'Paid' : trip.overallStatus === 'pending_payment' ? 'Pending Payment' : 'Completed'}
                         </Badge>
                       </TableCell>
                       <TableCell className="space-y-1 sm:space-y-0 sm:space-x-2 text-right">
@@ -197,6 +139,16 @@ export default async function AdminTripsPage({
               </Table>
             </div>
           )}
+          {/* Pagination controls */}
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <Button asChild variant="outline" size="sm" disabled={currentPage === 1}>
+              <Link href={`/admin/trips?page=${currentPage - 1}`}>Previous</Link>
+            </Button>
+            <span className="text-sm">Page {currentPage}</span>
+            <Button asChild variant="outline" size="sm" disabled={pagedTrips.length < PAGE_SIZE}>
+              <Link href={`/admin/trips?page=${currentPage + 1}`}>Next</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -102,7 +102,7 @@ export default function DistrictSurchargeForm({ initialData, isEditMode = false,
                     name="surchargeAmount"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><MapPinned className="mr-2 h-4 w-4 text-primary" />Surcharge Amount (VND) *</FormLabel>
+                            <FormLabel className="flex items-center"><MapPinned className="mr-2 h-4 w-4 text-primary" />Surcharge Amount (元) *</FormLabel>
                             <FormControl>
                                 <Input type="number" placeholder="e.g., 200000" {...field} />
                             </FormControl>

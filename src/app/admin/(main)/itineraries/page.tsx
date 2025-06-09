@@ -39,7 +39,7 @@ export default async function AdminItinerariesPage() {
                   <TableRow>
                     <TableHead className="min-w-[200px]">Name</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Price (VND)</TableHead>
+                    <TableHead>Price (元)</TableHead>
                     <TableHead className="min-w-[150px]">Available Times</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>

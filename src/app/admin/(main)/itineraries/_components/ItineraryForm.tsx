@@ -218,7 +218,7 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
           name="pricePerPerson"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />Price Per Person (VND) *</FormLabel>
+              <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />Price Per Person (元) *</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="e.g., 500000" {...field} />
               </FormControl>

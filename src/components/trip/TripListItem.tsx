@@ -1,6 +1,7 @@
 'use client';
 
 import type { Trip } from '@/lib/types';
+import type { DistrictSurcharge } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ interface TripListItemProps {
   onActionStart?: () => void;
   onActionComplete?: () => void;
   currentUsersPhone?: string;
+  districts?: DistrictSurcharge[];
 }
 
 const StatusBadge = ({ status, small = false }: { status: Trip['status']; small?: boolean }) => {
@@ -54,13 +56,13 @@ const ParticipantStatusBadge = ({ status, pricePaid, transferProofImageUrl, part
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
   if (status === 'payment_confirmed') {
-    return <Badge variant="default" className="bg-green-500 text-white text-xs px-2 py-1"><CheckCircle2 className="h-2.5 w-2.5 mr-1" /> Paid ({pricePaid.toLocaleString()} VND)</Badge>;
+    return <Badge variant="default" className="bg-green-500 text-white text-xs px-2 py-1"><CheckCircle2 className="h-2.5 w-2.5 mr-1" /> Paid ({pricePaid.toLocaleString()} 元)</Badge>;
   } else if (status === 'pending_payment') {
     const hasProofUploaded = transferProofImageUrl && transferProofImageUrl.trim() !== '';
     return (
       <div className="flex items-center gap-1">
         <Badge variant="outline" className="border-yellow-500 text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/30 text-xs px-2 py-1">
-          <Hourglass className="h-2.5 w-2.5 mr-1" /> Pending ({pricePaid.toLocaleString()} VND)
+          <Hourglass className="h-2.5 w-2.5 mr-1" /> Pending ({pricePaid.toLocaleString()} 元)
         </Badge>
         {hasProofUploaded ? (
           <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" className="text-green-600 border-green-500 bg-green-50 dark:text-green-400 dark:border-green-600 dark:bg-green-900/30 text-xs h-6 px-2 py-1">
@@ -131,7 +133,21 @@ const getOverallTripStatus = (trip: Trip): Trip['status'] => {
   return trip.status; // Default to existing trip status if no clear derived status
 };
 
-export default function TripListItem({ trip, highlight = false, onActionStart, onActionComplete, currentUsersPhone }: TripListItemProps) {
+// Helper to mask name (e.g. 翟***)
+function maskName(name: string) {
+  if (!name) return '';
+  if (name.length <= 1) return name + '***';
+  return name[0] + '***';
+}
+
+// Helper to mask phone (e.g. 09*****16)
+function maskPhone(phone: string) {
+  if (!phone) return '';
+  if (phone.length <= 4) return '****';
+  return phone.slice(0, 2) + '*****' + phone.slice(-2);
+}
+
+export default function TripListItem({ trip, highlight = false, onActionStart, onActionComplete, currentUsersPhone, districts }: TripListItemProps) {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const overallStatus = getOverallTripStatus(trip); // Calculate overall status
 
@@ -158,7 +174,7 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
           <p className="flex items-center"><CalendarDays className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Date:</strong>&nbsp;{formattedDate}</p>
           <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Time:</strong>&nbsp;{trip.time}</p>
           <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Total Guests:</strong>&nbsp;{trip.participants.reduce((sum, p) => sum + p.numberOfPeople, 0)}</p>
-          <p className="flex items-center"><CreditCard className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Total Price:</strong>&nbsp;{trip.totalPrice.toLocaleString()} VND</p>
+          <p className="flex items-center"><CreditCard className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Total Price:</strong>&nbsp;{trip.totalPrice.toLocaleString()} 元</p>
         </div>
         <p className="flex items-center"><PhoneCall className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Main Contact:</strong>&nbsp;{trip.contactName} ({trip.contactPhone})</p>
         {trip.pickupAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Pickup:</strong>&nbsp;{trip.pickupAddress}</p>}
@@ -173,20 +189,43 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
           <div className="pt-2 mt-2 border-t">
             <h4 className="text-xs font-semibold text-muted-foreground mb-1">Participants:</h4>
             <ul className="list-disc list-inside pl-1 space-y-0.5 text-xs">
-              {trip.participants.map(p => (
-                <li key={p.id} className="flex flex-wrap items-center justify-between gap-x-2">
-                  <span>{p.name} ({p.numberOfPeople} guest(s), Phone: {p.phone})</span>
-                  <ParticipantStatusBadge
-                    status={p.status}
-                    pricePaid={p.pricePaid}
-                    transferProofImageUrl={p.transferProofImageUrl}
-                    participantId={p.id}
-                    tripId={trip.id}
-                    onActionStart={onActionStart}
-                    onActionComplete={onActionComplete}
-                  />
-                </li>
-              ))}
+              {trip.participants.map(p => {
+                const isCurrentUser = currentUsersPhone && p.phone === currentUsersPhone;
+                const displayName = isCurrentUser ? p.name : maskName(p.name);
+                const displayPhone = isCurrentUser ? p.phone : maskPhone(p.phone);
+                const districtName = p.district || trip.district || '';
+                const additionalServices = (p.additionalServices || []) as { name: string; price?: number }[];
+                let districtSurcharge = 0;
+                if (districts && districtName) {
+                  const found = districts.find(d => d.districtName === districtName);
+                  if (found) districtSurcharge = found.surchargeAmount;
+                }
+                return (
+                  <li key={p.id} className="flex flex-col gap-0.5 border-b last:border-b-0 pb-2 mb-2 last:pb-0 last:mb-0">
+                    <div className="flex flex-wrap items-center justify-between gap-x-2">
+                      <span>{displayName} ({p.numberOfPeople} guest(s), Phone: {displayPhone})</span>
+                      {isCurrentUser && (
+                        <ParticipantStatusBadge
+                          status={p.status}
+                          pricePaid={p.pricePaid}
+                          transferProofImageUrl={p.transferProofImageUrl}
+                          participantId={p.id}
+                          tripId={trip.id}
+                          onActionStart={onActionStart}
+                          onActionComplete={onActionComplete}
+                        />
+                      )}
+                    </div>
+                    {/* Price breakdown for each participant */}
+                    <ul className="ml-2 mt-1 text-xs text-muted-foreground space-y-0.5">
+                      <li>Itinerary price: {p.pricePaid.toLocaleString()} 元</li>
+                      <li>District: {districtName}{districtSurcharge > 0 ? ` (+${districtSurcharge.toLocaleString()} 元)` : ''}</li>
+                      <li>Address: {p.address || '-'}</li>
+                      <li>Additional services: {additionalServices.map(s => `${s.name} (+${typeof s.price === 'number' ? s.price.toLocaleString() : 0} 元)`).join(', ')}</li>
+                    </ul>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

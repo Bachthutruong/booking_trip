@@ -26,9 +26,12 @@ export default function JoinableTripsList() {
     startTransition(async () => {
       try {
         const trips = await getAllAvailableTrips();
+        console.log('trips', trips);
         // Convert trips to plain JavaScript objects to avoid passing non-plain objects to client components
-        setAllTrips(trips);
-        setFilteredTrips(trips); // Initialize filtered trips
+        // Only include trips with at least 1 participant payment_confirmed
+        const paidTrips = trips.filter(trip => trip.participants && trip.participants.some(p => p.status === 'payment_confirmed'));
+        setAllTrips(paidTrips);
+        setFilteredTrips(paidTrips); // Initialize filtered trips
       } catch (err) {
         console.error("Failed to fetch joinable trips:", err);
         setError("Could not load trips. Please check your connection and try again.");
@@ -45,11 +48,12 @@ export default function JoinableTripsList() {
   useEffect(() => {
     const lowerSearchTerm = searchTerm.toLowerCase();
     const results = allTrips.filter(trip =>
-      trip.itineraryName.toLowerCase().includes(lowerSearchTerm) ||
-      trip.date.includes(searchTerm) || // Keep for simple date string search
+      (trip.itineraryName.toLowerCase().includes(lowerSearchTerm) ||
+      trip.date.includes(searchTerm) ||
       (trip.pickupAddress && trip.pickupAddress.toLowerCase().includes(lowerSearchTerm)) ||
       (trip.dropoffAddress && trip.dropoffAddress.toLowerCase().includes(lowerSearchTerm)) ||
-      (trip.contactName && trip.contactName.toLowerCase().includes(lowerSearchTerm))
+      (trip.contactName && trip.contactName.toLowerCase().includes(lowerSearchTerm))) &&
+      trip.participants && trip.participants.some(p => p.status === 'payment_confirmed')
     );
     setFilteredTrips(results);
   }, [searchTerm, allTrips]);
