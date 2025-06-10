@@ -43,6 +43,7 @@ export default function TripsTable({ trips, totalTrips, currentUser }: { trips: 
       alert(result.message);
     }
   };
+  console.log(trips, 'trips');
 
   return (
     <div className="space-y-6">

@@ -253,6 +253,30 @@ const createTripSchema = z.object({
   discountCode: z.string().optional(),
 });
 
+// Helper function to generate sequential booking ID
+async function generateSequentialBookingId(date: Date): Promise<string> {
+  const tripsCollection = await getTripsCollection();
+  const dateStr = format(date, 'yyyy_MM_dd');
+
+  // Find the last booking ID for today
+  const lastBooking = await tripsCollection
+    .find({ id: { $regex: `^${dateStr}_` } })
+    .sort({ id: -1 })
+    .limit(1)
+    .toArray();
+
+  let sequence = 1;
+  if (lastBooking.length > 0) {
+    const lastId = lastBooking[0].id;
+    const lastSequence = parseInt(lastId.split('_')[3]);
+    sequence = lastSequence + 1;
+  }
+
+  // Format sequence number with leading zeros
+  const sequenceStr = sequence.toString().padStart(4, '0');
+  return `${dateStr}_${sequenceStr}`;
+}
+
 export async function createTrip(values: CreateTripFormValues & { date: string }): Promise<{ success: boolean; message: string; tripId?: string }> {
   const validation = createTripSchema.safeParse({
     ...values,
@@ -286,10 +310,12 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
 
   const tripsCollection = await getTripsCollection();
   const newTripObjectId = new ObjectId();
+  const bookingDate = new Date(data.date);
+  const bookingId = await generateSequentialBookingId(bookingDate);
 
   const newTrip: Trip = {
     _id: newTripObjectId,
-    id: newTripObjectId.toString(),
+    id: bookingId,
     itineraryId: data.itineraryId,
     itineraryName: itinerary.name,
     itineraryType: itinerary.type,
@@ -316,7 +342,7 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
   // Add main booker as the first participant
   const populatedMainBookerDiscountCode = data.discountCode ? await getDiscountFromDb(data.discountCode) : undefined;
   const mainBookerParticipant: Participant = {
-    id: new ObjectId().toString(),
+    id: `${bookingId}_P1`,
     name: data.contactName,
     phone: data.contactPhone,
     numberOfPeople: data.numberOfPeople,
@@ -567,8 +593,12 @@ export async function joinTrip(values: JoinTripFormValues): Promise<{ success: b
 
   const populatedDiscountCode = data.discountCode ? await getDiscountFromDb(data.discountCode) : undefined;
 
+  // Generate participant ID based on trip ID and participant count
+  const participantNumber = currentTrip.participants.length + 1;
+  const participantId = `${currentTrip.id}_P${participantNumber}`;
+
   const newParticipant: Participant = {
-    id: new ObjectId().toString(),
+    id: participantId,
     name: data.name,
     phone: data.phone,
     numberOfPeople: data.numberOfPeople,
@@ -578,8 +608,9 @@ export async function joinTrip(values: JoinTripFormValues): Promise<{ success: b
     discountCode: populatedDiscountCode,
     notes: data.notes,
     district: data.district,
-    pricePaid: data.pricePaid, // Use pricePaid from client
-    status: 'pending_payment', // Set initial status for new participant
+    pricePaid: data.pricePaid,
+    status: 'pending_payment',
+    transferProofImageUrl: undefined,
   };
 
   try {

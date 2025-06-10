@@ -11,7 +11,7 @@ const navLinks = [
   { href: '/', label: '首頁' },
   { href: '/create-trip', label: '建立行程' },
   { href: '/my-trips', label: '我的行程' },
-  { href: '/join-trip', label: '加入行程' },
+  // { href: '/join-trip', label: '加入行程' },
   { href: '/feedback', label: '回饋' },
   // { href: '/chatbot', label: '虛擬助理' },
 ];
@@ -38,8 +38,8 @@ export default function Navbar() {
     <header className="bg-card shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-          <Feather className="h-8 w-8" />
-          <h1 className="text-2xl font-headline font-bold">河內探索者</h1>
+          {/* <Feather className="h-8 w-8" /> */}
+          <h1 className="text-2xl font-headline font-bold">中華衛星共乘平台</h1>
         </Link>
 
         {/* Desktop Navigation */}

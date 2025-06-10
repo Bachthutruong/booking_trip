@@ -50,7 +50,7 @@ export default function FeedbackForm() {
 
   const handleFetchUserTrips = () => {
     if (!phoneForTrips.trim()) {
-      toast({ title: "电话号码要求", description: "请输入你的电话号码以找到相关行程。", variant: "destructive"});
+      toast({ title: "电话号码要求", description: "请输入你的电话号码以找到相关行程。", variant: "destructive" });
       return;
     }
     startFetchingTripsTransition(async () => {
@@ -73,7 +73,7 @@ export default function FeedbackForm() {
       // Remove phoneForTrips before submitting actual feedback data
       const { phoneForTrips, ...feedbackData } = values;
       const result = await submitFeedback(feedbackData);
-      
+
       if (result.success) {
         toast({
           title: "反馈提交成功！",
@@ -108,7 +108,7 @@ export default function FeedbackForm() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><User className="h-4 w-4 mr-2 text-primary"/>你的名字 *</FormLabel>
+              <FormLabel className="flex items-center"><User className="h-4 w-4 mr-2 text-primary" />你的名字 *</FormLabel>
               <FormControl>
                 <Input placeholder="John Doe" {...field} />
               </FormControl>
@@ -121,7 +121,7 @@ export default function FeedbackForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Mail className="h-4 w-4 mr-2 text-primary"/>你的邮箱 *</FormLabel>
+              <FormLabel className="flex items-center"><Mail className="h-4 w-4 mr-2 text-primary" />你的邮箱 *</FormLabel>
               <FormControl>
                 <Input type="email" placeholder="you@example.com" {...field} />
               </FormControl>
@@ -131,29 +131,29 @@ export default function FeedbackForm() {
         />
 
         <div className="space-y-2">
-            <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary"/>你的电话 (用于查找相关行程)</FormLabel>
-            <div className="flex gap-2">
-                <Input 
-                    placeholder="输入用于预订的电话号码" 
-                    value={phoneForTrips}
-                    onChange={(e) => setPhoneForTrips(e.target.value)}
-                    type="tel"
-                />
-                <Button type="button" variant="outline" onClick={handleFetchUserTrips} disabled={isFetchingTrips || !phoneForTrips.trim()}>
+          <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary" />你的电话 (用于查找相关行程)</FormLabel>
+          <div className="flex gap-2">
+            <Input
+              placeholder="输入用于预订的电话号码"
+              value={phoneForTrips}
+              onChange={(e) => setPhoneForTrips(e.target.value)}
+              type="tel"
+            />
+            {/* <Button type="button" variant="outline" onClick={handleFetchUserTrips} disabled={isFetchingTrips || !phoneForTrips.trim()}>
                     {isFetchingTrips ? <Loader2 className="h-4 w-4 animate-spin"/> : <Search className="h-4 w-4"/>}
                     <span className="ml-2 hidden sm:inline">查找行程</span>
-                </Button>
-            </div>
-            <FormDescription>如果你的反馈是关于特定行程，请输入你的电话号码以选择它。</FormDescription>
+                </Button> */}
+          </div>
+          <FormDescription>如果你的反馈是关于特定行程，请输入你的电话号码以选择它。</FormDescription>
         </div>
-        
+
         {userTrips.length > 0 && (
           <FormField
             control={form.control}
             name="tripId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center"><Hash className="h-4 w-4 mr-2 text-primary"/>相关行程 (可选)</FormLabel>
+                <FormLabel className="flex items-center"><Hash className="h-4 w-4 mr-2 text-primary" />相关行程 (可选)</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -178,7 +178,7 @@ export default function FeedbackForm() {
           name="message"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><MessageCircle className="h-4 w-4 mr-2 text-primary"/>你的反馈 *</FormLabel>
+              <FormLabel className="flex items-center"><MessageCircle className="h-4 w-4 mr-2 text-primary" />你的反馈 *</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="告诉我们你的体验..."
