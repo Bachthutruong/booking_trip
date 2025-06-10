@@ -65,7 +65,13 @@ export default function JoinableTripsList() {
     });
   }, [page, searchTerm, selectedType, isLoading]);
 
-  // Initial load
+  const handleFilterChange = (type: string | null) => {
+    setSelectedType(type);
+    setPage(1);
+    setTrips([]); // Clear existing trips before new filter
+  };
+
+  // Initial load and filter changes
   useEffect(() => {
     fetchTrips(true);
   }, [searchTerm, selectedType]);
@@ -134,11 +140,11 @@ export default function JoinableTripsList() {
       </div>
 
       {/* Itinerary Type Filter Buttons */}
-      <div className="flex gap-3 justify-center mb-2">
+      <div className="flex gap-3 justify-center mb-2 flex-wrap">
         <Button
           key="all"
           variant={selectedType === null ? 'default' : 'outline'}
-          onClick={() => setSelectedType(null)}
+          onClick={() => handleFilterChange(null)}
           className={selectedType === null ? 'bg-primary text-white' : ''}
           disabled={isLoading}
         >
@@ -148,7 +154,7 @@ export default function JoinableTripsList() {
           <Button
             key={key}
             variant={selectedType === key ? 'default' : 'outline'}
-            onClick={() => setSelectedType(selectedType === key ? null : key)}
+            onClick={() => handleFilterChange(selectedType === key ? null : key)}
             className={selectedType === key ? 'bg-primary text-white' : ''}
             disabled={isLoading}
           >

@@ -4,7 +4,7 @@ import type { Trip } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CalendarDays, Clock, Users, MapPin, CheckCircle2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import JoinTripForm from './JoinTripForm'; // This will be the dialog/form component
 import { ITINERARY_TYPES } from '@/lib/constants';
 import Image from 'next/image'; // Assuming itineraries might have images
@@ -16,18 +16,22 @@ export default function JoinableTripCard({ trip }: { trip: Trip }) {
   const [districts, setDistricts] = useState<DistrictSurcharge[]>([]); // State to store districts
   const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([]); // State to store additional services
 
-  // Fetch districts and additional services when the component mounts or when the form is opened
-  useEffect(() => {
-    if (isJoinFormOpen) {
-      const fetchData = async () => {
-        const fetchedDistricts = await getDistrictSurcharges();
-        setDistricts(fetchedDistricts);
-        const fetchedServices = await getAdditionalServices();
-        setAdditionalServices(fetchedServices);
-      };
-      fetchData();
+  const fetchData = useCallback(async () => {
+    try {
+      const [fetchedDistricts, fetchedServices] = await Promise.all([
+        getDistrictSurcharges(),
+        getAdditionalServices()
+      ]);
+      setDistricts(fetchedDistricts);
+      setAdditionalServices(fetchedServices);
+    } catch (error) {
+      console.error('Error fetching data:', error);
     }
-  }, [isJoinFormOpen]);
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const formattedDate = new Date(trip.date).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric'
@@ -35,6 +39,12 @@ export default function JoinableTripCard({ trip }: { trip: Trip }) {
 
   // Calculate total participants already in the trip (main booker + all participants)
   const totalCurrentParticipants = trip.participants.reduce((sum, p) => sum + (p.numberOfPeople || 0), 0);
+
+  const handleJoinClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsJoinFormOpen(true);
+  }, []);
 
   return (
     <>
@@ -61,7 +71,11 @@ export default function JoinableTripCard({ trip }: { trip: Trip }) {
           {/* {trip.dropoffAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Dropoff:</strong>&nbsp;{trip.dropoffAddress}</p>} */}
         </CardContent>
         <CardFooter>
-          <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setIsJoinFormOpen(true)}>
+          <Button
+            className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+            onClick={handleJoinClick}
+            type="button"
+          >
             加入此行程
           </Button>
         </CardFooter>
