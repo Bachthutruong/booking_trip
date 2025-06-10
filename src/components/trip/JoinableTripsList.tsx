@@ -25,6 +25,7 @@ export default function JoinableTripsList() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
+  const INITIAL_ITEMS = 3;
   const ITEMS_PER_PAGE = 6;
 
   const { ref, inView } = useInView({
@@ -38,8 +39,9 @@ export default function JoinableTripsList() {
     startTransition(async () => {
       try {
         const skip = isNewSearch ? 0 : (page - 1) * ITEMS_PER_PAGE;
+        const limit = isNewSearch ? INITIAL_ITEMS : ITEMS_PER_PAGE;
         const { trips: newTrips, total: totalCount } = await getJoinableTripsPaginated(
-          ITEMS_PER_PAGE,
+          limit,
           skip,
           searchTerm,
           selectedType || undefined
