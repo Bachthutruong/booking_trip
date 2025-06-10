@@ -56,24 +56,24 @@ export default function ItineraryCard({ itinerary, onSelect, showSelectButton = 
       <CardContent className="flex-grow space-y-3">
         <div className="flex items-center text-sm text-foreground">
           <Tag className="h-4 w-4 mr-2 text-primary" />
-          Price: <span className="font-semibold ml-1">{itinerary.pricePerPerson.toLocaleString()} 元</span> / person
+            价格: <span className="font-semibold ml-1">{itinerary.pricePerPerson.toLocaleString()} 元/人</span>
         </div>
-         {itinerary.availableTimes && itinerary.availableTimes.length > 0 && (
+        {itinerary.availableTimes && itinerary.availableTimes.length > 0 && (
           <div className="flex items-center text-sm text-foreground">
             <Clock className="h-4 w-4 mr-2 text-primary" />
-            Available Times: {itinerary.availableTimes.slice(0,3).join(', ')}{itinerary.availableTimes.length > 3 ? '...' : ''}
+            可用时间: {itinerary.availableTimes.slice(0,3).join(', ')}{itinerary.availableTimes.length > 3 ? '...' : ''}
           </div>
         )}
       </CardContent>
       <CardFooter>
         {showSelectButton && onSelect ? (
           <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => onSelect(itinerary.id)}>
-            Select This Itinerary
+            选择此行程
           </Button>
         ) : (
            <Button className="w-full" asChild>
             <Link href={`/create-trip?itineraryId=${itinerary.id}`}>
-              Book Now
+                立即预订
             </Link>
           </Button>
         )}

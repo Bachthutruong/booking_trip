@@ -14,30 +14,30 @@ export default async function AdminServicesPage() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold font-headline">Manage Additional Services ({additionalServices.length})</h1>
+                <h1 className="text-3xl font-bold font-headline">管理附加服务 ({additionalServices.length})</h1>
                 <Button asChild>
-                    <Link href="/admin/services/new"><PlusCircle className="mr-2 h-4 w-4" /> New Service</Link>
+                    <Link href="/admin/services/new"><PlusCircle className="mr-2 h-4 w-4" /> 新服务</Link>
                 </Button>
             </div>
 
             <Card className="shadow-lg">
                 <CardHeader>
-                    <CardTitle>Additional Service List</CardTitle>
-                    <CardDescription>View and manage optional services customers can add to their trips.</CardDescription>
+                    <CardTitle>附加服务列表</CardTitle>
+                    <CardDescription>查看和管理客户可以添加到他们的行程中的可选服务。</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {additionalServices.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-8">No additional services found. Create one to get started!</p>
+                        <p className="text-muted-foreground text-center py-8">没有附加服务。创建一个以开始！</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Price</TableHead>
-                                        <TableHead>Description</TableHead>
-                                        <TableHead>Applicable To</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                        <TableHead>名称</TableHead>
+                                        <TableHead>价格</TableHead>
+                                        <TableHead>描述</TableHead>
+                                        <TableHead>适用</TableHead>
+                                        <TableHead className="text-right">操作</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -54,12 +54,12 @@ export default async function AdminServicesPage() {
                                                         </Badge>
                                                     ))
                                                 ) : (
-                                                    <Badge variant="outline">Any</Badge>
+                                                    <Badge variant="outline">任何</Badge>
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <Button variant="outline" size="sm" asChild>
-                                                    <Link href={`/admin/services/${service.id}/edit`}>Edit</Link>
+                                                    <Link href={`/admin/services/${service.id}/edit`}>编辑</Link>
                                                 </Button>
                                             </TableCell>
                                         </TableRow>

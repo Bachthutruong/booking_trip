@@ -26,9 +26,9 @@ export default function AdminRegisterPage() {
         const confirmPassword = formData.get('confirmPassword');
 
         if (password !== confirmPassword) {
-            setError("Passwords do not match.");
+            setError("密碼不相符");
             setIsLoading(false);
-            toast({ title: 'Registration Failed', description: 'Passwords do not match.', variant: 'destructive' });
+            toast({ title: '註冊失敗', description: '密碼不相符', variant: 'destructive' });
             return;
         }
 
@@ -44,15 +44,15 @@ export default function AdminRegisterPage() {
             const result = await response.json();
 
             if (response.ok && result.success) {
-                toast({ title: 'Registration Successful', description: 'Admin account created. You can now log in.', variant: 'default' });
+                toast({ title: '註冊成功', description: '管理員帳號已創建。您現在可以登錄', variant: 'default' });
                 router.push('/admin/login');
             } else {
                 setError(result.message);
-                toast({ title: 'Registration Failed', description: result.message, variant: 'destructive' });
+                toast({ title: '註冊失敗', description: result.message, variant: 'destructive' });
             }
         } catch (e: any) {
-            setError(e.message || "An unexpected error occurred during registration.");
-            toast({ title: 'Registration Error', description: e.message || "An unexpected error occurred.", variant: 'destructive' });
+            setError(e.message || "在註冊過程中發生意外錯誤");
+            toast({ title: '註冊錯誤', description: e.message || "在註冊過程中發生意外錯誤", variant: 'destructive' });
         } finally {
             setIsLoading(false);
         }
@@ -65,27 +65,27 @@ export default function AdminRegisterPage() {
                     <div className="mx-auto mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-primary/10 text-primary">
                         <UserPlus size={40} />
                     </div>
-                    <CardTitle className="text-3xl font-headline">Admin Registration</CardTitle>
-                    <CardDescription>Create a new administrator account.</CardDescription>
+                    <CardTitle className="text-3xl font-headline">管理員註冊</CardTitle>
+                    <CardDescription>創建新的管理員帳號</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="username" className="flex items-center"><UserCircle className="mr-2 h-4 w-4" />Username</Label>
+                            <Label htmlFor="username" className="flex items-center"><UserCircle className="mr-2 h-4 w-4" />用戶名稱</Label>
                             <Input id="username" name="username" type="text" placeholder="admin" required disabled={isLoading} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password" className="flex items-center"><KeyRound className="mr-2 h-4 w-4" />Password</Label>
+                            <Label htmlFor="password" className="flex items-center"><KeyRound className="mr-2 h-4 w-4" />密碼</Label>
                             <Input id="password" name="password" type="password" placeholder="••••••••" required disabled={isLoading} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="confirmPassword" className="flex items-center"><KeyRound className="mr-2 h-4 w-4" />Confirm Password</Label>
+                            <Label htmlFor="confirmPassword" className="flex items-center"><KeyRound className="mr-2 h-4 w-4" />確認密碼</Label>
                             <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="••••••••" required disabled={isLoading} />
                         </div>
                         {error && <p className="text-sm text-destructive">{error}</p>}
                         <Button type="submit" className="w-full text-lg py-6" disabled={isLoading}>
                             {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <UserPlus className="mr-2 h-5 w-5" />}
-                            Register
+                            註冊
                         </Button>
                     </form>
                 </CardContent>

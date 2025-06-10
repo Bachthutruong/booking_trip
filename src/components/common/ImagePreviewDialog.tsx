@@ -29,9 +29,9 @@ export default function ImagePreviewDialog({ isOpen, onOpenChange, imageUrl }: I
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Payment Proof Preview</DialogTitle>
+                    <DialogTitle>付款证明预览</DialogTitle>
                     <DialogDescription>
-                        {isPdf ? 'Previewing PDF document.' : 'Previewing image.'}
+                        {isPdf ? '预览PDF文档。' : '预览图片。'}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex justify-center items-center bg-muted p-2 rounded-md min-h-[300px]">
@@ -40,7 +40,7 @@ export default function ImagePreviewDialog({ isOpen, onOpenChange, imageUrl }: I
                             {pdfLoading && (
                                 <div className="flex flex-col items-center justify-center h-[300px]">
                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                    <p className="text-sm text-muted-foreground mt-2">Loading PDF...</p>
+                                    <p className="text-sm text-muted-foreground mt-2">加载PDF...</p>
                                 </div>
                             )}
                             <Document
@@ -53,7 +53,7 @@ export default function ImagePreviewDialog({ isOpen, onOpenChange, imageUrl }: I
                             </Document>
                             {numPages && (
                                 <p className="text-sm text-muted-foreground mt-2">
-                                    Page {pageNumber} of {numPages}
+                                    第 {pageNumber} 页，共 {numPages} 页
                                 </p>
                             )}
                             {numPages && numPages > 1 && (
@@ -64,7 +64,7 @@ export default function ImagePreviewDialog({ isOpen, onOpenChange, imageUrl }: I
                                         onClick={() => setPageNumber(prevPageNumber => prevPageNumber - 1)}
                                         className="px-3 py-1 bg-gray-200 rounded-md text-sm"
                                     >
-                                        Previous
+                                        上一页
                                     </button>
                                     <button
                                         type="button"
@@ -72,7 +72,7 @@ export default function ImagePreviewDialog({ isOpen, onOpenChange, imageUrl }: I
                                         onClick={() => setPageNumber(prevPageNumber => prevPageNumber + 1)}
                                         className="px-3 py-1 bg-gray-200 rounded-md text-sm"
                                     >
-                                        Next
+                                        下一页
                                     </button>
                                 </div>
                             )}

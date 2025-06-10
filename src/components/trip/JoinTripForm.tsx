@@ -44,12 +44,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 const joinTripFormSchema = z.object({
   tripId: z.string(), // Hidden, will be set from props
-  name: z.string().min(2, "Name must be at least 2 characters.").max(100),
-  phone: z.string().regex(/^\+?[0-9\s-]{10,15}$/, "Invalid phone number format."),
-  numberOfPeople: z.coerce.number().min(1, "At least one person is required.").max(10, "Max 10 people to join."), // Or some other reasonable limit
-  address: z.string().min(5, "Address must be at least 5 characters.").max(200), // Their pickup address
+  name: z.string().min(2, "姓名必须至少有2个字符。").max(100),
+  phone: z.string().regex(/^\+?[0-9\s-]{10,15}$/, "无效的电话号码格式。"),
+  numberOfPeople: z.coerce.number().min(1, "至少需要1人。").max(10, "最多只能加入10人。"), // Or some other reasonable limit
+  address: z.string().min(5, "地址必须至少有5个字符。").max(200), // Their pickup address
   discountCode: z.string().optional(),
-  notes: z.string().max(500, "Notes cannot exceed 500 characters.").optional(),
+  notes: z.string().max(500, "备注不能超过500个字符。").optional(),
   district: z.string().optional(), // Add district field
   additionalServiceIds: z.array(z.string()).optional(), // Add additionalServiceIds field
 });
@@ -63,7 +63,6 @@ interface JoinTripFormProps {
 }
 
 export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, additionalServices }: JoinTripFormProps) {
-  console.log('Additional Services in JoinTripForm:', additionalServices);
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,6 +72,10 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
   const [discountMessage, setDiscountMessage] = useState<string | null>(null);
   const [pricePerPerson, setPricePerPerson] = useState<number>(0);
+  const [showTermsDialog, setShowTermsDialog] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [pendingFormValues, setPendingFormValues] = useState<z.infer<typeof joinTripFormSchema> | null>(null);
+  const [termsContent, setTermsContent] = useState<string>("");
 
   const form = useForm<z.infer<typeof joinTripFormSchema>>({
     resolver: zodResolver(joinTripFormSchema),
@@ -106,7 +109,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
         setDiscountMessage(`Applied: ${discountDetails.description || discountDetails.code} (${discountDetails.type === 'fixed' ? discountDetails.value.toLocaleString() + ' 元' : discountDetails.value + '%'})`);
       } else {
         setAppliedDiscount(null);
-        setDiscountMessage("Invalid or expired discount code.");
+        setDiscountMessage("无效或过期的折扣代码。");
       }
     };
     validateAndApplyDiscount();
@@ -166,6 +169,13 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
     }
   }, [numberOfPeople, selectedDistrict, trip.itineraryId, appliedDiscount, watchAdditionalServices]); // Add watchAdditionalServices to dependencies
 
+  // Fetch terms content on mount
+  useEffect(() => {
+    fetch("/api/admin/terms")
+      .then(res => res.json())
+      .then(data => setTermsContent(data.content || ""));
+  }, []);
+
   // --- BEGIN: Price breakdown calculation ---
   const priceBreakdown = (() => {
     const numPeople = numberOfPeople || 1;
@@ -190,10 +200,10 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
     if (appliedDiscount) {
       if (appliedDiscount.type === 'fixed') {
         discountValue = appliedDiscount.value;
-        discountLabel = `Discount: -${appliedDiscount.value.toLocaleString()} 元`;
+        discountLabel = `折扣: -${appliedDiscount.value.toLocaleString()} 元`;
       } else if (appliedDiscount.type === 'percentage') {
         discountValue = subtotal * (appliedDiscount.value / 100);
-        discountLabel = `Discount: -${appliedDiscount.value}% (-${discountValue.toLocaleString()} 元)`;
+        discountLabel = `折扣: -${appliedDiscount.value}% (-${discountValue.toLocaleString()} 元)`;
       }
     }
     return {
@@ -209,35 +219,44 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
   })();
   // --- END: Price breakdown calculation ---
 
-  async function onSubmit(values: z.infer<typeof joinTripFormSchema>) {
+  function handleFormSubmit(values: z.infer<typeof joinTripFormSchema>) {
+    setPendingFormValues(values);
+    setShowTermsDialog(true);
+  }
+
+  async function handleTermsConfirm() {
+    if (!pendingFormValues) return;
     setIsSubmitting(true);
     try {
       const submissionData: JoinTripFormValues = {
-        ...values,
+        ...pendingFormValues,
         pricePaid: calculatedPrice, // Pass the calculated price
         discountCode: appliedDiscount ? appliedDiscount.code : undefined, // Pass the applied discount code
-        additionalServiceIds: values.additionalServiceIds || [], // Pass selected services
+        additionalServiceIds: pendingFormValues.additionalServiceIds || [], // Pass selected services
       };
 
       const result = await joinTrip(submissionData);
       if (result.success) {
         toast({
-          title: "Successfully Joined!",
-          description: result.message, // Use the message from the server action
+          title: "成功加入！",
+          description: result.message,
         });
-        onOpenChange(false); // Close dialog
-        router.push(`/my-trips?phone=${values.phone}`); // Redirect to my-trips with their phone
+        setShowTermsDialog(false);
+        setTermsAccepted(false);
+        setPendingFormValues(null);
+        onOpenChange(false);
+        router.push(`/my-trips?phone=${pendingFormValues.phone}&name=${encodeURIComponent(pendingFormValues.name)}`);
       } else {
         toast({
-          title: "Error Joining Trip",
+          title: "加入行程失败",
           description: result.message,
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "错误",
+        description: "发生意外错误。请重试。",
         variant: "destructive",
       });
     } finally {
@@ -246,262 +265,296 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-headline text-2xl">Join Trip: {trip.itineraryName}</DialogTitle>
-          <DialogDescription>
-            Fill in your details to join this trip on {new Date(trip.date).toLocaleDateString()}.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-            <div className="mt-8 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-bold font-headline mb-2 flex items-center">
-                <TicketPercent className="h-5 w-5 mr-2 text-primary" />
-                Estimated Price for You:
-              </h3>
-              {priceCalculationLoading ? (
-                <p className="text-lg text-muted-foreground flex items-center">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" /> Calculating price...
-                </p>
-              ) : (
-                <>
-                  {appliedDiscount && calculatedPrice < initialCalculatedPrice ? (
-                    <div className="flex flex-col">
-                      <p className="text-sm text-muted-foreground line-through">Original: {initialCalculatedPrice.toLocaleString()} 元</p>
-                      <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} 元</p>
-                      <p className="text-sm text-green-600 dark:text-green-400 mt-1">{discountMessage}</p>
-                    </div>
-                  ) : (
-                    <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} 元</p>
-                  )}
-                  {/* --- BEGIN: Price breakdown details --- */}
-                  <div className="mt-4 bg-white dark:bg-muted/30 rounded-lg border p-4 text-xs">
-                    <div className="flex justify-between mb-1">
-                      <span>Itinerary price ({priceBreakdown.numPeople} person{priceBreakdown.numPeople > 1 ? 's' : ''}):</span>
-                      <span>{(priceBreakdown.basePrice).toLocaleString()} 元</span>
-                    </div>
-                    {priceBreakdown.districtSurchargeLabel && (
-                      <div className="flex justify-between mb-1">
-                        <span>District surcharge</span>
-                        <span>{priceBreakdown.districtSurchargeLabel}</span>
-                      </div>
-                    )}
-                    {priceBreakdown.services.length > 0 && (
-                      <div className="mb-1">
-                        <span>Additional services:</span>
-                        <ul className="ml-4 mt-1">
-                          {priceBreakdown.services.map((s, idx) => (
-                            <li key={idx} className="flex justify-between">
-                              <span>{s.name}</span>
-                              <span>+{s.price.toLocaleString()} 元</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-semibold border-t pt-2 mt-2">
-                      <span>Subtotal:</span>
-                      <span>{priceBreakdown.subtotal.toLocaleString()} 元</span>
-                    </div>
-                    {priceBreakdown.discountLabel && (
-                      <div className="flex justify-between text-green-700 dark:text-green-400">
-                        <span>{priceBreakdown.discountLabel}</span>
-                        <span>-{priceBreakdown.discountValue.toLocaleString()} 元</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-bold border-t pt-2 mt-2 text-primary text-base">
-                      <span>Total:</span>
-                      <span>{calculatedPrice.toLocaleString()} 元</span>
-                    </div>
-                  </div>
-                  {/* --- END: Price breakdown details --- */}
-                </>
-              )}
-              <FormDescription className="mt-2">This is the estimated price for your portion of the trip. Final price may vary.</FormDescription>
-            </div>
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />Your Name *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Full name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary" />Your Phone Number *</FormLabel>
-                  <FormControl>
-                    <Input type="tel" placeholder="e.g., 0912345678" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="numberOfPeople"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />Number of People Joining *</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="e.g., 1" {...field} min="1" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-
-            {/* Conditionally render District field for relevant itinerary types */}
-            {(trip.itineraryType === 'airport_pickup' || trip.itineraryType === 'airport_dropoff' || trip.itineraryType === 'tourism') && (
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl">加入行程: {trip.itineraryName}</DialogTitle>
+            <DialogDescription>
+              填写您的详细信息以加入此行程。
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6 py-4">
               <FormField
                 control={form.control}
-                name="district"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />District (for pickup/dropoff in Hanoi)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a district" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {districts.map((district) => (
-                          <SelectItem key={district.districtName} value={district.districtName}>
-                            {district.districtName} {district.surchargeAmount > 0 ? `(+${district.surchargeAmount.toLocaleString()} 元)` : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>Surcharges may apply for some districts.</FormDescription>
+                    <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />你的姓名 *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="全名" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
-
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />Your Pickup Address *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your address for pickup" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="discountCode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center"><TicketPercent className="h-4 w-4 mr-2 text-primary" />Discount Code (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter if you have one" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center"><FileText className="h-4 w-4 mr-2 text-primary" />Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Any special requests for your group?"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Conditionally render additional services field */}
-            {additionalServices.length > 0 && (
               <FormField
                 control={form.control}
-                name="additionalServiceIds"
+                name="phone"
                 render={({ field }) => (
-                  <FormItem className="space-y-4">
-                    <FormLabel className="text-base">Additional Services</FormLabel>
-                    <FormDescription>Select any extra services you'd like to include.</FormDescription>
-                    {additionalServices.map((service) => (
-                      <FormField
-                        key={service.id}
-                        control={form.control}
-                        name="additionalServiceIds"
-                        render={({ field: itemField }) => {
-                          return (
-                            <FormItem
-                              key={service.id}
-                              className="flex flex-row items-start space-x-3 space-y-0"
-                            >
-                              <FormControl>
-                                <Checkbox
-                                  checked={itemField.value?.includes(service.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? itemField.onChange([...(itemField.value || []), service.id])
-                                      : itemField.onChange(
-                                        itemField.value?.filter(
-                                          (value) => value !== service.id
-                                        )
-                                      );
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal flex-grow cursor-pointer">
-                                {service.name} (+{service.price.toLocaleString()} 元)
-                                {service.description && <p className="text-xs text-muted-foreground italic">{service.description}</p>}
-                              </FormLabel>
-                            </FormItem>
-                          );
-                        }}
-                      />
-                    ))}
+                  <FormItem>
+                    <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary" />你的电话号码 *</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="e.g., 0912345678" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
+              <FormField
+                control={form.control}
+                name="numberOfPeople"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />加入的人数 *</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="e.g., 1" {...field} min="1" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Conditionally render District field for relevant itinerary types */}
+              {(trip.itineraryType === 'airport_pickup' || trip.itineraryType === 'airport_dropoff' || trip.itineraryType === 'tourism') && (
+                <FormField
+                  control={form.control}
+                  name="district"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />地区 (在河内接/送)</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="选择一个地区" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {districts.map((district) => (
+                            <SelectItem key={district.districtName} value={district.districtName}>
+                              {district.districtName} {district.surchargeAmount > 0 ? `(+${district.surchargeAmount.toLocaleString()} 元)` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>某些地区可能需要额外费用。</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
-            <DialogFooter className="sm:justify-between gap-2 pt-4">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancel
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />你的接/送地址 *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="你的接/送地址" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="discountCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center"><TicketPercent className="h-4 w-4 mr-2 text-primary" />折扣代码 (可选)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="如果你有的话" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center"><FileText className="h-4 w-4 mr-2 text-primary" />备注 (可选)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="任何特殊请求"
+                        className="resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Conditionally render additional services field */}
+              {additionalServices.length > 0 && (
+                <FormField
+                  control={form.control}
+                  name="additionalServiceIds"
+                  render={({ field }) => (
+                    <FormItem className="space-y-4">
+                      <FormLabel className="text-base">额外服务</FormLabel>
+                      <FormDescription>选择您想要包含的任何额外服务。</FormDescription>
+                      {additionalServices.map((service) => (
+                        <FormField
+                          key={service.id}
+                          control={form.control}
+                          name="additionalServiceIds"
+                          render={({ field: itemField }) => {
+                            return (
+                              <FormItem
+                                key={service.id}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={itemField.value?.includes(service.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? itemField.onChange([...(itemField.value || []), service.id])
+                                        : itemField.onChange(
+                                          itemField.value?.filter(
+                                            (value) => value !== service.id
+                                          )
+                                        );
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal flex-grow cursor-pointer">
+                                  {service.name} (+{service.price.toLocaleString()} 元)
+                                  {service.description && <p className="text-xs text-muted-foreground italic">{service.description}</p>}
+                                </FormLabel>
+                              </FormItem>
+                            );
+                          }}
+                        />
+                      ))}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Estimated Price for You section moved here */}
+              <div className="mt-8 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
+                <h3 className="text-xl font-bold font-headline mb-2 flex items-center">
+                  <TicketPercent className="h-5 w-5 mr-2 text-primary" />
+                  你的估计价格:
+                </h3>
+                {priceCalculationLoading ? (
+                  <p className="text-lg text-muted-foreground flex items-center">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" /> 计算价格...
+                  </p>
+                ) : (
+                  <>
+                    {appliedDiscount && calculatedPrice < initialCalculatedPrice ? (
+                      <div className="flex flex-col">
+                        <p className="text-sm text-muted-foreground line-through">原价: {initialCalculatedPrice.toLocaleString()} 元</p>
+                        <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} 元</p>
+                        <p className="text-sm text-green-600 dark:text-green-400 mt-1">{discountMessage}</p>
+                      </div>
+                    ) : (
+                      <p className="text-3xl font-extrabold text-primary">{calculatedPrice.toLocaleString()} 元</p>
+                    )}
+                    {/* --- BEGIN: Price breakdown details --- */}
+                    <div className="mt-4 bg-white dark:bg-muted/30 rounded-lg border p-4 text-xs">
+                      <div className="flex justify-between mb-1">
+                        <span>行程价格 ({priceBreakdown.numPeople} 人{priceBreakdown.numPeople > 1 ? 's' : ''}):</span>
+                        <span>{(priceBreakdown.basePrice).toLocaleString()} 元</span>
+                      </div>
+                      {priceBreakdown.districtSurchargeLabel && (
+                        <div className="flex justify-between mb-1">
+                          <span>地区额外费用</span>
+                          <span>{priceBreakdown.districtSurchargeLabel}</span>
+                        </div>
+                      )}
+                      {priceBreakdown.services.length > 0 && (
+                        <div className="mb-1">
+                          <span>额外服务:</span>
+                          <ul className="ml-4 mt-1">
+                            {priceBreakdown.services.map((s, idx) => (
+                              <li key={idx} className="flex justify-between">
+                                <span>{s.name}</span>
+                                <span>+{s.price.toLocaleString()} 元</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-semibold border-t pt-2 mt-2">
+                        <span>小计:</span>
+                        <span>{priceBreakdown.subtotal.toLocaleString()} 元</span>
+                      </div>
+                      {priceBreakdown.discountLabel && (
+                        <div className="flex justify-between text-green-700 dark:text-green-400">
+                          <span>{priceBreakdown.discountLabel}</span>
+                          <span>-{priceBreakdown.discountValue.toLocaleString()} 元</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-bold border-t pt-2 mt-2 text-primary text-base">
+                        <span>总计:</span>
+                        <span>{calculatedPrice.toLocaleString()} 元</span>
+                      </div>
+                    </div>
+                    {/* --- END: Price breakdown details --- */}
+                  </>
+                )}
+                <FormDescription className="mt-2">这是您部分行程的估计价格。最终价格可能会有所不同。</FormDescription>
+              </div>
+
+              <DialogFooter className="sm:justify-between gap-2 pt-4">
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">
+                    取消
+                  </Button>
+                </DialogClose>
+                <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  确认并加入
                 </Button>
-              </DialogClose>
-              <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                Confirm & Join
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Terms dialog in English, content from API */}
+      <Dialog open={showTermsDialog} onOpenChange={setShowTermsDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>加入行程的条件</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-60 overflow-y-auto text-sm">
+            <div className="prose max-w-full" dangerouslySetInnerHTML={{ __html: termsContent || '<em>没有条款内容。</em>' }} />
+          </div>
+          <div className="flex items-center space-x-2 mt-4">
+            <Checkbox id="accept-terms" checked={termsAccepted} onCheckedChange={checked => setTermsAccepted(checked === true)} />
+            <label htmlFor="accept-terms" className="text-sm cursor-pointer select-none">
+              我已阅读并同意上述条款和条件
+            </label>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button variant="outline" onClick={() => setShowTermsDialog(false)}>
+                返回
+            </Button>
+            <Button
+              onClick={handleTermsConfirm}
+              disabled={!termsAccepted || isSubmitting}
+              className="min-w-[120px]"
+            >
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              确认并加入
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

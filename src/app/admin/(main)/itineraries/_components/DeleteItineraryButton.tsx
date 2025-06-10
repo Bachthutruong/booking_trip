@@ -33,15 +33,15 @@ export function DeleteItineraryButton({ itineraryId, itineraryName }: DeleteItin
       const result = await deleteItinerary(itineraryId);
       if (result.success) {
         toast({
-          title: 'Itinerary Deleted',
-          description: `"${itineraryName}" has been successfully deleted.`,
+          title: '行程已删除',
+          description: `"${itineraryName}" 已成功删除。`,
         });
         setIsOpen(false);
         // Revalidation is handled by the server action
       } else {
         toast({
-          title: 'Error Deleting Itinerary',
-          description: result.message || 'An unexpected error occurred.',
+          title: '删除行程失败',
+          description: result.message || '发生意外错误。',
           variant: 'destructive',
         });
       }
@@ -57,22 +57,22 @@ export function DeleteItineraryButton({ itineraryId, itineraryName }: DeleteItin
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure you want to delete "{itineraryName}"?</AlertDialogTitle>
+          <AlertDialogTitle>确定要删除 "{itineraryName}"?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the itinerary.
-            Any trips associated with this itinerary might be affected (this part is not yet implemented, but consider the impact).
+            此操作无法撤消。这将永久删除行程。
+            与该行程相关的任何行程可能会受到影响（这部分尚未实现，但请考虑影响）。
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isPending}>取消</AlertDialogCancel>
           <AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
             {isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Deleting...
+                删除中...
               </>
             ) : (
-              'Delete'
+              '删除'
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

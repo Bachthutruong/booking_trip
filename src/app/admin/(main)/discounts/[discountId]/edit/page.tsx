@@ -13,9 +13,9 @@ export default async function EditDiscountPage({ params }: { params: { discountI
     if (!discountCode) {
         return (
             <div className="space-y-6 max-w-3xl mx-auto text-center py-10">
-                <p className="text-destructive text-lg">Discount code not found.</p>
+                <p className="text-destructive text-lg">折扣代码未找到。</p>
                 <Button variant="outline" asChild>
-                    <Link href="/admin/discounts"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Discount Codes</Link>
+                    <Link href="/admin/discounts"><ArrowLeft className="mr-2 h-4 w-4" /> 返回折扣代码</Link>
                 </Button>
             </div>
         );
@@ -41,12 +41,12 @@ export default async function EditDiscountPage({ params }: { params: { discountI
     return (
         <div className="space-y-6 max-w-3xl mx-auto">
             <Button variant="outline" asChild className="mb-4">
-                <Link href="/admin/discounts"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Discount Codes</Link>
+                <Link href="/admin/discounts"><ArrowLeft className="mr-2 h-4 w-4" /> 返回折扣代码</Link>
             </Button>
             <Card className="shadow-lg">
                 <CardHeader>
-                    <CardTitle className="font-headline text-2xl">Edit Discount Code: {discountCode.code}</CardTitle>
-                    <CardDescription>Update the details for this discount code.</CardDescription>
+                    <CardTitle className="font-headline text-2xl">编辑折扣代码: {discountCode.code}</CardTitle>
+                    <CardDescription>更新此折扣代码的详细信息。</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <DiscountCodeForm
@@ -54,7 +54,7 @@ export default async function EditDiscountPage({ params }: { params: { discountI
                         initialData={initialFormData}
                         isEditMode={true}
                         discountId={discountCode.id}
-                        submitButtonText="Update Discount Code"
+                        submitButtonText="更新折扣代码"
                     />
                 </CardContent>
             </Card>

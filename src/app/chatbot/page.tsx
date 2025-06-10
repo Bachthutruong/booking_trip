@@ -11,9 +11,9 @@ export default function ChatbotPage() {
             <div className="flex justify-center mb-3">
                 <BotMessageSquare className="h-12 w-12 text-primary" />
             </div>
-            <CardTitle className="font-headline text-3xl">Hanoi Travel Assistant</CardTitle>
+            <CardTitle className="font-headline text-3xl">河內旅行助手</CardTitle>
             <CardDescription className="text-md">
-              Ask me anything about traveling in Hanoi! I can help with common questions about attractions, food, transport, and more.
+              問我任何關於河內旅遊的問題！我可以幫助解答關於景點、美食、交通等常見問題。
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex flex-col p-0">

@@ -14,6 +14,10 @@ import PaymentProofPreviewButton from '@/components/admin/PaymentProofPreviewBut
 import { ConfirmPaymentButton as ClientConfirmPaymentButton } from '@/components/admin/ConfirmPaymentButton'; // Import the client component
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'; // New import
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'; // New import
+import { verifyAdminToken } from '@/actions/adminAuthActions';
+import { Textarea } from '@/components/ui/textarea';
+import { useState } from 'react';
+import CommentSection from './CommentSection';
 
 // Cosmetic change to trigger TypeScript re-evaluation
 const WandIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -23,15 +27,15 @@ const WandIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default async function AdminTripDetailPage({ params }: { params: { tripId: string } }) {
+  const user = await verifyAdminToken();
   const trip = await getTripById(params.tripId);
-  console.log(trip, 'tripppppp');
 
   if (!trip) {
     return (
       <div className="space-y-6 max-w-3xl mx-auto text-center py-10">
-        <p className="text-destructive text-lg">Trip not found.</p>
+        <p className="text-destructive text-lg">未找到行程。</p>
         <Button variant="outline" asChild>
-          <Link href="/admin/trips"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Trip List</Link>
+          <Link href="/admin/trips"><ArrowLeft className="mr-2 h-4 w-4" /> 返回行程列表</Link>
         </Button>
       </div>
     );
@@ -56,12 +60,23 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
       }
     }
   }
+  console.log(trip, 'trip bách');
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <Button variant="outline" asChild className="mb-4">
-        <Link href="/admin/trips"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Trip List</Link>
+        <Link href="/admin/trips"><ArrowLeft className="mr-2 h-4 w-4" /> 返回行程列表</Link>
       </Button>
+
+      {/* Show deleted badge if trip is deleted */}
+      {trip.isDeleted && (
+        <div className="mb-2">
+          <Badge variant="destructive" className="text-lg px-4 py-2">已被删除</Badge>
+        </div>
+      )}
+
+      {/* Bình luận section for staff handover/notes */}
+      <CommentSection tripId={trip.id} initialComment={trip.handoverComment} isDeleted={trip.isDeleted} />
 
       <Card className="shadow-xl">
         <CardHeader className="border-b">
@@ -69,42 +84,42 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
             <div>
               <CardTitle className="font-headline text-2xl md:text-3xl">{trip.itineraryName}</CardTitle>
               <CardDescription className="text-base">
-                Trip ID: {trip.id} &bull; {ITINERARY_TYPES[trip.itineraryType]}
+                行程编号: {trip.id} &bull; {ITINERARY_TYPES[trip.itineraryType]}
               </CardDescription>
             </div>
             <Badge
               variant={overallStatus === 'payment_confirmed' ? 'default' : overallStatus === 'pending_payment' ? 'outline' : 'secondary'}
               className={`mt-2 sm:mt-0 text-lg px-4 py-2 ${overallStatus === 'payment_confirmed' ? 'bg-green-500 text-white' : overallStatus === 'pending_payment' ? 'border-yellow-500 text-yellow-600' : ''}`}
             >
-              {overallStatus === 'payment_confirmed' ? 'Paid' : overallStatus === 'pending_payment' ? 'Pending Payment' : 'Completed'}
+              {overallStatus === 'payment_confirmed' ? '已付款' : overallStatus === 'pending_payment' ? '待付款' : '已完成'}
             </Badge>
           </div>
         </CardHeader>
 
-        <CardSection title="Booking Details" icon={<CalendarDays />}>
+        <CardSection title="预订详情" icon={<CalendarDays />}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            <p><strong className="font-medium text-muted-foreground">Date:</strong> {format(new Date(trip.date), "EEEE, MMM dd, yyyy")}</p>
-            <p><strong className="font-medium text-muted-foreground">Time:</strong> {trip.time}</p>
-            <p><strong className="font-medium text-muted-foreground">Total Guests:</strong> {totalGuests}</p>
-            <p><strong className="font-medium text-muted-foreground">Total Price:</strong> {trip.totalPrice.toLocaleString()} 元</p>
-            {trip.pickupAddress && <p className="md:col-span-2"><strong className="font-medium text-muted-foreground">Pickup Address:</strong> {trip.pickupAddress}</p>}
-            {trip.dropoffAddress && <p className="md:col-span-2"><strong className="font-medium text-muted-foreground">Dropoff Address:</strong> {trip.dropoffAddress}</p>}
-            {trip.district && <p><strong className="font-medium text-muted-foreground">District:</strong> {trip.district}</p>}
-            {trip.discountCode && <p><strong className="font-medium text-muted-foreground">Discount Code:</strong> <Badge variant="secondary">{trip.discountCode}</Badge></p>}
+            <p><strong className="font-medium text-muted-foreground">日期:</strong> {format(new Date(trip.date), "yyyy年MM月dd日 EEEE")}</p>
+            <p><strong className="font-medium text-muted-foreground">时间:</strong> {trip.time}</p>
+            <p><strong className="font-medium text-muted-foreground">总人数:</strong> {totalGuests}</p>
+            <p><strong className="font-medium text-muted-foreground">总价:</strong> {trip.totalPrice.toLocaleString()} 元</p>
+            {trip.pickupAddress && <p className="md:col-span-2"><strong className="font-medium text-muted-foreground">接送地址:</strong> {trip.pickupAddress}</p>}
+            {trip.dropoffAddress && <p className="md:col-span-2"><strong className="font-medium text-muted-foreground">送达地址:</strong> {trip.dropoffAddress}</p>}
+            {trip.district && <p><strong className="font-medium text-muted-foreground">区域:</strong> {trip.district}</p>}
+            {trip.discountCode && <p><strong className="font-medium text-muted-foreground">优惠码:</strong> <Badge variant="secondary">{trip.discountCode}</Badge></p>}
           </div>
         </CardSection>
 
-        <CardSection title="Contact Information" icon={<UserCircle />}>
+        <CardSection title="联系人信息" icon={<UserCircle />}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            <p><strong className="font-medium text-muted-foreground">Booked By:</strong> {trip.contactName}</p>
-            <p><strong className="font-medium text-muted-foreground">Phone:</strong> {trip.contactPhone}</p>
-            {trip.secondaryContact && <p><strong className="font-medium text-muted-foreground">Secondary Contact:</strong> {trip.secondaryContact}</p>}
+            <p><strong className="font-medium text-muted-foreground">预订人:</strong> {trip.contactName}</p>
+            <p><strong className="font-medium text-muted-foreground">电话:</strong> {trip.contactPhone}</p>
+            {trip.secondaryContact && <p><strong className="font-medium text-muted-foreground">备用联系人:</strong> {trip.secondaryContact}</p>}
           </div>
-          {trip.notes && <p className="mt-2 text-sm italic"><strong className="font-medium text-muted-foreground not-italic">Notes:</strong> {trip.notes}</p>}
+          {trip.notes && <p className="mt-2 text-sm italic"><strong className="font-medium text-muted-foreground not-italic">备注:</strong> {trip.notes}</p>}
         </CardSection>
 
         {trip.additionalServiceIds && trip.additionalServiceIds.length > 0 && (
-          <CardSection title="Additional Services" icon={<WandIcon />}>
+          <CardSection title="附加服务" icon={<WandIcon />}>
             <ul className="list-disc list-inside text-sm">
               {selectedAdditionalServices.map(service => (
                 <li key={service.id}>{service.name} (+{service.price.toLocaleString()} 元)</li>
@@ -114,15 +129,15 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
         )}
 
         {trip.participants.length > 0 && (
-          <CardSection title="Joined Participants" icon={<Users />}>
+          <CardSection title="参与者" icon={<Users />}>
             <div className="space-y-3">
               {trip.participants.map(p => (
                 <Accordion type="single" collapsible key={p.id} className="w-full">
                   <AccordionItem value={p.id}>
                     <AccordionTrigger className="flex items-center justify-between gap-4 group-hover:no-underline p-4">
                       <div className="flex flex-col flex-grow min-w-0">
-                        <strong className="font-medium">{p.name}</strong> ({p.numberOfPeople} person(s))
-                        <p className="text-xs text-muted-foreground">Phone: {p.phone} | Address: {p.address}</p>
+                        <strong className="font-medium">{p.name}</strong> ({p.numberOfPeople} 人)
+                        <p className="text-xs text-muted-foreground">电话: {p.phone} | 地址: {p.address}</p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Badge
@@ -138,19 +153,21 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
                         {p.status === 'pending_payment' && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="default" size="sm" className="bg-green-500 text-white hover:bg-green-600">
-                                <CheckCircle className="mr-2 h-4 w-4" /> Confirm Payment
-                              </Button>
+                              { user.role === 'admin' && (
+                                <Button variant="default" size="sm" className="bg-green-500 text-white hover:bg-green-600">
+                                  <CheckCircle className="mr-2 h-4 w-4" /> 确认付款
+                                </Button>
+                              )}
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Confirm Payment for {p.name}?</AlertDialogTitle>
+                                <AlertDialogTitle>确认 {p.name} 的付款？</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. This will mark the participant's payment as confirmed.
+                                  此操作无法撤销。将把该参与者的付款标记为已确认。
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
                                 <AlertDialogAction asChild>
                                   <ClientConfirmPaymentButton tripId={trip.id} participantId={p.id} isMainBooker={false} />
                                 </AlertDialogAction>
@@ -158,19 +175,25 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
+                        {p.status === 'payment_confirmed' && (p.confirmedBy || p.confirmedAt) && (
+                          <div className="flex flex-col text-xs text-green-700 dark:text-green-400 mt-1">
+                            {p.confirmedBy && <span>确认人: <span className="font-semibold">{p.confirmedBy}</span></span>}
+                            {p.confirmedAt && <span>确认时间: {format(new Date(p.confirmedAt), "yyyy年MM月dd日 HH:mm")}</span>}
+                          </div>
+                        )}
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="pl-4 py-2 border-l-2 border-primary/50 space-y-2 text-sm">
-                        {p.email && <p><strong className="font-medium text-muted-foreground">Email:</strong> {p.email}</p>}
-                        {p.dob && <p><strong className="font-medium text-muted-foreground">Date of Birth:</strong> {format(new Date(p.dob), "MMM dd, yyyy")}</p>}
-                        {p.identityNumber && <p><strong className="font-medium text-muted-foreground">Identity No.:</strong> {p.identityNumber}</p>}
+                        {p.email && <p><strong className="font-medium text-muted-foreground">邮箱:</strong> {p.email}</p>}
+                        {p.dob && <p><strong className="font-medium text-muted-foreground">出生日期:</strong> {format(new Date(p.dob), "yyyy年MM月dd日")}</p>}
+                        {p.identityNumber && <p><strong className="font-medium text-muted-foreground">证件号:</strong> {p.identityNumber}</p>}
                         {p.discountCode && p.discountCode.code && (
-                          <p><strong className="font-medium text-muted-foreground">Discount Code:</strong> <Badge variant="secondary">{p.discountCode.code} ({p.discountCode.type === 'percentage' ? `${p.discountCode.value}%` : `${p.discountCode.value.toLocaleString()} 元`})</Badge></p>
+                          <p><strong className="font-medium text-muted-foreground">优惠码:</strong> <Badge variant="secondary">{p.discountCode.code} ({p.discountCode.type === 'percentage' ? `${p.discountCode.value}%` : `${p.discountCode.value.toLocaleString()} 元`})</Badge></p>
                         )}
                         {p.additionalServices && p.additionalServices.length > 0 && (
                           <div>
-                            <strong className="font-medium text-muted-foreground">Services:</strong>
+                            <strong className="font-medium text-muted-foreground">服务:</strong>
                             <ul className="list-disc list-inside ml-4">
                               {p.additionalServices.map(service => (
                                 <li key={service.id}>{service.name} (+{service.price.toLocaleString()} 元)</li>
@@ -178,7 +201,7 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
                             </ul>
                           </div>
                         )}
-                        {p.notes && <p><strong className="font-medium text-muted-foreground">Notes:</strong> {p.notes}</p>}
+                        {p.notes && <p><strong className="font-medium text-muted-foreground">备注:</strong> {p.notes}</p>}
                       </div>
                     </AccordionContent>
                   </AccordionItem>
@@ -193,7 +216,7 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
 
         <CardFooter className="border-t pt-6">
           {/* Add other actions like "Cancel Trip" or "Edit Trip" for admin if needed */}
-          <p className="text-xs text-muted-foreground">Created At: {format(new Date(trip.createdAt), "MMM dd, yyyy HH:mm")}</p>
+          <p className="text-xs text-muted-foreground">创建时间: {format(new Date(trip.createdAt), "yyyy年MM月dd日 HH:mm")}</p>
         </CardFooter>
       </Card>
     </div>

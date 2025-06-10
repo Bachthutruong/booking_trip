@@ -5,16 +5,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function MyTripsPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams?: { tripId?: string; phone?: string; name?: string };
 }) {
-  const tripIdFromParam = searchParams?.tripId as string | undefined; // For highlighting new trip
-  const phoneFromParam = searchParams?.phone as string | undefined;
+  const tripIdFromParam = searchParams?.tripId ? String(searchParams.tripId) : undefined;
+  const phoneFromParam = searchParams?.phone ? String(searchParams.phone) : undefined;
+  const nameFromParam = searchParams?.name ? String(searchParams.name) : undefined;
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-4xl font-bold mb-10 text-center font-headline">Manage Your Trips</h1>
+      <h1 className="text-4xl font-bold mb-10 text-center font-headline">管理您的旅程</h1>
       <Suspense fallback={<MyTripsSkeleton />}>
-        <MyTripsClient tripIdFromParam={tripIdFromParam} phoneFromParam={phoneFromParam} />
+        <MyTripsClient tripIdFromParam={tripIdFromParam} phoneFromParam={phoneFromParam} nameFromParam={nameFromParam} />
       </Suspense>
     </div>
   );

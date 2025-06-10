@@ -8,12 +8,12 @@ import type { AdminUser } from '@/lib/types'; // Make sure to import AdminUser t
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET is not defined in environment variables.');
+    throw new Error('JWT_SECRET 未在環境變量中定義');
 }
 
 const loginSchema = z.object({
-    username: z.string().min(1, 'Username is required'),
-    password: z.string().min(1, 'Password is required'),
+    username: z.string().min(1, '用戶名稱是必填的'),
+    password: z.string().min(1, '密碼是必填的'),
 });
 
 export async function POST(req: Request) {
@@ -31,13 +31,13 @@ export async function POST(req: Request) {
         const adminUser = await adminUsersCollection.findOne({ username: username.toLowerCase() });
 
         if (!adminUser) {
-            return NextResponse.json({ success: false, message: 'Invalid username or password.' }, { status: 401 });
+            return NextResponse.json({ success: false, message: '無效的用戶名稱或密碼' }, { status: 401 });
         }
 
         const isPasswordValid = await bcrypt.compare(password, adminUser.passwordHash);
 
         if (!isPasswordValid) {
-            return NextResponse.json({ success: false, message: 'Invalid username or password.' }, { status: 401 });
+            return NextResponse.json({ success: false, message: '無效的用戶名稱或密碼' }, { status: 401 });
         }
 
         // Password is valid, create and set JWT
@@ -58,10 +58,10 @@ export async function POST(req: Request) {
             sameSite: 'lax',
         });
 
-        return NextResponse.json({ success: true, message: 'Login successful!' });
+        return NextResponse.json({ success: true, message: '登錄成功' });
 
     } catch (error) {
         console.error('API Admin login error:', error);
-        return NextResponse.json({ success: false, message: 'An unexpected error occurred during login. Please try again.' }, { status: 500 });
+        return NextResponse.json({ success: false, message: '在登錄過程中發生意外錯誤。請再試一次。' }, { status: 500 });
     }
 } 

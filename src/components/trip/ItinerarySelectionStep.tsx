@@ -25,11 +25,11 @@ export default function ItinerarySelectionStep({ itineraries }: ItinerarySelecti
     <div>
       {currentTypeFilter && (
         <Button variant="outline" onClick={() => router.push('/create-trip')} className="mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Itinerary Types
+          <ArrowLeft className="mr-2 h-4 w-4" /> 返回所有行程类型
         </Button>
       )}
       {itineraries.length === 0 ? (
-        <p className="text-center text-muted-foreground text-lg">No itineraries available at the moment. Please check back later.</p>
+        <p className="text-center text-muted-foreground text-lg">暂无行程。请稍后再试。</p>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {itineraries.map((itinerary) => (

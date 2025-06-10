@@ -8,12 +8,12 @@ export default function NewDiscountPage() {
     return (
         <div className="space-y-6 max-w-3xl mx-auto">
             <Button variant="outline" asChild className="mb-4">
-                <Link href="/admin/discounts"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Discount Codes</Link>
+                <Link href="/admin/discounts"><ArrowLeft className="mr-2 h-4 w-4" /> 返回折扣代码</Link>
             </Button>
             <Card className="shadow-lg">
                 <CardHeader>
-                    <CardTitle className="font-headline text-2xl">Create New Discount Code</CardTitle>
-                    <CardDescription>Fill in the details to create a new discount code.</CardDescription>
+                    <CardTitle className="font-headline text-2xl">创建新的折扣代码</CardTitle>
+                    <CardDescription>填写详细信息以创建新的折扣代码。</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <DiscountCodeForm />

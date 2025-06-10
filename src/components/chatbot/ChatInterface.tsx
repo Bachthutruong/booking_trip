@@ -41,7 +41,7 @@ export default function ChatInterface() {
     setMessages([
       {
         id: 'greeting-' + Date.now(),
-        text: "Hello! I'm your Hanoi travel assistant. How can I help you plan your trip or answer your questions today?",
+        text: "你好！我是你的河内旅行助手。今天我能帮你规划行程或回答你的问题吗？ ",
         sender: 'bot',
         timestamp: new Date(),
       }
@@ -76,7 +76,7 @@ export default function ChatInterface() {
       console.error("Error calling GenAI flow:", error);
       const errorMessage: Message = {
         id: 'error-' + Date.now(),
-        text: "I'm sorry, I encountered an issue trying to respond. Please try again later.",
+        text: "很抱歉，我在尝试回答时遇到了问题。请稍后再试。",
         sender: 'bot',
         timestamp: new Date(),
       };
@@ -142,7 +142,7 @@ export default function ChatInterface() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your question here..."
+            placeholder="在这里输入你的问题..."
             className="flex-grow text-base"
             disabled={isLoading}
             aria-label="Chat input"

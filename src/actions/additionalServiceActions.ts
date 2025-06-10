@@ -14,7 +14,7 @@ export async function getAllAdditionalServices(): Promise<AdditionalService[]> {
             id: doc._id.toString(),
         })) as AdditionalService[];
     } catch (error) {
-        console.error('Error fetching additional services:', error);
+        console.error('获取附加服务时出错', error);
         return [];
     }
 }
@@ -36,13 +36,13 @@ export async function createAdditionalService(values: AdditionalServiceFormValue
         await collection.insertOne(newService as any);
         revalidatePath('/admin/services');
         revalidatePath('/admin/services/new');
-        return { success: true, message: 'Additional service created successfully.', serviceId: newService.id };
+        return { success: true, message: '附加服务创建成功。', serviceId: newService.id };
     } catch (error: any) {
-        console.error('Error creating additional service:', error);
+        console.error('创建附加服务时出错', error);
         if (error.code === 11000) { // Duplicate key error
-            return { success: false, message: 'An additional service with this name already exists.' };
+            return { success: false, message: '此名称已存在附加服务。' };
         }
-        return { success: false, message: error.message || 'An unexpected error occurred.' };
+        return { success: false, message: error.message || '发生意外错误。' };
     }
 }
 
@@ -55,7 +55,7 @@ export async function getAdditionalServiceById(id: string): Promise<AdditionalSe
         const service = await collection.findOne({ _id: new ObjectId(id) });
         return service ? { ...service, id: service._id.toString() } as AdditionalService : null;
     } catch (error) {
-        console.error('Error fetching additional service by ID:', error);
+        console.error('获取附加服务时出错', error);
         return null;
     }
 }
@@ -64,7 +64,7 @@ export async function updateAdditionalService(id: string, values: AdditionalServ
     try {
         const collection = await getAdditionalServicesCollection();
         if (!ObjectId.isValid(id)) {
-            return { success: false, message: 'Invalid ID format.' };
+            return { success: false, message: '无效的ID格式。' };
         }
         const result = await collection.updateOne(
             { _id: new ObjectId(id) },
@@ -79,17 +79,17 @@ export async function updateAdditionalService(id: string, values: AdditionalServ
             }
         );
         if (result.matchedCount === 0) {
-            return { success: false, message: 'Additional service not found.' };
+            return { success: false, message: '附加服务未找到。' };
         }
         revalidatePath('/admin/services');
         revalidatePath(`/admin/services/${id}/edit`);
-        return { success: true, message: 'Additional service updated successfully.', serviceId: id };
+        return { success: true, message: '附加服务更新成功。', serviceId: id };
     } catch (error: any) {
-        console.error('Error updating additional service:', error);
+        console.error('更新附加服务时出错', error);
         if (error.code === 11000) {
-            return { success: false, message: 'An additional service with this name already exists.' };
+            return { success: false, message: '此名称已存在附加服务。' };
         }
-        return { success: false, message: error.message || 'An unexpected error occurred.' };
+        return { success: false, message: error.message || '发生意外错误。' };
     }
 }
 
@@ -97,16 +97,16 @@ export async function deleteAdditionalService(id: string): Promise<{ success: bo
     try {
         const collection = await getAdditionalServicesCollection();
         if (!ObjectId.isValid(id)) {
-            return { success: false, message: 'Invalid ID format.' };
+            return { success: false, message: '无效的ID格式。' };
         }
         const result = await collection.deleteOne({ _id: new ObjectId(id) });
         if (result.deletedCount === 0) {
-            return { success: false, message: 'Additional service not found.' };
+            return { success: false, message: '附加服务未找到。' };
         }
         revalidatePath('/admin/services');
-        return { success: true, message: 'Additional service deleted successfully.' };
+        return { success: true, message: '附加服务已删除。' };
     } catch (error: any) {
-        console.error('Error deleting additional service:', error);
-        return { success: false, message: error.message || 'An unexpected error occurred during deletion.' };
+        console.error('删除附加服务时出错', error);
+        return { success: false, message: error.message || '删除时发生意外错误。' };
     }
 } 

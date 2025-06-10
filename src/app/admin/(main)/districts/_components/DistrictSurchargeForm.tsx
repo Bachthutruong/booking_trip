@@ -22,8 +22,8 @@ import { Loader2, Save, MapPinned } from "lucide-react";
 import { createDistrictSurcharge, updateDistrictSurcharge } from '@/actions/districtActions';
 
 const districtSurchargeFormSchema = z.object({
-    districtName: z.string().min(2, "District name is required and must be at least 2 characters."),
-    surchargeAmount: z.coerce.number().min(0, "Surcharge amount must be a positive number."),
+    districtName: z.string().min(2, "区域名称是必需的，且至少为2个字符。"),
+    surchargeAmount: z.coerce.number().min(0, "附加费用必须是正数。"),
 });
 
 interface DistrictSurchargeFormProps {
@@ -33,7 +33,7 @@ interface DistrictSurchargeFormProps {
     submitButtonText?: string;
 }
 
-export default function DistrictSurchargeForm({ initialData, isEditMode = false, districtId, submitButtonText = "Save Surcharge" }: DistrictSurchargeFormProps) {
+    export default function DistrictSurchargeForm({ initialData, isEditMode = false, districtId, submitButtonText = "保存附加费用" }: DistrictSurchargeFormProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -57,7 +57,7 @@ export default function DistrictSurchargeForm({ initialData, isEditMode = false,
 
             if (result.success) {
                 toast({
-                    title: isEditMode ? "Surcharge Updated!" : "Surcharge Created!",
+                    title: isEditMode ? "附加费用已更新！" : "附加费用已创建！",
                     description: result.message,
                 });
                 if (isEditMode) {
@@ -69,7 +69,7 @@ export default function DistrictSurchargeForm({ initialData, isEditMode = false,
                 }
             } else {
                 toast({
-                    title: "Error",
+                    title: "错误",
                     description: result.message,
                     variant: "destructive",
                 });
@@ -85,12 +85,12 @@ export default function DistrictSurchargeForm({ initialData, isEditMode = false,
                     name="districtName"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><MapPinned className="mr-2 h-4 w-4 text-primary" />District Name *</FormLabel>
+                            <FormLabel className="flex items-center"><MapPinned className="mr-2 h-4 w-4 text-primary" />区域名称 *</FormLabel>
                             <FormControl>
                                 <Input placeholder="e.g., Hoan Kiem" {...field} />
                             </FormControl>
                             <FormDescription>
-                                The name of the district.
+                                区域名称。
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -102,12 +102,12 @@ export default function DistrictSurchargeForm({ initialData, isEditMode = false,
                     name="surchargeAmount"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><MapPinned className="mr-2 h-4 w-4 text-primary" />Surcharge Amount (元) *</FormLabel>
+                            <FormLabel className="flex items-center"><MapPinned className="mr-2 h-4 w-4 text-primary" />附加费用 (元) *</FormLabel>
                             <FormControl>
                                 <Input type="number" placeholder="e.g., 200000" {...field} />
                             </FormControl>
                             <FormDescription>
-                                The additional amount charged for this district.
+                                此区域附加费用。
                             </FormDescription>
                             <FormMessage />
                         </FormItem>

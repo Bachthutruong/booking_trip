@@ -6,6 +6,7 @@ import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { format, addWeeks, isBefore } from 'date-fns';
+import { verifyAdminToken } from './adminAuthActions';
 
 // Helper to map MongoDB document to Trip type
 async function mapDocumentToTrip(doc: any): Promise<Trip> {
@@ -42,6 +43,9 @@ async function mapDocumentToTrip(doc: any): Promise<Trip> {
       district: p.district,
       status: p.status || 'pending_payment',
       transferProofImageUrl: p.transferProofImageUrl && p.transferProofImageUrl.trim() !== '' ? p.transferProofImageUrl : undefined,
+      confirmedBy: p.confirmedBy,
+      confirmedAt: p.confirmedAt,
+      isDeleted: p.isDeleted || false,
     };
   }));
 
@@ -74,6 +78,8 @@ async function mapDocumentToTrip(doc: any): Promise<Trip> {
     additionalServiceIds: restOfDoc.additionalServiceIds || [],
     discountCode: restOfDoc.discountCode,
     createdAt: restOfDoc.createdAt,
+    handoverComment: restOfDoc.handoverComment || '',
+    isDeleted: restOfDoc.isDeleted || false,
   };
 
   // Populate additional services for the trip itself
@@ -444,9 +450,20 @@ export async function confirmMainBookerPayment(tripId: string): Promise<{ succes
     return { success: true, message: "Main booker payment already confirmed." };
   }
 
+  // Lấy thông tin admin xác nhận
+  const admin = await verifyAdminToken();
+  const confirmedBy = admin.isAuthenticated && admin.username ? admin.username : 'Unknown Admin';
+  const confirmedAt = new Date().toISOString();
+
   const result = await tripsCollection.updateOne(
     { id: tripId }, // Use id for trip
-    { $set: { "participants.0.status": "payment_confirmed", overallStatus: getOverallTripStatus({ ...currentTrip, participants: [{ ...currentTrip.participants[0], status: 'payment_confirmed' }] }) } }
+    { $set: {
+        "participants.0.status": "payment_confirmed",
+        "participants.0.confirmedBy": confirmedBy,
+        "participants.0.confirmedAt": confirmedAt,
+        overallStatus: getOverallTripStatus({ ...currentTrip, participants: [{ ...currentTrip.participants[0], status: 'payment_confirmed' }] })
+      }
+    }
   );
 
   if (result.matchedCount === 0) {
@@ -455,7 +472,7 @@ export async function confirmMainBookerPayment(tripId: string): Promise<{ succes
 
   revalidatePath('/my-trips');
   revalidatePath('/admin/trips');
-  return { success: true, message: "Main booker payment confirmed successfully!" };
+  return { success: true, message: "主预订人付款已确认成功！" };
 }
 
 export async function confirmParticipantPayment(tripId: string, participantId: string): Promise<{ success: boolean; message: string }> {
@@ -477,18 +494,29 @@ export async function confirmParticipantPayment(tripId: string, participantId: s
     return { success: true, message: "Participant payment already confirmed." };
   }
 
+  // Lấy thông tin admin xác nhận
+  const admin = await verifyAdminToken();
+  const confirmedBy = admin.isAuthenticated && admin.username ? admin.username : 'Unknown Admin';
+  const confirmedAt = new Date().toISOString();
+
   const result = await tripsCollection.updateOne(
     { id: tripId, "participants.id": participantId }, // Use id for trip and participant id
-    { $set: { [`participants.${participantIndex}.status`]: "payment_confirmed", overallStatus: getOverallTripStatus({ ...currentTrip, participants: currentTrip.participants.map((p, idx) => idx === participantIndex ? { ...p, status: 'payment_confirmed' } : p) }) } }
+    { $set: {
+        [`participants.${participantIndex}.status`]: "payment_confirmed",
+        [`participants.${participantIndex}.confirmedBy`]: confirmedBy,
+        [`participants.${participantIndex}.confirmedAt`]: confirmedAt,
+        overallStatus: getOverallTripStatus({ ...currentTrip, participants: currentTrip.participants.map((p, idx) => idx === participantIndex ? { ...p, status: 'payment_confirmed' } : p) })
+      }
+    }
   );
 
   if (result.matchedCount === 0) {
-    return { success: false, message: "Failed to confirm participant payment." };
+    return { success: false, message: "确认参与者付款失败。" };
   }
 
   revalidatePath('/my-trips');
   revalidatePath('/admin/trips');
-  return { success: true, message: "Participant payment confirmed successfully!" };
+  return { success: true, message: "参与者付款已确认成功！" };
 }
 
 export async function getConfirmedTrips(): Promise<Trip[]> {
@@ -507,15 +535,15 @@ export async function getAllAvailableTrips(): Promise<Trip[]> {
 
 
 const joinTripSchema = z.object({
-  tripId: z.string().min(1, "Trip ID is required."),
-  name: z.string().min(2, "Name must be at least 2 characters.").max(100),
-  phone: z.string().regex(/^\+?[0-9\s-]{10,15}$/, "Invalid phone number format."),
-  numberOfPeople: z.coerce.number().min(1, "At least one person is required.").max(10, "Max 10 people to join."),
-  address: z.string().min(5, "Address must be at least 5 characters.").max(200),
+  tripId: z.string().min(1, "行程ID是必需的。"),
+  name: z.string().min(2, "姓名必须至少有2个字符。").max(100),
+  phone: z.string().regex(/^\+?[0-9\s-]{10,15}$/, "无效的电话号码格式。"),
+  numberOfPeople: z.coerce.number().min(1, "至少需要一个人。").max(10, "最多只能加入10人。"),
+  address: z.string().min(5, "地址必须至少有5个字符。").max(200),
   discountCode: z.string().optional(),
-  notes: z.string().max(500, "Notes cannot exceed 500 characters.").optional(),
+  notes: z.string().max(500, "备注不能超过500个字符。").optional(),
   district: z.string().optional(),
-  pricePaid: z.number().min(0, "Price paid cannot be negative."), // Ensure this is passed from client
+  pricePaid: z.number().min(0, "付款金额不能为负。"), // Ensure this is passed from client
   additionalServiceIds: z.array(z.string()).optional(),
 });
 
@@ -563,12 +591,12 @@ export async function joinTrip(values: JoinTripFormValues): Promise<{ success: b
       revalidatePath(`/my-trips?phone=${data.phone}`);
       revalidatePath('/admin/trips');
       revalidatePath(`/admin/trips/${data.tripId}`);
-      return { success: true, message: 'Successfully joined the trip! Your payment is pending verification.' };
+      return { success: true, message: '成功加入行程！您的付款正在等待验证。' };
     }
-    return { success: false, message: 'Failed to join the trip.' };
+    return { success: false, message: '加入行程失败。' };
   } catch (error) {
-    console.error("Error joining trip:", error);
-    return { success: false, message: 'An unexpected error occurred while joining the trip.' };
+    console.error("加入行程时出错:", error);
+    return { success: false, message: '加入行程时发生意外错误。' };
   }
 }
 
@@ -588,16 +616,33 @@ export async function getTripsForUserFeedback(userIdentifier: string): Promise<{
   }));
 }
 
-export async function deleteTrip(tripId: string): Promise<{ success: boolean; message: string }> {
+export async function deleteTrip(tripId: string, currentUser: { id: string, username: string, role: 'admin' | 'staff' }): Promise<{ success: boolean; message: string }> {
   const tripsCollection = await getTripsCollection();
-  const result = await tripsCollection.deleteOne({ id: tripId });
-
-  if (result.deletedCount > 0) {
+  const trip = await tripsCollection.findOne({ id: tripId });
+  if (!trip) {
+    return { success: false, message: '行程未找到。' };
+  }
+  // Nếu đã xác nhận chuyển khoản, chỉ admin mới được xóa
+  const isConfirmed = trip.status === 'payment_confirmed' || trip.overallStatus === 'payment_confirmed';
+  if (isConfirmed && currentUser.role !== 'admin') {
+    return { success: false, message: '只有管理员才能删除已确认的行程。' };
+  }
+  // Nếu đã bị xóa rồi
+  if (trip.isDeleted) {
+    return { success: false, message: '行程已删除。' };
+  }
+  const now = new Date().toISOString();
+  const result = await tripsCollection.updateOne(
+    { id: tripId },
+    { $set: { isDeleted: true, deletedAt: now, deletedBy: currentUser.username } }
+  );
+  if (result.modifiedCount > 0) {
     revalidatePath('/my-trips');
     revalidatePath('/admin/trips');
-    return { success: true, message: 'Trip deleted successfully.' };
+    revalidatePath('/admin/trips/deleted');
+    return { success: true, message: '行程已成功软删除。' };
   }
-  return { success: false, message: 'Failed to delete trip.' };
+  return { success: false, message: '删除行程失败。' };
 }
 
 export async function submitConfirmMainBookerPayment(tripId: string) {
@@ -620,10 +665,36 @@ export async function submitConfirmParticipantPaymentFromList(tripId: string, pa
   revalidatePath('/admin/trips'); // Revalidate the list page
 }
 
-// Get paginated trips with minimal fields for admin list
-export async function getTripsPaginated(limit: number, skip: number): Promise<any[]> {
+// Hàm tính trạng thái tổng giống UI
+function calcOverallStatus(trip: any): string {
+  const participants = Array.isArray(trip.participants) ? trip.participants : [];
+  if (participants.length === 0) return trip.status || 'pending_payment';
+  if (participants.some((p: any) => p.status === 'cancelled')) return 'cancelled';
+  if (participants.some((p: any) => p.status === 'pending_payment')) return 'pending_payment';
+  if (participants.every((p: any) => p.status === 'payment_confirmed' || p.status === 'completed')) {
+    const tripDate = new Date(trip.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (tripDate < today) return 'completed';
+    return 'payment_confirmed';
+  }
+  return trip.status || 'pending_payment';
+}
+
+export async function getTripsPaginated(limit: number, skip: number, searchTerm?: string, statusFilter?: string): Promise<any[]> {
   const tripsCollection = await getTripsCollection();
-  const tripDocs = await tripsCollection.find({}, {
+  const filter: any = { isDeleted: { $ne: true } };
+  if (searchTerm && searchTerm.trim() !== '') {
+    const regex = new RegExp(searchTerm, 'i');
+    filter.$or = [
+      { id: regex },
+      { _id: { $regex: regex } },
+      { contactName: regex },
+      { contactPhone: regex },
+      { itineraryName: regex },
+    ];
+  }
+  const tripDocs = await tripsCollection.find(filter, {
     projection: {
       _id: 1,
       id: 1,
@@ -640,26 +711,23 @@ export async function getTripsPaginated(limit: number, skip: number): Promise<an
     }
   })
     .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
     .toArray();
-  return tripDocs.map(doc => {
+  // Tính overallStatus cho từng trip và filter ở phía server
+  const filtered = tripDocs.filter(doc => {
+    const overallStatus = calcOverallStatus(doc);
+    if (statusFilter === 'pending_payment') {
+      return overallStatus === 'pending_payment';
+    }
+    if (statusFilter === 'payment_confirmed') {
+      return overallStatus === 'payment_confirmed';
+    }
+    return true;
+  });
+  // Phân trang sau khi filter
+  return filtered.slice(skip, skip + limit).map(doc => {
     const participants = Array.isArray(doc.participants) ? doc.participants : [];
     const participantsCount = participants.length;
-    // overallStatus logic: nếu còn ai chưa thanh toán thì pending_payment, nếu tất cả đã thanh toán thì payment_confirmed, nếu qua ngày thì completed
-    let overallStatus = 'pending_payment';
-    if (participantsCount > 0) {
-      if (participants.every((p: any) => p.status === 'payment_confirmed' || p.status === 'completed')) {
-        const tripDate = new Date(doc.date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (tripDate < today) {
-          overallStatus = 'completed';
-        } else {
-          overallStatus = 'payment_confirmed';
-        }
-      }
-    }
+    const overallStatus = calcOverallStatus(doc);
     return {
       id: doc.id || doc._id?.toString(),
       itineraryName: doc.itineraryName,
@@ -675,4 +743,136 @@ export async function getTripsPaginated(limit: number, skip: number): Promise<an
       createdAt: doc.createdAt,
     };
   });
+}
+
+export async function getTripsCount(searchTerm?: string, statusFilter?: string): Promise<number> {
+  const tripsCollection = await getTripsCollection();
+  const filter: any = { isDeleted: { $ne: true } };
+  if (searchTerm && searchTerm.trim() !== '') {
+    const regex = new RegExp(searchTerm, 'i');
+    filter.$or = [
+      { id: regex },
+      { _id: { $regex: regex } },
+      { contactName: regex },
+      { contactPhone: regex },
+      { itineraryName: regex },
+    ];
+  }
+  const tripDocs = await tripsCollection.find(filter, {
+    projection: {
+      _id: 1,
+      id: 1,
+      itineraryName: 1,
+      itineraryType: 1,
+      date: 1,
+      time: 1,
+      contactName: 1,
+      contactPhone: 1,
+      totalPrice: 1,
+      status: 1,
+      participants: 1,
+      createdAt: 1,
+    }
+  })
+    .sort({ createdAt: -1 })
+    .toArray();
+  // Tính overallStatus cho từng trip và filter ở phía server
+  const filtered = tripDocs.filter(doc => {
+    const overallStatus = calcOverallStatus(doc);
+    if (statusFilter === 'pending_payment') {
+      return overallStatus === 'pending_payment';
+    }
+    if (statusFilter === 'payment_confirmed') {
+      return overallStatus === 'payment_confirmed';
+    }
+    return true;
+  });
+  return filtered.length;
+}
+
+export async function updateTripComment(tripId: string, comment: string): Promise<{ success: boolean; message: string }> {
+  const tripsCollection = await getTripsCollection();
+  const result = await tripsCollection.updateOne(
+    { id: tripId },
+    { $set: { handoverComment: comment, updatedAt: new Date() } }
+  );
+  if (result.matchedCount === 0) {
+    return { success: false, message: 'Trip not found.' };
+  }
+  revalidatePath('/admin/trips');
+  revalidatePath(`/admin/trips/${tripId}`);
+  return { success: true, message: 'Comment updated successfully.' };
+}
+
+// Returns all participants who have uploaded a transfer proof but are still pending payment
+export async function getParticipantsWithProofNotConfirmed() {
+  const tripsCollection = await getTripsCollection();
+  const tripDocs = await tripsCollection.find({ isDeleted: { $ne: true } }).toArray();
+  const result: Array<{
+    tripId: string;
+    itineraryName: string;
+    participantId: string;
+    name: string;
+    phone: string;
+    pricePaid: number;
+    transferProofImageUrl: string;
+    isMainBooker: boolean;
+  }> = [];
+  for (const trip of tripDocs) {
+    if (!Array.isArray(trip.participants)) continue;
+    for (let i = 0; i < trip.participants.length; i++) {
+      const p = trip.participants[i];
+      if (
+        p.status === 'pending_payment' &&
+        p.transferProofImageUrl &&
+        p.transferProofImageUrl.trim() !== ''
+      ) {
+        result.push({
+          tripId: trip.id || trip._id?.toString(),
+          itineraryName: trip.itineraryName,
+          participantId: p.id,
+          name: p.name,
+          phone: p.phone,
+          pricePaid: p.pricePaid,
+          transferProofImageUrl: p.transferProofImageUrl,
+          isMainBooker: i === 0,
+        });
+      }
+    }
+  }
+  return result;
+}
+
+// Returns all participants who are still pending payment and have NOT uploaded a transfer proof
+export async function getParticipantsNotPaid() {
+  const tripsCollection = await getTripsCollection();
+  const tripDocs = await tripsCollection.find({ isDeleted: { $ne: true } }).toArray();
+  const result: Array<{
+    tripId: string;
+    itineraryName: string;
+    participantId: string;
+    name: string;
+    phone: string;
+    isMainBooker: boolean;
+  }> = [];
+  for (const trip of tripDocs) {
+    if (!Array.isArray(trip.participants)) continue;
+    for (let i = 0; i < trip.participants.length; i++) {
+      const p = trip.participants[i];
+      if (
+        p.status === 'pending_payment' &&
+        (!p.transferProofImageUrl || p.transferProofImageUrl.trim() === '')
+      ) {
+        result.push({
+          tripId: trip.id || trip._id?.toString(),
+          itineraryName: trip.itineraryName,
+          participantId: p.id,
+          name: p.name,
+          phone: p.phone,
+          isMainBooker: i === 0,
+        });
+      }
+    }
+  }
+  return result;
 }

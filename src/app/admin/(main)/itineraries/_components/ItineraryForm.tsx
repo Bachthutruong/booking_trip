@@ -28,13 +28,13 @@ import { Label } from "@/components/ui/label"; // Added Label
 import { createItinerary, updateItinerary } from "@/actions/itineraryActions"; // Import server actions
 
 const itineraryFormSchema = z.object({
-  name: z.string().min(3, "Name is required and must be at least 3 characters."),
-  type: z.enum(['airport_pickup', 'airport_dropoff', 'tourism'], { required_error: "Itinerary type is required." }),
-  pricePerPerson: z.coerce.number().min(0, "Price must be a positive number."),
-  description: z.string().min(10, "Description is required and must be at least 10 characters."),
-  imageUrl: z.string().url("Must be a valid URL if provided, or will be auto-generated/uploaded.").optional().or(z.literal('')),
-  availableTimes: z.string().min(1, "Available times are required (e.g., 08:00,09:00,14:00).")
-    .regex(/^(\d{2}:\d{2})(,\s*\d{2}:\d{2})*$/, "Times must be in HH:MM format, comma-separated."),
+  name: z.string().min(3, "名称是必需的，至少需要3个字符。"),
+  type: z.enum(['airport_pickup', 'airport_dropoff', 'tourism'], { required_error: "行程类型是必需的。" }),
+  pricePerPerson: z.coerce.number().min(0, "价格必须是正数。"),
+  description: z.string().min(10, "描述是必需的，至少需要10个字符。"),
+  imageUrl: z.string().url("如果提供，必须是一个有效的URL，或者将自动生成/上传。").optional().or(z.literal('')),
+  availableTimes: z.string().min(1, "可用时间是必需的（例如：08:00,09:00,14:00）")
+    .regex(/^(\d{2}:\d{2})(,\s*\d{2}:\d{2})*$/, "时间必须以HH:MM格式，逗号分隔。"),
 });
 
 
@@ -45,7 +45,7 @@ interface ItineraryFormProps {
   submitButtonText?: string;
 }
 
-export default function ItineraryForm({ initialData, isEditMode = false, itineraryId, submitButtonText = "Save Itinerary" }: ItineraryFormProps) {
+  export default function ItineraryForm({ initialData, isEditMode = false, itineraryId, submitButtonText = "保存行程" }: ItineraryFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -85,13 +85,13 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({ title: "File too large", description: "Please select an image smaller than 5MB.", variant: "destructive" });
+        toast({ title: "文件太大", description: "请选择一个小于5MB的图片。", variant: "destructive" });
         setSelectedFile(null);
         setImagePreview(initialData?.imageUrl || null); // Revert to initial on error
         return;
       }
       if (!file.type.startsWith('image/')) {
-        toast({ title: "Invalid file type", description: "Please select an image file (JPG, PNG, GIF, etc.).", variant: "destructive" });
+        toast({ title: "无效的文件类型", description: "请选择一个图片文件（JPG, PNG, GIF, etc.）。", variant: "destructive" });
         setSelectedFile(null);
         setImagePreview(initialData?.imageUrl || null);
         return;
@@ -133,7 +133,7 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
         if (uploadResult.success && uploadResult.url) {
           finalImageUrl = uploadResult.url;
         } else {
-          toast({ title: "Image Upload Failed", description: uploadResult.message || "Could not upload image.", variant: "destructive" });
+          toast({ title: "图片上传失败", description: uploadResult.message || "无法上传图片。", variant: "destructive" });
           return;
         }
       }
@@ -149,7 +149,7 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
 
       if (result.success) {
         toast({
-          title: initialData ? "Itinerary Updated!" : "Itinerary Created!",
+          title: initialData ? "行程已更新！" : "行程已创建！",
           description: result.message,
         });
         setSelectedFile(null); // Reset file after successful submission
@@ -165,7 +165,7 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
 
       } else {
         toast({
-          title: "Error",
+          title: "错误",
           description: result.message,
           variant: "destructive",
         });
@@ -181,9 +181,9 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Package className="mr-2 h-4 w-4 text-primary" />Itinerary Name *</FormLabel>
+              <FormLabel className="flex items-center"><Package className="mr-2 h-4 w-4 text-primary" />行程名称 *</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Hanoi Old Quarter Walking Tour" {...field} />
+                <Input placeholder="e.g., 河内老城区步行游" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -195,11 +195,11 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
           name="type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Type className="mr-2 h-4 w-4 text-primary" />Itinerary Type *</FormLabel>
+              <FormLabel className="flex items-center"><Type className="mr-2 h-4 w-4 text-primary" />行程类型 *</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select itinerary type" />
+                    <SelectValue placeholder="选择行程类型" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -218,7 +218,7 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
           name="pricePerPerson"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />Price Per Person (元) *</FormLabel>
+              <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />每人价格（元） *  </FormLabel>
               <FormControl>
                 <Input type="number" placeholder="e.g., 500000" {...field} />
               </FormControl>
@@ -232,9 +232,9 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />Description *</FormLabel>
+              <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />描述 *</FormLabel>
               <FormControl>
-                <Textarea placeholder="Detailed description of the itinerary..." {...field} rows={5} />
+                <Textarea placeholder="详细描述行程..." {...field} rows={5} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -242,7 +242,7 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
         />
 
         <FormItem>
-          <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-primary" />Itinerary Image</FormLabel>
+          <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-primary" />行程图片</FormLabel>
           <FormControl>
             <Input
               type="file"
@@ -252,12 +252,12 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
               ref={fileInputRef} // Use ref here
             />
           </FormControl>
-          <FormDescription>Upload an image for the itinerary (max 5MB). Or paste a URL below.</FormDescription>
+          <FormDescription>上传行程图片（最大5MB）。或者粘贴一个URL。</FormDescription>
         </FormItem>
 
         {imagePreview && (
           <div className="space-y-2">
-            <Label>Image Preview:</Label>
+            <Label>图片预览：</Label>
             <div className="relative group w-full max-w-sm border rounded-md p-2">
               <NextImage src={imagePreview} alt="Itinerary preview" width={400} height={250} className="rounded-md object-contain max-h-[200px]" data-ai-hint="travel itinerary photo" />
               <Button
@@ -279,7 +279,7 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
             name="imageUrl"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs text-muted-foreground">Or paste Image URL</FormLabel>
+                <FormLabel className="text-xs text-muted-foreground">或者粘贴图片URL</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="https://example.com/image.png"
@@ -303,11 +303,11 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
           name="availableTimes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><ClockIcon className="mr-2 h-4 w-4 text-primary" />Available Times *</FormLabel>
+              <FormLabel className="flex items-center"><ClockIcon className="mr-2 h-4 w-4 text-primary" />可用时间 *</FormLabel>
               <FormControl>
                 <Input placeholder="e.g., 08:00, 09:30, 14:00, 15:30" {...field} />
               </FormControl>
-              <FormDescription>Comma-separated list of available times in HH:MM format.</FormDescription>
+              <FormDescription>逗号分隔的可用时间，格式为HH:MM。</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -317,7 +317,7 @@ export default function ItineraryForm({ initialData, isEditMode = false, itinera
           {isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
+              处理中...
             </>
           ) : (
             <>

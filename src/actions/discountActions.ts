@@ -49,14 +49,14 @@ export async function createDiscountCode(values: DiscountCodeFormValues): Promis
         revalidatePath('/admin/discounts/new');
         revalidatePath(`/admin/discounts/${newDiscountCode.id}/edit`);
 
-        return { success: true, message: 'Discount code created successfully.', discountCodeId: newDiscountCode.id };
+            return { success: true, message: '优惠码已创建成功。', discountCodeId: newDiscountCode.id };
     } catch (error: any) {
-        console.error('Error creating discount code:', error);
+        console.error('创建优惠码时出错:', error);
         // Check for duplicate code error (MongoDB duplicate key error code 11000)
         if (error.code === 11000) {
-            return { success: false, message: 'A discount code with this name already exists.' };
+            return { success: false, message: '此名称已存在优惠码。' };
         }
-        return { success: false, message: error.message || 'An error occurred while creating the discount code.' };
+        return { success: false, message: error.message || '创建优惠码时发生意外错误。' };
     }
 }
 
@@ -92,7 +92,7 @@ export async function updateDiscountCode(id: string, values: DiscountCodeFormVal
     } else {
         const currentDiscountCode = await getDiscountCodeById(id); // Try to find by string id
         if (!currentDiscountCode || !currentDiscountCode._id) {
-            return { success: false, message: "Discount code not found or invalid ID." };
+            return { success: false, message: "优惠码未找到或无效ID。" };
         }
         objectIdToUpdate = currentDiscountCode._id;
     }
@@ -115,14 +115,14 @@ export async function updateDiscountCode(id: string, values: DiscountCodeFormVal
         if (result.matchedCount > 0) {
             revalidatePath('/admin/discounts');
             revalidatePath(`/admin/discounts/${id}/edit`);
-            return { success: true, message: 'Discount code updated successfully.', discountCodeId: id };
+            return { success: true, message: '优惠码已更新成功。', discountCodeId: id };
         }
-        return { success: false, message: 'Discount code not found or no changes made.' };
+        return { success: false, message: '优惠码未找到或未进行任何更改。' };
     } catch (error: any) {
-        console.error('Error updating discount code:', error);
+        console.error('更新优惠码时出错:', error);
         if (error.code === 11000) {
-            return { success: false, message: 'A discount code with this code already exists.' };
+            return { success: false, message: '此名称已存在优惠码。' };
         }
-        return { success: false, message: error.message || 'An error occurred while updating the discount code.' };
+        return { success: false, message: error.message || '更新优惠码时发生意外错误。' };
     }
 } 

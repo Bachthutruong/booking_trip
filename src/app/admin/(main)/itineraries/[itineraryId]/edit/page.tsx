@@ -13,9 +13,9 @@ export default async function EditItineraryPage({ params }: { params: { itinerar
   if (!itinerary) {
     return (
       <div className="space-y-6 max-w-3xl mx-auto text-center py-10">
-        <p className="text-destructive text-lg">Itinerary not found.</p>
+        <p className="text-destructive text-lg">行程未找到。</p>
         <Button variant="outline" asChild>
-          <Link href="/admin/itineraries"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Itineraries</Link>
+          <Link href="/admin/itineraries"><ArrowLeft className="mr-2 h-4 w-4" /> 返回行程</Link>
         </Button>
       </div>
     );
@@ -27,19 +27,19 @@ export default async function EditItineraryPage({ params }: { params: { itinerar
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <Button variant="outline" asChild className="mb-4">
-        <Link href="/admin/itineraries"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Itineraries</Link>
+        <Link href="/admin/itineraries"><ArrowLeft className="mr-2 h-4 w-4" /> 返回行程</Link>
       </Button>
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">Edit Itinerary: {itinerary.name}</CardTitle>
-          <CardDescription>Update the details for this travel itinerary. Ensure available times are comma-separated (e.g., 08:00,14:30).</CardDescription>
+          <CardTitle className="font-headline text-2xl">编辑行程: {itinerary.name}</CardTitle>
+          <CardDescription>更新此旅行行程的详细信息。确保可用时间以逗号分隔（例如：08:00,14:30）。</CardDescription>
         </CardHeader>
         <CardContent>
           <ItineraryForm
             initialData={plainItinerary}
             isEditMode={true}
             itineraryId={itineraryId}
-            submitButtonText="Update Itinerary"
+            submitButtonText="更新行程"
           />
         </CardContent>
       </Card>

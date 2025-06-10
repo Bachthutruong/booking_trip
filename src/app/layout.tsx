@@ -5,8 +5,8 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
-  title: 'Hanoi Explorer',
-  description: 'Plan and manage your trips in Hanoi',
+  title: '河內探索者',
+  description: '規劃和管理您的河內旅程',
 };
 
 export default function RootLayout({
