@@ -56,13 +56,13 @@ export default function JoinableTripCard({ trip }: { trip: Trip }) {
         <CardContent className="flex-grow space-y-2 text-sm">
           <p className="flex items-center"><CalendarDays className="h-4 w-4 mr-2 text-primary" /> {formattedDate}</p>
           <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-primary" /> {trip.time}</p>
-          <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" /> Currently {totalCurrentParticipants} person(s) joined</p>
-          {trip.pickupAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Pickup:</strong>&nbsp;{trip.pickupAddress}</p>}
-          {trip.dropoffAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Dropoff:</strong>&nbsp;{trip.dropoffAddress}</p>}
+          <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" /> 目前 {totalCurrentParticipants} 人加入</p>
+          {/* {trip.pickupAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Pickup:</strong>&nbsp;{trip.pickupAddress}</p>} */}
+          {/* {trip.dropoffAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Dropoff:</strong>&nbsp;{trip.dropoffAddress}</p>} */}
         </CardContent>
         <CardFooter>
           <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setIsJoinFormOpen(true)}>
-            Join This Trip
+            加入此行程
           </Button>
         </CardFooter>
       </Card>

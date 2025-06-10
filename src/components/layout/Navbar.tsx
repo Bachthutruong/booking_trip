@@ -8,12 +8,12 @@ import { Menu, Feather } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/create-trip', label: 'Create Trip' },
-  { href: '/my-trips', label: 'My Trips' },
-  { href: '/join-trip', label: 'Join a Trip' },
-  { href: '/feedback', label: 'Feedback' },
-  { href: '/chatbot', label: 'Virtual Assistant' },
+  { href: '/', label: '首頁' },
+  { href: '/create-trip', label: '建立行程' },
+  { href: '/my-trips', label: '我的行程' },
+  { href: '/join-trip', label: '加入行程' },
+  { href: '/feedback', label: '回饋' },
+  // { href: '/chatbot', label: '虛擬助理' },
 ];
 
 export default function Navbar() {
@@ -39,7 +39,7 @@ export default function Navbar() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
           <Feather className="h-8 w-8" />
-          <h1 className="text-2xl font-headline font-bold">Hanoi Explorer</h1>
+          <h1 className="text-2xl font-headline font-bold">河內探索者</h1>
         </Link>
 
         {/* Desktop Navigation */}
@@ -53,7 +53,7 @@ export default function Navbar() {
             <SheetTrigger asChild>
               <Button variant="outline" size="icon">
                 <Menu className="h-6 w-6" />
-                <span className="sr-only">Open navigation menu</span>
+                <span className="sr-only">開啟導覽選單</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px] p-4">

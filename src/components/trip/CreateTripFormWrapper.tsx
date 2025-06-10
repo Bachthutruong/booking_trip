@@ -11,7 +11,7 @@ export default async function CreateTripFormWrapper({ itineraryId }: { itinerary
   const allServices = await getAdditionalServices();
 
   if (!itinerary) {
-    return <p className="text-center text-destructive text-lg py-10">Itinerary not found. Please select a valid itinerary.</p>;
+    return <p className="text-center text-destructive text-lg py-10">行程未找到。请选择一个有效的行程。</p>;
   }
 
   // Filter services applicable to the selected itinerary type

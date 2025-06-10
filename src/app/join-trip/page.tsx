@@ -1,4 +1,3 @@
-
 import { getConfirmedTrips } from '@/actions/tripActions';
 import JoinableTripsList from '@/components/trip/JoinableTripsList';
 import { Suspense } from 'react';
@@ -14,8 +13,8 @@ export default async function JoinTripPage() {
     <div className="container mx-auto py-8">
       <div className="text-center mb-10">
         <MapPinned className="h-16 w-16 text-primary mx-auto mb-4" />
-        <h1 className="text-4xl font-bold font-headline">Join an Existing Trip</h1>
-        <p className="text-lg text-muted-foreground mt-2">Find a confirmed trip and hop on board!</p>
+        <h1 className="text-4xl font-bold font-headline">加入現有旅程</h1>
+        <p className="text-lg text-muted-foreground mt-2">找到已確認的旅程並加入！</p>
       </div>
       <Suspense fallback={<JoinableTripsSkeleton />}>
         {/* Pass initialTrips if fetched via SSR, otherwise component fetches */}

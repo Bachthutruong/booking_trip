@@ -23,19 +23,19 @@ export default async function AdminDashboardPage() {
 
 
   const summaryCards = [
-    { title: "Total Itineraries", value: itineraries.length, icon: ListOrdered, link: "/admin/itineraries", description: "Available travel plans" },
-    { title: "Total Trips Booked", value: totalTrips, icon: History, link: "/admin/trips", description: "Across all statuses" },
-    { title: "Pending Payment", value: pendingPaymentTrips, icon: HourglassIcon, link: "/admin/trips?status=pending_payment", description: "Trips awaiting payment confirmation", color: "text-yellow-600" },
-    { title: "Confirmed Trips", value: confirmedTrips, icon: CheckCircleIcon, link: "/admin/trips?status=payment_confirmed", description: "Paid and confirmed bookings", color: "text-green-600" },
-    { title: "Active Discounts", value: totalDiscounts, icon: Percent, link: "/admin/discounts", description: "Available promotion codes" },
-    { title: "Additional Services", value: totalServices, icon: Wand2, link: "/admin/services", description: "Optional trip add-ons" },
-    { title: "Districts Configured", value: totalDistricts, icon: Palette, link: "/admin/districts", description: "Surcharge zones" },
-    { title: "Total Feedback", value: totalFeedback, icon: MessageSquare, link: "/admin/feedback", description: "User submitted comments" },
+    { title: "总行程", value: itineraries.length, icon: ListOrdered, link: "/admin/itineraries", description: "可用行程" },
+    { title: "总预订", value: totalTrips, icon: History, link: "/admin/trips", description: "所有状态" },
+    { title: "待付款", value: pendingPaymentTrips, icon: HourglassIcon, link: "/admin/trips?status=pending_payment", description: "待付款预订", color: "text-yellow-600" },
+    { title: "已确认预订", value: confirmedTrips, icon: CheckCircleIcon, link: "/admin/trips?status=payment_confirmed", description: "已付款并确认预订", color: "text-green-600" },
+    { title: "Active Discounts", value: totalDiscounts, icon: Percent, link: "/admin/discounts", description: "可用促销代码" },
+    { title: "附加服务", value: totalServices, icon: Wand2, link: "/admin/services", description: "可选的行程附加服务" },
+    { title: "区域附加费用", value: totalDistricts, icon: Palette, link: "/admin/districts", description: "附加费用区域" },
+    { title: "总反馈", value: totalFeedback, icon: MessageSquare, link: "/admin/feedback", description: "用户提交的评论" },
   ];
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
+      <h1 className="text-3xl font-bold font-headline">管理员仪表板</h1>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {summaryCards.map(card => (
@@ -51,7 +51,7 @@ export default async function AdminDashboardPage() {
               </p>
               {card.link && (
                 <Button variant="link" asChild className="px-0 pt-2 h-auto text-sm">
-                  <Link href={card.link}>Manage</Link>
+                  <Link href={card.link}> 管理</Link>
                 </Button>
               )}
             </CardContent>
@@ -62,13 +62,13 @@ export default async function AdminDashboardPage() {
       {/* Placeholder for recent activity or pending actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle>快速操作</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          <Button asChild variant="outline"><Link href="/admin/itineraries/new">New Itinerary</Link></Button>
-          <Button asChild variant="outline"><Link href="/admin/discounts/new">New Discount</Link></Button>
-          <Button asChild variant="outline"><Link href="/admin/services/new">New Service</Link></Button>
-          <Button asChild variant="outline"><Link href="/admin/districts/new">New District Surcharge</Link></Button>
+          <Button asChild variant="outline"><Link href="/admin/itineraries/new">新行程</Link></Button>
+          <Button asChild variant="outline"><Link href="/admin/discounts/new">新折扣</Link></Button>
+          <Button asChild variant="outline"><Link href="/admin/services/new">新服务</Link></Button>
+          <Button asChild variant="outline"><Link href="/admin/districts/new">新区域附加费用</Link></Button>
         </CardContent>
       </Card>
     </div>

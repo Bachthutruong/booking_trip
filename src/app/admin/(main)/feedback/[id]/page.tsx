@@ -16,12 +16,12 @@ export default async function FeedbackDetailsPage({ params }: FeedbackDetailsPag
     if (!feedback) {
         return (
             <div className="space-y-6">
-                <h1 className="text-3xl font-bold font-headline">Feedback Not Found</h1>
-                <p>The feedback entry with ID &quot;{id}&quot; could not be found.</p>
+                <h1 className="text-3xl font-bold font-headline">反馈未找到</h1>
+                <p>找不到ID为 &quot;{id}&quot; 的反馈。</p>
                 <Button variant="outline" asChild>
                     <Link href="/admin/feedback">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Feedback List
+                        返回反馈列表
                     </Link>
                 </Button>
             </div>
@@ -31,33 +31,33 @@ export default async function FeedbackDetailsPage({ params }: FeedbackDetailsPag
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold font-headline">Feedback Details</h1>
+                <h1 className="text-3xl font-bold font-headline">反馈详情</h1>
                 <Button variant="outline" asChild>
                     <Link href="/admin/feedback">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Feedback List
+                        返回反馈列表
                     </Link>
                 </Button>
             </div>
 
             <Card className="shadow-lg">
                 <CardHeader>
-                    <CardTitle>Feedback from {feedback.name}</CardTitle>
-                    <CardDescription>Submitted on {format(new Date(feedback.submittedAt), "MMM dd, yyyy 'at' HH:mm")}</CardDescription>
+                    <CardTitle>来自 {feedback.name} 的反馈</CardTitle>
+                    <CardDescription>提交于 {format(new Date(feedback.submittedAt), "MMM dd, yyyy 'at' HH:mm")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
-                        <p className="text-sm font-semibold">Email:</p>
+                        <p className="text-sm font-semibold">邮箱:</p>
                         <p>{feedback.email}</p>
                     </div>
                     {feedback.tripId && (
                         <div>
-                            <p className="text-sm font-semibold">Trip ID:</p>
+                            <p className="text-sm font-semibold">行程ID:</p>
                             <p>{feedback.tripId}</p>
                         </div>
                     )}
                     <div>
-                        <p className="text-sm font-semibold">Message:</p>
+                        <p className="text-sm font-semibold">消息:</p>
                         <p className="whitespace-pre-wrap">{feedback.message}</p>
                     </div>
                 </CardContent>

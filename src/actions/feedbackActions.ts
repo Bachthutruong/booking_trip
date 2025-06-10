@@ -7,10 +7,10 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
 const feedbackSchema = z.object({
-  name: z.string().min(1, "Name is required."),
-  email: z.string().email("Invalid email address."),
+  name: z.string().min(1, "名称是必需的。"),
+  email: z.string().email("无效的电子邮件地址。"),
   tripId: z.string().optional(),
-  message: z.string().min(10, "Message must be at least 10 characters long."),
+  message: z.string().min(10, "消息必须至少有10个字符。"),
 });
 
 export async function submitFeedback(values: FeedbackFormValues): Promise<{ success: boolean; message: string }> {
@@ -42,12 +42,12 @@ export async function submitFeedback(values: FeedbackFormValues): Promise<{ succ
     if (result.insertedId) {
       // Potentially revalidate an admin feedback page
       // revalidatePath('/admin/feedback');
-      return { success: true, message: 'Thank you for your feedback!' };
+      return { success: true, message: '感谢您的反馈！' };
     }
-    return { success: false, message: 'Failed to submit feedback.' };
+    return { success: false, message: '提交反馈失败。' };
   } catch (error) {
-    console.error("Error submitting feedback:", error);
-    return { success: false, message: 'An unexpected error occurred while submitting feedback.' };
+    console.error("提交反馈时出错:", error);
+    return { success: false, message: '提交反馈时发生意外错误。' };
   }
 }
 
@@ -70,7 +70,21 @@ export async function getFeedbackById(id: string): Promise<Feedback | null> {
     }
     return { ...feedback, id: feedback._id.toHexString() };
   } catch (error) {
-    console.error(`Failed to fetch feedback by ID ${id}:`, error);
+    console.error(`获取反馈时出错 ${id}:`, error);
     return null;
   }
+}
+
+export async function getFeedbackPaginated(limit: number, skip: number): Promise<{ feedback: Feedback[]; total: number }> {
+  const feedbackCollection = await getFeedbackCollection();
+  const total = await feedbackCollection.countDocuments();
+  const feedbackDocs = await feedbackCollection.find({})
+    .sort({ submittedAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+  return {
+    feedback: feedbackDocs.map(doc => ({ ...doc, id: doc._id.toString() })) as Feedback[],
+    total,
+  };
 }

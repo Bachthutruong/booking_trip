@@ -25,8 +25,8 @@ import { ITINERARY_TYPES } from "@/lib/constants";
 import { createAdditionalService, updateAdditionalService } from "@/actions/additionalServiceActions";
 
 const additionalServiceFormSchema = z.object({
-    name: z.string().min(3, "Service name is required and must be at least 3 characters."),
-    price: z.coerce.number().min(0, "Price must be a positive number."),
+    name: z.string().min(3, "服务名称是必需的，至少需要3个字符。"),
+    price: z.coerce.number().min(0, "价格必须是正数。"),
     description: z.string().optional(),
     applicableTo: z.array(z.enum(['airport_pickup', 'airport_dropoff', 'tourism'])).optional(),
     iconName: z.string().optional(),
@@ -39,7 +39,7 @@ interface AdditionalServiceFormProps {
     submitButtonText?: string;
 }
 
-export default function AdditionalServiceForm({ initialData, isEditMode = false, serviceId, submitButtonText = "Save Service" }: AdditionalServiceFormProps) {
+export default function AdditionalServiceForm({ initialData, isEditMode = false, serviceId, submitButtonText = "保存服务" }: AdditionalServiceFormProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -66,11 +66,11 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
 
             if (result.success) {
                 toast({
-                    title: isEditMode ? "Service Updated!" : "Service Created!",
+                    title: isEditMode ? "服务已更新！" : "服务已创建！",
                     description: result.message,
                 });
                 if (isEditMode) {
-                    router.refresh(); // Refresh current page for updated data
+                    router.refresh(); // 刷新当前页面以更新数据
                 } else if (result.serviceId) {
                     router.push(`/admin/services/${result.serviceId}/edit`);
                 } else {
@@ -78,7 +78,7 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                 }
             } else {
                 toast({
-                    title: "Error",
+                    title: "错误",
                     description: result.message,
                     variant: "destructive",
                 });
@@ -94,12 +94,12 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><Wand2 className="mr-2 h-4 w-4 text-primary" />Service Name *</FormLabel>
+                            <FormLabel className="flex items-center"><Wand2 className="mr-2 h-4 w-4 text-primary" />服务名称 *</FormLabel>
                             <FormControl>
                                 <Input placeholder="e.g., Extra Luggage Space" {...field} />
                             </FormControl>
                             <FormDescription>
-                                The name of the additional service.
+                                附加服务的名称。
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -116,7 +116,7 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                                 <Input type="number" placeholder="e.g., 200000" {...field} />
                             </FormControl>
                             <FormDescription>
-                                The price for this service.
+                                此服务的价格。
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -128,12 +128,12 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                     name="description"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />Description</FormLabel>
+                            <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />描述</FormLabel>
                             <FormControl>
                                 <Textarea placeholder="Detailed description of the service..." {...field} rows={3} />
                             </FormControl>
                             <FormDescription>
-                                Optional description for the service.
+                                此服务的可选描述。
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -145,8 +145,8 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                     name="applicableTo"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><SquareActivity className="mr-2 h-4 w-4 text-primary" />Applicable Itinerary Types</FormLabel>
-                            <FormDescription>Select which itinerary types this service applies to.</FormDescription>
+                            <FormLabel className="flex items-center"><SquareActivity className="mr-2 h-4 w-4 text-primary" />适用的行程类型</FormLabel>
+                            <FormDescription>选择此服务适用的行程类型。</FormDescription>
                             <div className="space-y-2">
                                 {Object.entries(ITINERARY_TYPES).map(([key, label]) => (
                                     <FormField
@@ -192,12 +192,12 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                     name="iconName"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />Icon Name (Optional)</FormLabel>
+                            <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />图标名称</FormLabel>
                             <FormControl>
                                 <Input placeholder="e.g., luggage, baby" {...field} />
                             </FormControl>
                             <FormDescription>
-                                A descriptive name for an icon related to the service (e.g., 'luggage', 'baby'). This is for UI hints.
+                                一个描述性的图标名称（例如：'luggage', 'baby'）。这是用于UI提示。
                             </FormDescription>
                             <FormMessage />
                         </FormItem>

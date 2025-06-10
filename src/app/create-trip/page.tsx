@@ -3,6 +3,8 @@ import ItinerarySelectionStep from '@/components/trip/ItinerarySelectionStep';
 import CreateTripFormWrapper from '@/components/trip/CreateTripFormWrapper';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ITINERARY_TYPES } from '@/lib/constants';
+import CreateTripItinerarySelector from '@/components/trip/CreateTripItinerarySelector';
 
 export default async function CreateTripPage({
   searchParams,
@@ -15,7 +17,7 @@ export default async function CreateTripPage({
   if (selectedItineraryId) {
     return (
       <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-8 text-center font-headline">Confirm Your Trip Details</h1>
+        <h1 className="text-3xl font-bold mb-8 text-center font-headline">確認您的旅程詳情</h1>
         <Suspense fallback={<CreateTripFormSkeleton />}>
           <CreateTripFormWrapper itineraryId={selectedItineraryId} />
         </Suspense>
@@ -37,20 +39,10 @@ export default async function CreateTripPage({
     // Add any other properties from your Itinerary type that are needed in client components
   }));
 
-  // If initialItineraryType is provided, filter by it. Otherwise, use all itineraries.
-  const itinerariesToDisplay = initialItineraryType
-    ? plainItineraries.filter(itn => itn.type === initialItineraryType)
-    : plainItineraries;
-
-  const title = initialItineraryType
-    ? `Select a ${initialItineraryType.replace('_', ' ')} Itinerary`
-    : "Choose Your Adventure: Select an Itinerary";
-
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-4xl font-bold mb-10 text-center font-headline">{title}</h1>
-      {/* Pass the correctly filtered (or all) itineraries to the selection step */}
-      <ItinerarySelectionStep itineraries={itinerariesToDisplay} />
+      <h1 className="text-4xl font-bold mb-10 text-center font-headline">選擇您的旅程：選擇旅程</h1>
+      <CreateTripItinerarySelector itineraries={plainItineraries} />
     </div>
   );
 }

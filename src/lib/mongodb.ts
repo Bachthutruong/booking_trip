@@ -67,3 +67,8 @@ export async function getAdminUsersCollection(): Promise<Collection<AdminUser>> 
   const db = await getDb();
   return db.collection<AdminUser>('admin_users');
 }
+
+export async function getTermsContentCollection(): Promise<Collection<any>> {
+  const db = await getDb();
+  return db.collection('terms_content');
+}

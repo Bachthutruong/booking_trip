@@ -8,7 +8,7 @@ export async function uploadFile(
     resourceType: 'image' | 'raw' | 'auto' = 'auto'
 ): Promise<{ success: boolean; url?: string; public_id?: string; message?: string }> {
     if (!dataUri) {
-        return { success: false, message: 'No file data provided.' };
+        return { success: false, message: '未提供文件数据。' };
     }
     // Determine resource type for PDF explicitly if needed, though 'auto' should work
     let finalResourceType = resourceType;

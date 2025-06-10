@@ -56,21 +56,21 @@ const ParticipantStatusBadge = ({ status, pricePaid, transferProofImageUrl, part
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
   if (status === 'payment_confirmed') {
-    return <Badge variant="default" className="bg-green-500 text-white text-xs px-2 py-1"><CheckCircle2 className="h-2.5 w-2.5 mr-1" /> Paid ({pricePaid.toLocaleString()} 元)</Badge>;
+    return <Badge variant="default" className="bg-green-500 text-white text-xs px-2 py-1"><CheckCircle2 className="h-2.5 w-2.5 mr-1" /> 已支付 ({pricePaid.toLocaleString()} 元)</Badge>;
   } else if (status === 'pending_payment') {
     const hasProofUploaded = transferProofImageUrl && transferProofImageUrl.trim() !== '';
     return (
       <div className="flex items-center gap-1">
         <Badge variant="outline" className="border-yellow-500 text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/30 text-xs px-2 py-1">
-          <Hourglass className="h-2.5 w-2.5 mr-1" /> Pending ({pricePaid.toLocaleString()} 元)
+          <Hourglass className="h-2.5 w-2.5 mr-1" /> 待支付 ({pricePaid.toLocaleString()} 元)
         </Badge>
         {hasProofUploaded ? (
           <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" className="text-green-600 border-green-500 bg-green-50 dark:text-green-400 dark:border-green-600 dark:bg-green-900/30 text-xs h-6 px-2 py-1">
-            <CheckCircle2 className="h-3 w-3 mr-1" />Proof Uploaded
+            <CheckCircle2 className="h-3 w-3 mr-1" /> 已上传证明
           </Button>
         ) : (
           <Button onClick={() => setIsUploadDialogOpen(true)} className="bg-accent text-accent-foreground hover:bg-accent/90 text-xs h-6 px-2 py-1">
-            <CreditCard className="mr-1 h-3 w-3" /> Upload Proof
+            <CreditCard className="mr-1 h-3 w-3" /> 上传证明
           </Button>
         )}
         {isUploadDialogOpen && (
@@ -155,6 +155,29 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
 
   // Find the current user's participant entry based on the phone number from searchParams
   const currentUserParticipant = trip.participants.find(p => p.phone === currentUsersPhone);
+  const isCurrentUserMainContact = currentUsersPhone === trip.contactPhone;
+
+  // Helper to mask sensitive info for main booker
+  function maskIfNotMainContact(value: string | number | undefined) {
+    if (isCurrentUserMainContact) return value;
+    if (typeof value === 'number') return '***';
+    if (!value) return '';
+    return '***';
+  }
+
+  // Helper to mask array (for services)
+  function maskServicesIfNotMainContact(services: any[] | undefined) {
+    if (isCurrentUserMainContact) return services?.map(s => s.name).join(', ');
+    if (services && services.length > 0) return '***';
+    return '';
+  }
+
+  // Helper to mask notes
+  function maskNotesIfNotMainContact(notes: string | undefined) {
+    if (isCurrentUserMainContact) return notes;
+    if (notes && notes.length > 0) return '***';
+    return '';
+  }
 
   return (
     <Card className={cn("transition-all duration-300", highlight ? "ring-2 ring-accent shadow-2xl transform scale-[1.01]" : "hover:shadow-lg")}>
@@ -171,39 +194,45 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-          <p className="flex items-center"><CalendarDays className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Date:</strong>&nbsp;{formattedDate}</p>
-          <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Time:</strong>&nbsp;{trip.time}</p>
-          <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Total Guests:</strong>&nbsp;{trip.participants.reduce((sum, p) => sum + p.numberOfPeople, 0)}</p>
-          <p className="flex items-center"><CreditCard className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Total Price:</strong>&nbsp;{trip.totalPrice.toLocaleString()} 元</p>
+          <p className="flex items-center"><CalendarDays className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>日期:</strong>&nbsp;{formattedDate}</p>
+          <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>时间:</strong>&nbsp;{trip.time}</p>
+          <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>总人数:</strong>&nbsp;{trip.participants.reduce((sum, p) => sum + (p.numberOfPeople || 0), 0)}</p>
+          <p className="flex items-center"><CreditCard className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>总价:</strong>&nbsp;{maskIfNotMainContact(currentUserParticipant ? currentUserParticipant.pricePaid.toLocaleString() : 0)} 元</p>
         </div>
-        <p className="flex items-center"><PhoneCall className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>Main Contact:</strong>&nbsp;{trip.contactName} ({trip.contactPhone})</p>
-        {trip.pickupAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Pickup:</strong>&nbsp;{trip.pickupAddress}</p>}
-        {trip.dropoffAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Dropoff:</strong>&nbsp;{trip.dropoffAddress}</p>}
-        {trip.district && <p className="text-xs text-muted-foreground"><strong>District:</strong> {trip.district}</p>}
-        {trip.additionalServices && trip.additionalServices.length > 0 && (
-          <p className="text-xs text-muted-foreground"><strong>Services:</strong> {trip.additionalServices.map(s => s.name).join(', ')}</p>
+        {/* Only show main contact if current user is main contact */}
+        {isCurrentUserMainContact && (
+          <p className="flex items-center"><PhoneCall className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>主联系人:</strong>&nbsp;{trip.contactName} ({trip.contactPhone})</p>
         )}
-        {trip.notes && <p className="text-xs text-muted-foreground italic flex items-start"><MessageSquare className="h-3 w-3 mr-1.5 mt-0.5 text-primary flex-shrink-0" /> {trip.notes}</p>}
+        {trip.pickupAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>接机地址:</strong>&nbsp;{maskIfNotMainContact(trip.pickupAddress)}</p>}
+        {trip.dropoffAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>送机地址:</strong>&nbsp;{maskIfNotMainContact(trip.dropoffAddress)}</p>}
+        {trip.district && <p className="text-xs text-muted-foreground"><strong>区域:</strong> {maskIfNotMainContact(trip.district)}</p>}
+        {trip.additionalServices && trip.additionalServices.length > 0 && (
+          <p className="text-xs text-muted-foreground"><strong>额外服务:</strong> {maskServicesIfNotMainContact(trip.additionalServices)}</p>
+        )}
+        {trip.notes && <p className="text-xs text-muted-foreground italic flex items-start"><MessageSquare className="h-3 w-3 mr-1.5 mt-0.5 text-primary flex-shrink-0" /> {maskNotesIfNotMainContact(trip.notes)}</p>}
 
         {trip.participants.length > 0 && (
           <div className="pt-2 mt-2 border-t">
-            <h4 className="text-xs font-semibold text-muted-foreground mb-1">Participants:</h4>
+            <h4 className="text-xs font-semibold text-muted-foreground mb-1">参与者:</h4>
             <ul className="list-disc list-inside pl-1 space-y-0.5 text-xs">
               {trip.participants.map(p => {
                 const isCurrentUser = currentUsersPhone && p.phone === currentUsersPhone;
                 const displayName = isCurrentUser ? p.name : maskName(p.name);
                 const displayPhone = isCurrentUser ? p.phone : maskPhone(p.phone);
-                const districtName = p.district || trip.district || '';
-                const additionalServices = (p.additionalServices || []) as { name: string; price?: number }[];
+                const districtName = isCurrentUser ? (p.district || trip.district || '') : '*****';
+                const address = isCurrentUser ? (p.address || '-') : '*****';
+                const additionalServices = isCurrentUser
+                  ? (p.additionalServices || []).map((s: any) => `${s.name} (+${typeof s.price === 'number' ? s.price.toLocaleString() : 0} 元)`).join(', ')
+                  : '*****';
                 let districtSurcharge = 0;
-                if (districts && districtName) {
-                  const found = districts.find(d => d.districtName === districtName);
+                if (isCurrentUser && districts && (p.district || trip.district)) {
+                  const found = districts.find(d => d.districtName === (p.district || trip.district));
                   if (found) districtSurcharge = found.surchargeAmount;
                 }
                 return (
                   <li key={p.id} className="flex flex-col gap-0.5 border-b last:border-b-0 pb-2 mb-2 last:pb-0 last:mb-0">
                     <div className="flex flex-wrap items-center justify-between gap-x-2">
-                      <span>{displayName} ({p.numberOfPeople} guest(s), Phone: {displayPhone})</span>
+                      <span>{displayName} ({p.numberOfPeople} 位, 电话: {displayPhone})</span>
                       {isCurrentUser && (
                         <ParticipantStatusBadge
                           status={p.status}
@@ -218,10 +247,10 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
                     </div>
                     {/* Price breakdown for each participant */}
                     <ul className="ml-2 mt-1 text-xs text-muted-foreground space-y-0.5">
-                      <li>Itinerary price: {p.pricePaid.toLocaleString()} 元</li>
-                      <li>District: {districtName}{districtSurcharge > 0 ? ` (+${districtSurcharge.toLocaleString()} 元)` : ''}</li>
-                      <li>Address: {p.address || '-'}</li>
-                      <li>Additional services: {additionalServices.map(s => `${s.name} (+${typeof s.price === 'number' ? s.price.toLocaleString() : 0} 元)`).join(', ')}</li>
+                      <li>行程价格: {isCurrentUser ? p.pricePaid.toLocaleString() + ' 元' : '*****'}</li>
+                      <li>区域: {districtName}{isCurrentUser && districtSurcharge > 0 ? ` (+${districtSurcharge.toLocaleString()} 元)` : ''}</li>
+                      <li>地址: {address}</li>
+                      <li>附加服务: {additionalServices}</li>
                     </ul>
                   </li>
                 );
@@ -233,13 +262,13 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-4 border-t">
         {overallStatus === 'payment_confirmed' && new Date(trip.date) >= new Date(new Date().setHours(0, 0, 0, 0)) && (
-          <p className="text-sm text-green-600 font-medium">Your trip is confirmed!</p>
+          <p className="text-sm text-green-600 font-medium">您的行程已确认！</p>
         )}
         {overallStatus === 'completed' && (
-          <p className="text-sm text-blue-600 font-medium">This trip has been completed.</p>
+          <p className="text-sm text-blue-600 font-medium">本次行程已完成。</p>
         )}
         {overallStatus === 'cancelled' && (
-          <p className="text-sm text-destructive font-medium">This trip has been cancelled.</p>
+          <p className="text-sm text-destructive font-medium">本次行程已取消。</p>
         )}
       </CardFooter>
       {/* This dialog is now specifically for the current user (participant) if they are the one viewing/uploading for themselves. */}

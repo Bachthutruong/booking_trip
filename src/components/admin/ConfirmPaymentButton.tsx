@@ -26,7 +26,7 @@ export function ConfirmPaymentButton({ tripId, participantId, isMainBooker }: Co
 
     return (
         <Button type="button" size="sm" variant="outline" className="bg-green-500 hover:bg-green-600 text-white border-green-600" onClick={handleClick} disabled={isPending}>
-            <CheckCircle className="mr-2 h-4 w-4" /> {isPending ? 'Confirming...' : 'Confirm Payment'}
+            <CheckCircle className="mr-2 h-4 w-4" /> {isPending ? '确认中...' : '确认付款'}
         </Button>
     );
 } 

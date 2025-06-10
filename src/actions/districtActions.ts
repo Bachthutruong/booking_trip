@@ -14,7 +14,7 @@ export async function getAllDistrictSurcharges(): Promise<DistrictSurcharge[]> {
             id: doc._id.toString(),
         })) as DistrictSurcharge[];
     } catch (error) {
-        console.error('Error fetching district surcharges:', error);
+        console.error(' 获取地区附加费时出错:', error);
         return [];
     }
 }
@@ -33,13 +33,13 @@ export async function createDistrictSurcharge(values: DistrictSurchargeFormValue
         await collection.insertOne(newSurcharge as any);
         revalidatePath('/admin/districts');
         revalidatePath('/admin/districts/new');
-        return { success: true, message: 'District surcharge created successfully.', districtId: newSurcharge.id };
+        return { success: true, message: '地区附加费已创建成功。', districtId: newSurcharge.id };
     } catch (error: any) {
-        console.error('Error creating district surcharge:', error);
+        console.error('创建地区附加费时出错:', error);
         if (error.code === 11000) { // Duplicate key error
-            return { success: false, message: 'A surcharge for this district name already exists.' };
+            return { success: false, message: '此地区名称已存在附加费。' };
         }
-        return { success: false, message: error.message || 'An unexpected error occurred.' };
+        return { success: false, message: error.message || '发生意外错误。' };
     }
 }
 
@@ -52,7 +52,7 @@ export async function getDistrictSurchargeById(id: string): Promise<DistrictSurc
         const surcharge = await collection.findOne({ _id: new ObjectId(id) });
         return surcharge ? { ...surcharge, id: surcharge._id.toString() } as DistrictSurcharge : null;
     } catch (error) {
-        console.error('Error fetching district surcharge by ID:', error);
+        console.error('获取地区附加费时出错:', error);
         return null;
     }
 }
@@ -61,24 +61,24 @@ export async function updateDistrictSurcharge(id: string, values: DistrictSurcha
     try {
         const collection = await getDistrictSurchargesCollection();
         if (!ObjectId.isValid(id)) {
-            return { success: false, message: 'Invalid ID format.' };
+            return { success: false, message: '无效的ID格式。' };
         }
         const result = await collection.updateOne(
             { _id: new ObjectId(id) },
             { $set: { districtName: values.districtName, surchargeAmount: values.surchargeAmount } }
         );
         if (result.matchedCount === 0) {
-            return { success: false, message: 'District surcharge not found.' };
+            return { success: false, message: '地区附加费未找到。' };
         }
         revalidatePath('/admin/districts');
         revalidatePath(`/admin/districts/${id}/edit`);
-        return { success: true, message: 'District surcharge updated successfully.', districtId: id };
+        return { success: true, message: '地区附加费已更新成功。', districtId: id };
     } catch (error: any) {
-        console.error('Error updating district surcharge:', error);
+        console.error('更新地区附加费时出错:', error);
         if (error.code === 11000) {
-            return { success: false, message: 'A surcharge for this district name already exists.' };
+            return { success: false, message: '此地区名称已存在附加费。' };
         }
-        return { success: false, message: error.message || 'An unexpected error occurred.' };
+        return { success: false, message: error.message || '发生意外错误。' };
     }
 }
 
@@ -86,16 +86,16 @@ export async function deleteDistrictSurcharge(id: string): Promise<{ success: bo
     try {
         const collection = await getDistrictSurchargesCollection();
         if (!ObjectId.isValid(id)) {
-            return { success: false, message: 'Invalid ID format.' };
+            return { success: false, message: '无效的ID格式。' };
         }
         const result = await collection.deleteOne({ _id: new ObjectId(id) });
         if (result.deletedCount === 0) {
-            return { success: false, message: 'District surcharge not found.' };
+            return { success: false, message: '地区附加费未找到。' };
         }
         revalidatePath('/admin/districts');
-        return { success: true, message: 'District surcharge deleted successfully.' };
+        return { success: true, message: '地区附加费已删除。' };
     } catch (error: any) {
-        console.error('Error deleting district surcharge:', error);
-        return { success: false, message: error.message || 'An unexpected error occurred during deletion.' };
+        console.error('删除地区附加费时出错:', error);
+        return { success: false, message: error.message || '删除时发生意外错误。' };
     }
 } 

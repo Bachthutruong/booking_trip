@@ -16,32 +16,32 @@ export default async function AdminItinerariesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold font-headline">Manage Itineraries</h1>
+        <h1 className="text-3xl font-bold font-headline">管理行程   </h1>
         <Button asChild>
           <Link href="/admin/itineraries/new">
-            <PlusCircle className="mr-2 h-5 w-5" /> Add New Itinerary
+            <PlusCircle className="mr-2 h-5 w-5" /> 添加新行程
           </Link>
         </Button>
       </div>
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Itinerary List ({itineraries.length})</CardTitle>
-          <CardDescription>View, edit, or delete existing itineraries.</CardDescription>
+          <CardTitle>行程列表 ({itineraries.length})</CardTitle>
+          <CardDescription>查看、编辑或删除现有行程。</CardDescription>
         </CardHeader>
         <CardContent>
           {itineraries.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No itineraries found. Add one to get started!</p>
+            <p className="text-muted-foreground text-center py-8">没有找到行程。添加一个以开始！</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[200px]">Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Price (元)</TableHead>
-                    <TableHead className="min-w-[150px]">Available Times</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="min-w-[200px]">名称</TableHead>
+                    <TableHead>类型</TableHead>
+                    <TableHead>价格 (元)</TableHead>
+                    <TableHead className="min-w-[150px]">可用时间</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -61,11 +61,11 @@ export default async function AdminItinerariesPage() {
                             {itinerary.availableTimes.length > 3 && <Badge variant="outline" className="text-xs font-normal">...</Badge>}
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground">Not set</span>
+                          <span className="text-xs text-muted-foreground">未设置</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right space-x-2">
-                        <Button variant="outline" size="icon" asChild title={`Edit ${itinerary.name}`}>
+                        <Button variant="outline" size="icon" asChild title={`编辑 ${itinerary.name}`}>
                           <Link href={`/admin/itineraries/${itinerary.id}/edit`}>
                             <Edit3 className="h-4 w-4" />
                           </Link>

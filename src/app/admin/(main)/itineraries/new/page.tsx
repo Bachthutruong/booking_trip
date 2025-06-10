@@ -10,15 +10,15 @@ export default function NewItineraryPage() {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <Button variant="outline" asChild className="mb-4">
-        <Link href="/admin/itineraries"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Itineraries</Link>
+        <Link href="/admin/itineraries"><ArrowLeft className="mr-2 h-4 w-4" /> 返回行程</Link>
       </Button>
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">Create New Itinerary</CardTitle>
-          <CardDescription>Fill in the details for the new travel itinerary.</CardDescription>
+          <CardTitle className="font-headline text-2xl">创建新行程</CardTitle>
+          <CardDescription>填写新旅行行程的详细信息。</CardDescription>
         </CardHeader>
         <CardContent>
-          <ItineraryForm onSubmitAction={createItinerary} submitButtonText="Create Itinerary" />
+          <ItineraryForm onSubmitAction={createItinerary} submitButtonText="创建行程" />
         </CardContent>
       </Card>
     </div>

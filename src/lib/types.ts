@@ -31,6 +31,8 @@ export interface Participant {
   district?: string; // Participant's pickup/dropoff district for surcharge calculation
   status: TripStatus; // If individual payment tracking is needed
   transferProofImageUrl?: string; // Individual participant's payment proof
+  confirmedBy?: string; // admin username hoặc id
+  confirmedAt?: string; // ISO date string
 }
 
 export type TripStatus = 'pending_payment' | 'payment_confirmed' | 'completed' | 'cancelled';
@@ -61,6 +63,10 @@ export interface Trip {
   // updatedAd: string; // ISO date string
   overallStatus: TripStatus; // Add overallStatus to Trip interface
   additionalServices?: AdditionalService[]; // Add populated services to Trip interface
+  isDeleted?: boolean; // Soft-delete flag
+  deletedAt?: string; // ISO date string
+  deletedBy?: string; // Admin user id or username
+  handoverComment?: string; // Staff handover notes/comments
 }
 
 export interface DiscountCode {
@@ -112,6 +118,7 @@ export interface AdminUser {
   id: string;
   username: string;
   passwordHash: string;
+  role: 'admin' | 'staff'; // Add role field
   createdAt: Date;
   updatedAt: Date;
 }
@@ -187,4 +194,11 @@ export interface AdditionalServiceFormValues {
   description?: string;
   applicableTo: ItineraryType[];
   iconName?: string;
+}
+
+export interface TermsContent {
+  _id?: ObjectId;
+  key: string; // e.g., 'booking_terms'
+  content: string; // HTML hoặc markdown
+  updatedAt: string; // ISO date string
 }

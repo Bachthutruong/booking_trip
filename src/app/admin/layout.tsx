@@ -4,7 +4,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Admin Area - Hanoi Explorer',
+  title: '管理員區域 - 河內探險家',
 };
 
 export default function AdminBaseLayout({ children }: { children: React.ReactNode }) {

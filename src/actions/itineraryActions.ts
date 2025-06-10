@@ -37,13 +37,13 @@ export async function getItineraryById(id: string): Promise<Itinerary | null> {
 
 // Admin actions for Itineraries
 const itineraryFormSchema = z.object({
-  name: z.string().min(3, "Name is required and must be at least 3 characters."),
+  name: z.string().min(3, "名称是必需的，并且至少有3个字符。"),
   type: z.enum(['airport_pickup', 'airport_dropoff', 'tourism']),
-  pricePerPerson: z.coerce.number().min(0, "Price must be a positive number."),
-  description: z.string().min(10, "Description is required and must be at least 10 characters."),
-  imageUrl: z.string().url("Must be a valid URL.").optional().or(z.literal('')),
-  availableTimes: z.string().min(1, "Available times are required (comma-separated, e.g., 08:00,09:00).")
-    .regex(/^(\d{2}:\d{2})(,\s*\d{2}:\d{2})*$/, "Times must be in HH:MM format, comma-separated."),
+  pricePerPerson: z.coerce.number().min(0, "价格必须是正数。"),
+  description: z.string().min(10, "描述是必需的，并且至少有10个字符。"),
+  imageUrl: z.string().url("必须是有效的URL。").optional().or(z.literal('')),
+  availableTimes: z.string().min(1, "可用时间（逗号分隔，例如：08:00,09:00）是必需的。")
+    .regex(/^(\d{2}:\d{2})(,\s*\d{2}:\d{2})*$/, "时间必须以HH:MM格式，逗号分隔。"),
 });
 
 export async function createItinerary(values: ItineraryFormValues): Promise<{ success: boolean; message: string; itineraryId?: string }> {
@@ -73,10 +73,10 @@ export async function createItinerary(values: ItineraryFormValues): Promise<{ su
     revalidatePath(`/admin/itineraries/${newItinerary.id}/edit`);
     revalidatePath('/create-trip');
     revalidatePath('/');
-    return { success: true, message: 'Itinerary created successfully.', itineraryId: newItinerary.id };
+    return { success: true, message: '行程已创建成功。', itineraryId: newItinerary.id };
   } catch (error) {
-    console.error('Error creating itinerary:', error);
-    return { success: false, message: 'An error occurred while creating the itinerary.' };
+    console.error('创建行程时出错:', error);
+    return { success: false, message: '创建行程时发生意外错误。' };
   }
 }
 
@@ -117,12 +117,12 @@ export async function updateItinerary(id: string, values: ItineraryFormValues): 
       revalidatePath(`/admin/itineraries/${objectIdToUpdate.toString()}/edit`);
       revalidatePath('/create-trip');
       revalidatePath('/');
-      return { success: true, message: 'Itinerary updated successfully.', itineraryId: id };
+      return { success: true, message: '行程已更新成功。', itineraryId: id };
     }
-    return { success: false, message: 'Itinerary not found or no changes made.' };
+    return { success: false, message: '行程未找到或未更改。' };
   } catch (error) {
-    console.error('Error updating itinerary:', error);
-    return { success: false, message: 'An error occurred while updating the itinerary.' };
+    console.error('更新行程时出错:', error);
+    return { success: false, message: '更新行程时发生意外错误。' };
   }
 }
 
@@ -133,7 +133,7 @@ export async function deleteItinerary(id: string): Promise<{ success: boolean; m
   } else {
     const itinerary = await getItineraryById(id);
     if (!itinerary || !itinerary._id) {
-      return { success: false, message: "Itinerary not found or invalid ID." };
+      return { success: false, message: "行程未找到或无效ID。" };
     }
     objectIdToDelete = itinerary._id;
   }
@@ -148,11 +148,11 @@ export async function deleteItinerary(id: string): Promise<{ success: boolean; m
       revalidatePath('/admin/itineraries');
       revalidatePath('/create-trip');
       revalidatePath('/');
-      return { success: true, message: 'Itinerary deleted successfully.' };
+      return { success: true, message: '行程已删除成功。' };
     }
-    return { success: false, message: 'Itinerary not found.' };
+    return { success: false, message: '行程未找到。' };
   } catch (error) {
-    console.error('Error deleting itinerary:', error);
-    return { success: false, message: 'An error occurred while deleting the itinerary.' };
+    console.error('删除行程时出错:', error);
+    return { success: false, message: '删除行程时发生意外错误。' };
   }
 }

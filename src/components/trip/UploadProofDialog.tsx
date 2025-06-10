@@ -39,14 +39,14 @@ export default function UploadProofDialog({ tripId, participantId, isOpen, onOpe
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({ title: "File too large", description: "Please select an image or PDF smaller than 5MB.", variant: "destructive" });
+        toast({ title: "文件太大", description: "请选择一个小于5MB的图片或PDF文件。", variant: "destructive" });
         setSelectedFile(null);
         setPreviewUrl(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
       if (!['image/jpeg', 'image/png', 'image/gif', 'application/pdf'].includes(file.type)) {
-        toast({ title: "Invalid file type", description: "Please select a JPG, PNG, GIF, or PDF file.", variant: "destructive" });
+        toast({ title: "文件类型无效", description: "请选择一个JPG, PNG, GIF, 或PDF文件。", variant: "destructive" });
         setSelectedFile(null);
         setPreviewUrl(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -72,7 +72,7 @@ export default function UploadProofDialog({ tripId, participantId, isOpen, onOpe
 
   const handleSubmit = async () => {
     if (!selectedFile) {
-      toast({ title: 'No file selected', description: 'Please select a file to upload.', variant: 'destructive' });
+      toast({ title: '没有选择文件', description: '请选择一个文件上传。', variant: 'destructive' });
       return;
     }
     setIsSubmitting(true);
@@ -90,7 +90,7 @@ export default function UploadProofDialog({ tripId, participantId, isOpen, onOpe
 
       const dataUri = reader.result as string;
       if (!dataUri) {
-        throw new Error("Could not read file data.");
+        throw new Error("无法读取文件数据。");
       }
 
       // Determine resource type for Cloudinary
@@ -103,18 +103,18 @@ export default function UploadProofDialog({ tripId, participantId, isOpen, onOpe
       if (cloudinaryResult.success && cloudinaryResult.url) {
         const dbUpdateResult = await uploadTransferProof(tripId, cloudinaryResult.url, participantId);
         if (dbUpdateResult.success) {
-          toast({ title: 'Upload Successful', description: dbUpdateResult.message });
+          toast({ title: '上传成功', description: dbUpdateResult.message });
           if (onUploadSuccess) onUploadSuccess();
           handleCloseDialog(true);
         } else {
-          toast({ title: 'Database Update Failed', description: dbUpdateResult.message, variant: 'destructive' });
+          toast({ title: '数据库更新失败', description: dbUpdateResult.message, variant: 'destructive' });
         }
       } else {
-        toast({ title: 'Cloudinary Upload Failed', description: cloudinaryResult.message || 'Could not upload to Cloudinary.', variant: 'destructive' });
+        toast({ title: 'Cloudinary 上传失败', description: cloudinaryResult.message || '无法上传到 Cloudinary。', variant: 'destructive' });
       }
     } catch (error: any) {
-      console.error("Upload error:", error);
-      toast({ title: 'Error', description: error.message || 'An unexpected error occurred during upload.', variant: 'destructive' });
+      console.error("上传错误:", error);
+      toast({ title: '错误', description: error.message || '上传过程中发生意外错误。', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -133,16 +133,16 @@ export default function UploadProofDialog({ tripId, participantId, isOpen, onOpe
     <Dialog open={isOpen} onOpenChange={handleCloseDialog}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle className="font-headline text-2xl">Upload Payment Proof {participantId ? '(For Participant)' : '(For Main Booker)'}</DialogTitle>
+          <DialogTitle className="font-headline text-2xl">上传付款证明 {participantId ? '(针对参与者)' : '(针对主要预订者)'}</DialogTitle>
           <DialogDescription>
-            Please upload an image or PDF of the transfer confirmation for Trip ID: <strong>{tripId}</strong>.
-            {participantId && <><br />This proof is for a specific participant within the trip.</>}
-            Accepted formats: JPG, PNG, GIF, PDF. Max size: 5MB.
+            请上传一张图片或PDF的转账确认书，用于行程ID: <strong>{tripId}</strong>。
+            {participantId && <><br />此证明是针对行程中的特定参与者。</>}
+            接受的格式: JPG, PNG, GIF, PDF。最大大小: 5MB。
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-6">
           <div className="space-y-2">
-            <Label htmlFor="payment-proof-file" className="text-base">Proof File</Label>
+            <Label htmlFor="payment-proof-file" className="text-base">付款证明文件</Label>
             <Input
               id="payment-proof-file"
               type="file"
@@ -157,26 +157,26 @@ export default function UploadProofDialog({ tripId, participantId, isOpen, onOpe
             <div className="mt-4 border border-dashed border-border rounded-md p-4 flex flex-col items-center justify-center text-muted-foreground h-[150px]">
               <FilePdfIcon className="h-12 w-12 mb-2 text-destructive" />
               <p className="text-sm font-medium">{selectedFile.name}</p>
-              <p className="text-xs">PDF selected</p>
+              <p className="text-xs">已选择PDF文件</p>
             </div>
           )}
           {previewUrl && previewUrl !== 'pdf' && selectedFile?.type.startsWith('image/') && (
             <div className="mt-4 border border-dashed border-border rounded-md p-2">
-              <p className="text-sm font-medium mb-2 text-center text-muted-foreground">Image Preview:</p>
+              <p className="text-sm font-medium mb-2 text-center text-muted-foreground">图片预览:</p>
               <Image src={previewUrl} alt="Payment proof preview" width={400} height={300} className="rounded-md object-contain max-h-[200px] mx-auto" data-ai-hint="payment proof document" />
             </div>
           )}
           {!selectedFile && (
             <div className="mt-4 border border-dashed border-border rounded-md p-6 flex flex-col items-center justify-center text-muted-foreground h-[150px]">
               <FileImage className="h-12 w-12 mb-2" />
-              <p>No file selected</p>
+              <p>没有选择文件</p>
             </div>
           )}
         </div>
         <DialogFooter className="sm:justify-between gap-2">
           <DialogClose asChild>
             <Button type="button" variant="outline" disabled={isSubmitting}>
-              Cancel
+              取消
             </Button>
           </DialogClose>
           <Button type="submit" onClick={handleSubmit} disabled={!selectedFile || isSubmitting} className="min-w-[120px]">
@@ -185,7 +185,7 @@ export default function UploadProofDialog({ tripId, participantId, isOpen, onOpe
             ) : (
               <UploadCloud className="mr-2 h-4 w-4" />
             )}
-            Upload
+            上传
           </Button>
         </DialogFooter>
       </DialogContent>

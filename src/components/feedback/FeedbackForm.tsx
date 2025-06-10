@@ -50,7 +50,7 @@ export default function FeedbackForm() {
 
   const handleFetchUserTrips = () => {
     if (!phoneForTrips.trim()) {
-      toast({ title: "Phone Number Required", description: "Please enter your phone number to find related trips.", variant: "destructive"});
+      toast({ title: "电话号码要求", description: "请输入你的电话号码以找到相关行程。", variant: "destructive"});
       return;
     }
     startFetchingTripsTransition(async () => {
@@ -58,10 +58,10 @@ export default function FeedbackForm() {
         const trips = await getTripsForUserFeedback(phoneForTrips);
         setUserTrips(trips);
         if (trips.length === 0) {
-          toast({ title: "No Trips Found", description: "No completed or confirmed trips found for this phone number." });
+          toast({ title: "未找到行程", description: "未找到此电话号码的行程。" });
         }
       } catch (error) {
-        toast({ title: "Error Fetching Trips", description: "Could not fetch your trips.", variant: "destructive" });
+        toast({ title: "错误获取行程", description: "无法获取你的行程。", variant: "destructive" });
       }
     });
   };
@@ -76,7 +76,7 @@ export default function FeedbackForm() {
       
       if (result.success) {
         toast({
-          title: "Feedback Submitted!",
+          title: "反馈提交成功！",
           description: result.message,
         });
         form.reset();
@@ -84,15 +84,15 @@ export default function FeedbackForm() {
         setPhoneForTrips("");
       } else {
         toast({
-          title: "Error",
+          title: "错误",
           description: result.message,
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "错误",
+        description: "发生意外错误。请再试一次。",
         variant: "destructive",
       });
     } finally {
@@ -108,7 +108,7 @@ export default function FeedbackForm() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><User className="h-4 w-4 mr-2 text-primary"/>Your Name *</FormLabel>
+              <FormLabel className="flex items-center"><User className="h-4 w-4 mr-2 text-primary"/>你的名字 *</FormLabel>
               <FormControl>
                 <Input placeholder="John Doe" {...field} />
               </FormControl>
@@ -121,7 +121,7 @@ export default function FeedbackForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Mail className="h-4 w-4 mr-2 text-primary"/>Your Email *</FormLabel>
+              <FormLabel className="flex items-center"><Mail className="h-4 w-4 mr-2 text-primary"/>你的邮箱 *</FormLabel>
               <FormControl>
                 <Input type="email" placeholder="you@example.com" {...field} />
               </FormControl>
@@ -131,20 +131,20 @@ export default function FeedbackForm() {
         />
 
         <div className="space-y-2">
-            <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary"/>Your Phone (to find related trips)</FormLabel>
+            <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary"/>你的电话 (用于查找相关行程)</FormLabel>
             <div className="flex gap-2">
                 <Input 
-                    placeholder="Enter phone used for booking" 
+                    placeholder="输入用于预订的电话号码" 
                     value={phoneForTrips}
                     onChange={(e) => setPhoneForTrips(e.target.value)}
                     type="tel"
                 />
                 <Button type="button" variant="outline" onClick={handleFetchUserTrips} disabled={isFetchingTrips || !phoneForTrips.trim()}>
                     {isFetchingTrips ? <Loader2 className="h-4 w-4 animate-spin"/> : <Search className="h-4 w-4"/>}
-                    <span className="ml-2 hidden sm:inline">Find Trips</span>
+                    <span className="ml-2 hidden sm:inline">查找行程</span>
                 </Button>
             </div>
-            <FormDescription>If your feedback is about a specific trip, enter your phone number to select it.</FormDescription>
+            <FormDescription>如果你的反馈是关于特定行程，请输入你的电话号码以选择它。</FormDescription>
         </div>
         
         {userTrips.length > 0 && (
@@ -153,11 +153,11 @@ export default function FeedbackForm() {
             name="tripId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center"><Hash className="h-4 w-4 mr-2 text-primary"/>Related Trip (Optional)</FormLabel>
+                <FormLabel className="flex items-center"><Hash className="h-4 w-4 mr-2 text-primary"/>相关行程 (可选)</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a trip if applicable" />
+                      <SelectValue placeholder="如果适用，请选择一个行程" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -178,10 +178,10 @@ export default function FeedbackForm() {
           name="message"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><MessageCircle className="h-4 w-4 mr-2 text-primary"/>Your Feedback *</FormLabel>
+              <FormLabel className="flex items-center"><MessageCircle className="h-4 w-4 mr-2 text-primary"/>你的反馈 *</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Tell us about your experience..."
+                  placeholder="告诉我们你的体验..."
                   className="resize-y min-h-[120px]"
                   {...field}
                 />
@@ -194,7 +194,7 @@ export default function FeedbackForm() {
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Submitting...
+              提交中...
             </>
           ) : (
             'Send Feedback'
