@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { MapPinned } from 'lucide-react';
 
-export default async function JoinTripPage() {
+export default function JoinTripPage() {
   // Fetching trips is now handled client-side within JoinableTripsList for better UX with filtering
   // const trips = await getConfirmedTrips(); // This can be used for SSR if preferred
 
@@ -18,7 +18,7 @@ export default async function JoinTripPage() {
       </div>
       <Suspense fallback={<JoinableTripsSkeleton />}>
         {/* Pass initialTrips if fetched via SSR, otherwise component fetches */}
-        <JoinableTripsList /> 
+        <JoinableTripsList />
       </Suspense>
     </div>
   );
@@ -27,9 +27,11 @@ export default async function JoinTripPage() {
 function JoinableTripsSkeleton() {
   return (
     <div className="space-y-8">
-      <Skeleton className="h-12 w-full max-w-lg mx-auto" /> {/* Search Input Skeleton */}
+      <div className="relative max-w-lg mx-auto">
+        <div className="h-12 w-full max-w-lg mx-auto bg-muted rounded animate-pulse" />
+      </div>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
+        {[1, 2, 3].map((i) => (
           <CardSkeleton key={i} />
         ))}
       </div>
@@ -38,18 +40,18 @@ function JoinableTripsSkeleton() {
 }
 
 function CardSkeleton() {
-    return (
-        <div className="border bg-card text-card-foreground shadow-sm rounded-xl p-0 overflow-hidden">
-            <Skeleton className="h-40 w-full" /> {/* Image Placeholder */}
-            <div className="p-6 space-y-3">
-              <Skeleton className="h-6 w-3/4" /> {/* Title */}
-              <Skeleton className="h-4 w-1/2" /> {/* Sub-title / Date */}
-              <Skeleton className="h-4 w-full" /> {/* Description line 1 */}
-              <Skeleton className="h-4 w-5/6" /> {/* Description line 2 */}
-            </div>
-            <div className="p-6 pt-0">
-              <Skeleton className="h-10 w-full" /> {/* Button */}
-            </div>
-        </div>
-    );
+  return (
+    <div className="border bg-card text-card-foreground shadow-sm rounded-xl p-0 overflow-hidden">
+      <div className="h-40 w-full bg-muted animate-pulse" />
+      <div className="p-6 space-y-3">
+        <div className="h-6 w-3/4 bg-muted rounded animate-pulse" />
+        <div className="h-4 w-1/2 bg-muted rounded animate-pulse" />
+        <div className="h-4 w-full bg-muted rounded animate-pulse" />
+        <div className="h-4 w-5/6 bg-muted rounded animate-pulse" />
+      </div>
+      <div className="p-6 pt-0">
+        <div className="h-10 w-full bg-muted rounded animate-pulse" />
+      </div>
+    </div>
+  );
 }

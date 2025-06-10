@@ -457,7 +457,8 @@ export async function confirmMainBookerPayment(tripId: string): Promise<{ succes
 
   const result = await tripsCollection.updateOne(
     { id: tripId }, // Use id for trip
-    { $set: {
+    {
+      $set: {
         "participants.0.status": "payment_confirmed",
         "participants.0.confirmedBy": confirmedBy,
         "participants.0.confirmedAt": confirmedAt,
@@ -501,7 +502,8 @@ export async function confirmParticipantPayment(tripId: string, participantId: s
 
   const result = await tripsCollection.updateOne(
     { id: tripId, "participants.id": participantId }, // Use id for trip and participant id
-    { $set: {
+    {
+      $set: {
         [`participants.${participantIndex}.status`]: "payment_confirmed",
         [`participants.${participantIndex}.confirmedBy`]: confirmedBy,
         [`participants.${participantIndex}.confirmedAt`]: confirmedAt,
@@ -875,4 +877,37 @@ export async function getParticipantsNotPaid() {
     }
   }
   return result;
+}
+
+export async function getJoinableTripsPaginated(limit: number, skip: number, searchTerm?: string, typeFilter?: string): Promise<{ trips: Trip[], total: number }> {
+  const tripsCollection = await getTripsCollection();
+  const filter: any = {
+    isDeleted: { $ne: true },
+    overallStatus: 'payment_confirmed'
+  };
+
+  if (searchTerm && searchTerm.trim() !== '') {
+    const regex = new RegExp(searchTerm, 'i');
+    filter.$or = [
+      { itineraryName: regex },
+      { date: regex },
+      { pickupAddress: regex },
+      { dropoffAddress: regex },
+      { contactName: regex }
+    ];
+  }
+
+  if (typeFilter) {
+    filter.itineraryType = typeFilter;
+  }
+
+  const total = await tripsCollection.countDocuments(filter);
+  const tripDocs = await tripsCollection.find(filter)
+    .sort({ date: 1, time: 1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+
+  const trips = await Promise.all(tripDocs.map(mapDocumentToTrip));
+  return { trips, total };
 }

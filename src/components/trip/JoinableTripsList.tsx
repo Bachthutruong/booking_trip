@@ -2,13 +2,14 @@
 
 import type { Trip } from '@/lib/types';
 import JoinableTripCard from './JoinableTripCard';
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Input } from '../ui/input';
 import { Loader2, Search, WifiOff } from 'lucide-react';
-import { getAllAvailableTrips } from '@/actions/tripActions';
+import { getJoinableTripsPaginated } from '@/actions/tripActions';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Button } from '../ui/button';
 import { ITINERARY_TYPES } from '@/lib/constants';
+import { useInView } from 'react-intersection-observer';
 
 // No longer needs initialTrips prop if fetching client-side
 // interface JoinableTripsListProps {
@@ -16,55 +17,66 @@ import { ITINERARY_TYPES } from '@/lib/constants';
 // }
 
 export default function JoinableTripsList() {
-  const [allTrips, setAllTrips] = useState<Trip[]>([]);
-  const [filteredTrips, setFilteredTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [total, setTotal] = useState(0);
+  const ITEMS_PER_PAGE = 6;
 
-  const fetchTrips = () => {
+  const { ref, inView } = useInView({
+    threshold: 0,
+  });
+
+  const fetchTrips = useCallback(async (isNewSearch = false) => {
+    if (isLoading) return;
+
     setError(null);
     startTransition(async () => {
       try {
-        const trips = await getAllAvailableTrips();
-        console.log('trips', trips);
-        // Convert trips to plain JavaScript objects to avoid passing non-plain objects to client components
-        // Only include trips with at least 1 participant payment_confirmed
-        const paidTrips = trips.filter(trip => trip.participants && trip.participants.some(p => p.status === 'payment_confirmed'));
-        setAllTrips(paidTrips);
-        setFilteredTrips(paidTrips); // Initialize filtered trips
+        const skip = isNewSearch ? 0 : (page - 1) * ITEMS_PER_PAGE;
+        const { trips: newTrips, total: totalCount } = await getJoinableTripsPaginated(
+          ITEMS_PER_PAGE,
+          skip,
+          searchTerm,
+          selectedType || undefined
+        );
+
+        if (isNewSearch) {
+          setTrips(newTrips);
+          setPage(1);
+        } else {
+          setTrips(prev => [...prev, ...newTrips]);
+        }
+
+        setTotal(totalCount);
+        setHasMore(skip + newTrips.length < totalCount);
       } catch (err) {
         console.error("Failed to fetch joinable trips: ", err);
         setError("无法加载行程。请检查您的连接并重试。");
-        setAllTrips([]);
-        setFilteredTrips([]);
+        setTrips([]);
+        setHasMore(false);
       }
     });
-  };
+  }, [page, searchTerm, selectedType, isLoading]);
 
+  // Initial load
   useEffect(() => {
-    fetchTrips();
-  }, []);
+    fetchTrips(true);
+  }, [searchTerm, selectedType]);
 
+  // Load more when scrolling
   useEffect(() => {
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    const results = allTrips.filter(trip => {
-      const matchesType = selectedType ? trip.itineraryType === selectedType : true;
-      return (
-        (trip.itineraryName.toLowerCase().includes(lowerSearchTerm) ||
-        trip.date.includes(searchTerm) ||
-        (trip.pickupAddress && trip.pickupAddress.toLowerCase().includes(lowerSearchTerm)) ||
-        (trip.dropoffAddress && trip.dropoffAddress.toLowerCase().includes(lowerSearchTerm)) ||
-        (trip.contactName && trip.contactName.toLowerCase().includes(lowerSearchTerm))) &&
-        trip.participants && trip.participants.some(p => p.status === 'payment_confirmed') &&
-        matchesType
-      );
-    });
-    setFilteredTrips(results);
-  }, [searchTerm, allTrips, selectedType]);
+    if (inView && hasMore && !isLoading) {
+      setPage(prev => prev + 1);
+      fetchTrips();
+    }
+  }, [inView, hasMore, isLoading, fetchTrips]);
 
-  if (isLoading && allTrips.length === 0) { // Show skeleton only on initial load
+  if (isLoading && trips.length === 0) {
     return (
       <div className="space-y-8">
         <div className="relative max-w-lg mx-auto">
@@ -85,7 +97,7 @@ export default function JoinableTripsList() {
         <AlertTitle>加载错误</AlertTitle>
         <AlertDescription>
           {error}
-          <Button onClick={fetchTrips} variant="link" className="p-0 h-auto ml-1 text-destructive hover:underline">
+          <Button onClick={() => fetchTrips(true)} variant="link" className="p-0 h-auto ml-1 text-destructive hover:underline">
             重试
           </Button>
         </AlertDescription>
@@ -93,8 +105,7 @@ export default function JoinableTripsList() {
     );
   }
 
-
-  if (!isLoading && allTrips.length === 0 && !error) {
+  if (!isLoading && trips.length === 0 && !error) {
     return (
       <Alert className="max-w-lg mx-auto">
         <Search className="h-5 w-5" />
@@ -115,10 +126,11 @@ export default function JoinableTripsList() {
           placeholder="按名称、日期、地点或创建者搜索行程..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 text-base shadow-sm"
+          className="pl-10 text-base"
           disabled={isLoading}
         />
       </div>
+
       {/* Itinerary Type Filter Buttons */}
       <div className="flex gap-3 justify-center mb-2">
         <Button
@@ -143,34 +155,43 @@ export default function JoinableTripsList() {
         ))}
       </div>
 
-      {isLoading && <div className="text-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-
-      {filteredTrips.length > 0 ? (
+      {trips.length > 0 && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
-          {filteredTrips.map(trip => (
+          {trips.map(trip => (
             <JoinableTripCard key={trip.id} trip={trip} />
           ))}
         </div>
-      ) : (
-        !isLoading && searchTerm && <p className="text-center text-muted-foreground text-lg mt-10">没有符合您搜索条件的行程。</p>
+      )}
+
+      {/* Loading indicator and infinite scroll trigger */}
+      <div ref={ref} className="h-20 flex items-center justify-center">
+        {isLoading && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
+        {!isLoading && !hasMore && trips.length > 0 && (
+          <p className="text-muted-foreground">没有更多行程了</p>
+        )}
+      </div>
+
+      {!isLoading && searchTerm && trips.length === 0 && (
+        <p className="text-center text-muted-foreground text-lg mt-10">
+          没有符合您搜索条件的行程。
+        </p>
       )}
     </div>
   );
 }
 
-
-function SkeletonCard() { // Renamed from CardSkeleton to avoid conflict if used elsewhere
+function SkeletonCard() {
   return (
     <div className="border bg-card text-card-foreground shadow-sm rounded-xl p-0 overflow-hidden animate-pulse">
-      <div className="h-40 w-full bg-muted" /> {/* Image Placeholder */}
+      <div className="h-40 w-full bg-muted" />
       <div className="p-6 space-y-3">
-        <div className="h-6 w-3/4 bg-muted rounded" /> {/* Title */}
-        <div className="h-4 w-1/2 bg-muted rounded" /> {/* Sub-title / Date */}
-        <div className="h-4 w-full bg-muted rounded" /> {/* Description line 1 */}
-        <div className="h-4 w-5/6 bg-muted rounded" /> {/* Description line 2 */}
+        <div className="h-6 w-3/4 bg-muted rounded" />
+        <div className="h-4 w-1/2 bg-muted rounded" />
+        <div className="h-4 w-full bg-muted rounded" />
+        <div className="h-4 w-5/6 bg-muted rounded" />
       </div>
       <div className="p-6 pt-0">
-        <div className="h-10 w-full bg-muted rounded" /> {/* Button */}
+        <div className="h-10 w-full bg-muted rounded" />
       </div>
     </div>
   );
