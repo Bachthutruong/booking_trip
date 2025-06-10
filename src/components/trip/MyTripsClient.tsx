@@ -23,14 +23,13 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
   const [phone, setPhone] = useState(phoneFromParam || '');
   const [name, setName] = useState(nameFromParam || '');
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [isLoading, setIsLoading] = useState(false); // For initial load or explicit search
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isTransitioning, startTransition] = useTransition(); // For actions within list items like proof upload revalidation
+  const [isTransitioning, startTransition] = useTransition();
   const { toast } = useToast();
   const [districts, setDistricts] = useState<DistrictSurcharge[]>([]);
   const [noTripsFound, setNoTripsFound] = useState(false);
 
-  // Fetch districts once on mount
   useEffect(() => {
     getDistrictSurcharges().then(setDistricts);
   }, []);
@@ -38,12 +37,12 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
   const handleFetchTrips = () => {
     if (!phone.trim() || !name.trim()) {
       setError('请输入您的手机号码和姓名。');
-      setTrips([]); // Clear previous results if any
+      setTrips([]);
       setNoTripsFound(false);
       return;
     }
     setError(null);
-    setIsLoading(true); // Explicit search loading state
+    setIsLoading(true);
     setNoTripsFound(false);
     startTransition(async () => {
       try {
@@ -64,23 +63,24 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
     });
   };
 
+  // Set initial values from URL params and fetch if both are present
   useEffect(() => {
-    if (phoneFromParam && phoneFromParam.trim() !== '') {
+    if (phoneFromParam && nameFromParam) {
       setPhone(phoneFromParam);
-    }
-    if (nameFromParam && nameFromParam.trim() !== '') {
       setName(nameFromParam);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phoneFromParam, nameFromParam]);
-
-  // Tự động fetch nếu có đủ phone và name từ param
-  useEffect(() => {
-    if (phone && name) {
       handleFetchTrips();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phone, name]);
+  }, [phoneFromParam, nameFromParam]);
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhone(e.target.value);
+    setError(null);
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+    setError(null);
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -99,7 +99,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
                 id="phoneInput"
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={handlePhoneChange}
                 placeholder="e.g., 0912345678"
                 className="text-base"
                 disabled={isLoading || isTransitioning}
@@ -111,13 +111,17 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
                 id="nameInput"
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={handleNameChange}
                 placeholder="e.g., John Doe"
                 className="text-base"
                 disabled={isLoading || isTransitioning}
               />
             </div>
-            <Button onClick={handleFetchTrips} disabled={isLoading || isTransitioning || !phone.trim() || !name.trim()} className="h-10 w-full sm:w-auto">
+            <Button
+              onClick={handleFetchTrips}
+              disabled={isLoading || isTransitioning || !phone.trim() || !name.trim()}
+              className="h-10 w-full sm:w-auto"
+            >
               {(isLoading || isTransitioning) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
               查找行程
             </Button>
