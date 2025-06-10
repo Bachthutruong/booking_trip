@@ -19,6 +19,7 @@ export default function JoinTripPage() {
       <Suspense fallback={<JoinableTripsSkeleton />}>
         {/* Pass initialTrips if fetched via SSR, otherwise component fetches */}
         <JoinableTripsList />
+        {/* {trips.length > 0 && <JoinableTripsList trips={trips} />} */}
       </Suspense>
     </div>
   );
