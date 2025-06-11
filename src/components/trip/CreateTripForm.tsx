@@ -35,7 +35,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 
 const createTripFormSchema = z.object({
   itineraryId: z.string(),
-  date: z.date({ required_error: "请选择日期。" }),
+  date: z.date({ required_error: "選日期。" }),
   time: z.string({ required_error: "请选择时间。" }),
   numberOfPeople: z.coerce.number().min(1, "至少需要一个人。").max(50, "最多50人。"),
   pickupAddress: z.string().optional(),
@@ -299,7 +299,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                     ))}
                   </SelectContent>
                 </Select>
-                <FormDescription>部分区域可能会有附加费。</FormDescription>
+                {/* <FormDescription>部分区域可能会有附加费。</FormDescription> */}
                 <FormMessage />
               </FormItem>
             )}
@@ -330,7 +330,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
             name="district"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />区域（在河内接您）</FormLabel>
+                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />台南區域</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -345,7 +345,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                     ))}
                   </SelectContent>
                 </Select>
-                <FormDescription>部分区域可能会有附加费。</FormDescription>
+                {/* <FormDescription>部分区域可能会有附加费。</FormDescription> */}
                 <FormMessage />
               </FormItem>
             )}
@@ -356,9 +356,9 @@ export default function CreateTripForm({ itinerary, districts, additionalService
             name="pickupAddress"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />接送地址（在河内）*</FormLabel>
+                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />上車地址*</FormLabel>
                 <FormControl>
-                  <Input placeholder="例如：456 P. Lý Thường Kiệt, Hoàn Kiếm" {...field} />
+                  <Input placeholder="例如：456 台南市中西區" {...field} />
                 </FormControl>
                 <FormDescription>我们将在河内哪里接您？</FormDescription>
                 <FormMessage />
@@ -416,7 +416,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                             {field.value ? (
                               format(field.value, "PPP")
                             ) : (
-                              <span>请选择日期</span>
+                              <span>選日期</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -446,7 +446,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 name="time"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center"><Clock className="h-4 w-4 mr-2 text-primary" />时间 *</FormLabel>
+                    <FormLabel className="flex items-center"><Clock className="h-4 w-4 mr-2 text-primary" />時間 *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -470,7 +470,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
               name="numberOfPeople"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />人数 *</FormLabel>
+                  <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />人數 *</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="例如：2" {...field} min="1" />
                   </FormControl>
@@ -486,7 +486,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
               name="contactName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />联系人姓名 *</FormLabel>
+                  <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />聯絡人姓名 （此名會用來查詢共乘） *</FormLabel>
                   <FormControl>
                     <Input placeholder="您的姓名" {...field} />
                   </FormControl>
@@ -499,7 +499,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
               name="contactPhone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary" />联系电话 *</FormLabel>
+                  <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary" />聯絡人電話 （此電話會用來查詢共乘） *</FormLabel>
                   <FormControl>
                     <Input type="tel" placeholder="您的手机号" {...field} />
                   </FormControl>
@@ -513,7 +513,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 name="secondaryContactType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center"><Contact className="h-4 w-4 mr-2 text-primary" />备用联系方式类型</FormLabel>
+                    <FormLabel className="flex items-center"><Contact className="h-4 w-4 mr-2 text-primary" />您的第二聯絡方式</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -552,8 +552,8 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 name="additionalServiceIds"
                 render={({ field }) => (
                   <FormItem className="space-y-4">
-                    <FormLabel className="text-base">附加服务</FormLabel>
-                    <FormDescription>请选择您需要的额外服务。</FormDescription>
+                    <FormLabel className="text-base">加購服務</FormLabel>
+                    <FormDescription>請勾選您要加購的服務</FormDescription>
                     {additionalServices.map((service) => (
                       <FormField
                         key={service.id}
@@ -599,10 +599,10 @@ export default function CreateTripForm({ itinerary, districts, additionalService
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><FileText className="h-4 w-4 mr-2 text-primary" />备注（可选）</FormLabel>
+                  <FormLabel className="flex items-center"><FileText className="h-4 w-4 mr-2 text-primary" />備註（非必填）</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="如有特殊要求或补充信息请填写..."
+                      placeholder="如有特殊要求或補充資料請在這裡告訴我們"
                       className="resize-none"
                       {...field}
                     />
@@ -617,9 +617,9 @@ export default function CreateTripForm({ itinerary, districts, additionalService
               name="discountCode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><TicketPercent className="h-4 w-4 mr-2 text-primary" />折扣码（可选）</FormLabel>
+                  <FormLabel className="flex items-center"><TicketPercent className="h-4 w-4 mr-2 text-primary" />折價卷</FormLabel>
                   <FormControl>
-                    <Input placeholder="请输入折扣码" {...field} />
+                    <Input placeholder="請輸入折價卷" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -628,10 +628,10 @@ export default function CreateTripForm({ itinerary, districts, additionalService
 
             <div className="mt-8 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
               <Card className="mb-6 shadow-lg p-6 bg-primary/5">
-                <h3 className="text-xl font-semibold mb-3 flex items-center"><Tag className="h-5 w-5 mr-2 text-primary" />预计价格</h3>
+                <h3 className="text-xl font-semibold mb-3 flex items-center"><Tag className="h-5 w-5 mr-2 text-primary" />預估價格</h3>
                 <p className="text-3xl font-bold text-primary">{calculatedPrice.toLocaleString()} 元</p>
                 {discountMessage && <p className={`text-xs mt-1 ${appliedDiscount ? 'text-green-600' : 'text-destructive'}`}>{discountMessage}</p>}
-                <p className="text-xs text-muted-foreground mt-1">最终价格以所选内容为准。</p>
+                <p className="text-xs text-muted-foreground mt-1">最終價格以所選內容為準。</p>
                 {/* --- BEGIN: Price breakdown details --- */}
                 <div className="mt-4 bg-white dark:bg-muted/30 rounded-lg border p-4 text-sm">
                   <div className="flex justify-between mb-1">
@@ -646,7 +646,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                   )}
                   {priceBreakdown.services.length > 0 && (
                     <div className="mb-1">
-                      <span>附加服务:</span>
+                      <span>加購服務:</span>
                       <ul className="ml-4 mt-1">
                         {priceBreakdown.services.map((s, idx) => (
                           <li key={idx} className="flex justify-between">
@@ -658,7 +658,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                     </div>
                   )}
                   <div className="flex justify-between font-semibold border-t pt-2 mt-2">
-                    <span>小计:</span>
+                    <span>小計:</span>
                     <span>{priceBreakdown.subtotal.toLocaleString()} 元</span>
                   </div>
                   {priceBreakdown.discountLabel && (
@@ -668,7 +668,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                     </div>
                   )}
                   <div className="flex justify-between font-bold border-t pt-2 mt-2 text-primary text-lg">
-                    <span>总计:</span>
+                    <span>總計:</span>
                     <span>{calculatedPrice.toLocaleString()} 元</span>
                   </div>
                 </div>
@@ -683,7 +683,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                   正在提交...
                 </>
               ) : (
-                '提交行程预订'
+                ' 發起共乘'
               )}
             </Button>
           </form>

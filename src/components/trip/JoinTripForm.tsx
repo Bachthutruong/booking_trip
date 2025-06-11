@@ -487,7 +487,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                         </div>
                       )}
                       <div className="flex justify-between font-semibold border-t pt-2 mt-2">
-                        <span>小计:</span>
+                        <span>小計:</span>
                         <span>{priceBreakdown.subtotal.toLocaleString()} 元</span>
                       </div>
                       {priceBreakdown.discountLabel && (
@@ -497,7 +497,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                         </div>
                       )}
                       <div className="flex justify-between font-bold border-t pt-2 mt-2 text-primary text-base">
-                        <span>总计:</span>
+                        <span>總計:</span>
                         <span>{calculatedPrice.toLocaleString()} 元</span>
                       </div>
                     </div>

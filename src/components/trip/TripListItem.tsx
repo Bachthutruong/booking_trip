@@ -195,7 +195,7 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
       <CardContent className="space-y-3 text-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
           <p className="flex items-center"><CalendarDays className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>日期:</strong>&nbsp;{formattedDate}</p>
-          <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>时间:</strong>&nbsp;{trip.time}</p>
+          <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>時間:</strong>&nbsp;{trip.time}</p>
           <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>总人数:</strong>&nbsp;{trip.participants.reduce((sum, p) => sum + (p.numberOfPeople || 0), 0)}</p>
           <p className="flex items-center"><CreditCard className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>总价:</strong>&nbsp;{maskIfNotMainContact(currentUserParticipant ? currentUserParticipant.pricePaid.toLocaleString() : 0)} 元</p>
         </div>
@@ -250,7 +250,7 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
                       <li>行程价格: {isCurrentUser ? p.pricePaid.toLocaleString() + ' 元' : '*****'}</li>
                       <li>区域: {districtName}{isCurrentUser && districtSurcharge > 0 ? ` (+${districtSurcharge.toLocaleString()} 元)` : ''}</li>
                       <li>地址: {address}</li>
-                      <li>附加服务: {additionalServices}</li>
+                      <li>加購服務: {additionalServices}</li>
                     </ul>
                   </li>
                 );

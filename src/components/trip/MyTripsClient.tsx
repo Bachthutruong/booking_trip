@@ -55,7 +55,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
         }
       } catch (err) {
         console.error("Error fetching trips:", err);
-        setError('无法加载行程。请检查您的连接并重试。');
+        setError('查無資料，請確認聯絡電話和姓名');
         toast({ title: "错误", description: "无法加载行程。", variant: "destructive" });
       } finally {
         setIsLoading(false);
@@ -86,14 +86,14 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
     <div className="max-w-3xl mx-auto space-y-8">
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="font-headline">查找您的预订</CardTitle>
-          <CardDescription>输入您在预订时使用的手机号码以查看您的行程详情。</CardDescription>
+          <CardTitle className="font-headline">查詢您的共乘</CardTitle>
+          <CardDescription>請輸入您在發起共乘或加入共乘時輸入的姓名和聯絡電話</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-grow">
               <label htmlFor="phoneInput" className="block text-sm font-medium text-foreground mb-1">
-                您的手机号码
+              您的聯絡電話
               </label>
               <Input
                 id="phoneInput"
@@ -123,7 +123,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
               className="h-10 w-full sm:w-auto"
             >
               {(isLoading || isTransitioning) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-              查找行程
+              查詢
             </Button>
           </div>
           {error && <p className="mt-2 text-sm text-destructive">{error}</p>}

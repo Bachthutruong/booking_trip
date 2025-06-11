@@ -141,7 +141,7 @@ export default function FeedbackForm() {
             />
             {/* <Button type="button" variant="outline" onClick={handleFetchUserTrips} disabled={isFetchingTrips || !phoneForTrips.trim()}>
                     {isFetchingTrips ? <Loader2 className="h-4 w-4 animate-spin"/> : <Search className="h-4 w-4"/>}
-                    <span className="ml-2 hidden sm:inline">查找行程</span>
+                    <span className="ml-2 hidden sm:inline">查詢</span>
                 </Button> */}
           </div>
           <FormDescription>如果你的反馈是关于特定行程，请输入你的电话号码以选择它。</FormDescription>

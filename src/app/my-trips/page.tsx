@@ -13,7 +13,7 @@ export default function MyTripsPage({
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-4xl font-bold mb-10 text-center font-headline">管理您的旅程</h1>
+      <h1 className="text-4xl font-bold mb-10 text-center font-headline">管理您的共乘</h1>
       <Suspense fallback={<MyTripsSkeleton />}>
         <MyTripsClient tripIdFromParam={tripIdFromParam} phoneFromParam={phoneFromParam} nameFromParam={nameFromParam} />
       </Suspense>

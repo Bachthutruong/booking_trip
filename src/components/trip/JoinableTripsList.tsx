@@ -58,7 +58,7 @@ export default function JoinableTripsList() {
         setHasMore(skip + newTrips.length < totalCount);
       } catch (err) {
         console.error("Failed to fetch joinable trips: ", err);
-        setError("无法加载行程。请检查您的连接并重试。");
+        setError("查無資料，請確認聯絡電話和姓名");
         setTrips([]);
         setHasMore(false);
       }
