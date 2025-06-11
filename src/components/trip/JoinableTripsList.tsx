@@ -49,13 +49,13 @@ export default function JoinableTripsList() {
   // Avoid race condition when switching filter/search fast
   const fetchIdRef = useRef(0);
 
-  const fetchTrips = useCallback(async (isNewSearch = false) => {
-    if (isLoading) return;
+  // Fetch trips for a given page
+  const fetchTrips = useCallback(async (pageToFetch: number, isNewSearch = false) => {
     setError(null);
     const fetchId = ++fetchIdRef.current;
     startTransition(async () => {
       try {
-        const skip = isNewSearch ? 0 : (page - 1) * ITEMS_PER_PAGE;
+        const skip = isNewSearch ? 0 : (pageToFetch - 1) * ITEMS_PER_PAGE;
         const limit = isNewSearch ? INITIAL_ITEMS : ITEMS_PER_PAGE;
         const { trips: newTrips, total: totalCount } = await getJoinableTripsPaginated(
           limit,
@@ -63,9 +63,8 @@ export default function JoinableTripsList() {
           debouncedSearchTerm,
           debouncedSelectedType || undefined
         );
-        // Only update if this is the latest fetch
         if (fetchId !== fetchIdRef.current) return;
-        if (isNewSearch) {
+        if (isNewSearch || pageToFetch === 1) {
           setTrips(newTrips);
           setPage(1);
         } else {
@@ -81,29 +80,36 @@ export default function JoinableTripsList() {
         setHasMore(false);
       }
     });
-  }, [page, debouncedSearchTerm, debouncedSelectedType, isLoading]);
+  }, [debouncedSearchTerm, debouncedSelectedType]);
 
-  const handleFilterChange = (type: string | null) => {
-    setSelectedType(type);
-    setPage(1);
-    setTrips([]); // Clear existing trips before new filter
-  };
-
-  // Initial load and filter changes (debounced)
+  // Khi filter/search đổi, reset page về 1, trips về rỗng, và fetch lại
   useEffect(() => {
-    fetchTrips(true);
+    setTrips([]);
+    setPage(1);
+    fetchTrips(1, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, debouncedSelectedType]);
 
-  // Load more when scrolling
+  // Khi scroll (inView), chỉ tăng page nếu còn hasMore và không loading
   useEffect(() => {
-    if (inView && hasMore && !isLoading) {
+    if (inView && hasMore) {
       setPage(prev => prev + 1);
-      fetchTrips();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView, hasMore, isLoading, fetchTrips]);
-  console.log(trips,'trips');
+  }, [inView, hasMore]);
+
+  // Khi page thay đổi (và page > 1), fetch trips tiếp theo
+  useEffect(() => {
+    if (page > 1) {
+      fetchTrips(page);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  const handleFilterChange = (type: string | null) => {
+    setSelectedType(type);
+    // Không cần setTrips([]) và setPage(1) ở đây nữa vì đã làm ở effect trên
+  };
 
   if (isLoading && trips.length === 0) {
     return (
@@ -126,7 +132,7 @@ export default function JoinableTripsList() {
         <AlertTitle>加载错误</AlertTitle>
         <AlertDescription>
           {error}
-          <Button onClick={() => fetchTrips(true)} variant="link" className="p-0 h-auto ml-1 text-destructive hover:underline">
+          <Button onClick={() => fetchTrips(1, true)} variant="link" className="p-0 h-auto ml-1 text-destructive hover:underline">
             重试
           </Button>
         </AlertDescription>
