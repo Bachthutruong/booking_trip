@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { format, addWeeks, isBefore } from 'date-fns';
 import { verifyAdminToken } from './adminAuthActions';
+import redis from '@/lib/redis';
 
 // Helper to map MongoDB document to Trip type
 async function mapDocumentToTrip(doc: any): Promise<Trip> {
@@ -359,7 +360,8 @@ export async function createTrip(values: CreateTripFormValues & { date: string }
   newTrip.participants.push(mainBookerParticipant);
 
   try {
-    await tripsCollection.insertOne(newTrip);
+    const result = await tripsCollection.insertOne(newTrip);
+    await redis.keys('trips:*').then(keys => keys.length && redis.del(...keys));
 
     // Increment usedCount for the discount code if it was used
     if (data.discountCode) {
@@ -389,7 +391,37 @@ export async function getUserTrips(phone: string, name: string): Promise<Trip[]>
       { $and: [{ contactPhone: phone }, { contactName: name }] },
       { participants: { $elemMatch: { phone: phone, name: name } } }
     ]
-  }).sort({ createdAt: -1 }).toArray();
+  }, {
+    projection: {
+      _id: 1,
+      id: 1,
+      itineraryId: 1,
+      itineraryName: 1,
+      itineraryType: 1,
+      date: 1,
+      time: 1,
+      numberOfPeople: 1,
+      pickupAddress: 1,
+      dropoffAddress: 1,
+      contactName: 1,
+      contactPhone: 1,
+      secondaryContact: 1,
+      notes: 1,
+      status: 1,
+      creatorUserId: 1,
+      participants: 1,
+      totalPrice: 1,
+      district: 1,
+      additionalServiceIds: 1,
+      discountCode: 1,
+      createdAt: 1,
+      handoverComment: 1,
+      isDeleted: 1,
+    }
+  })
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .toArray();
   return await Promise.all(userTripDocs.map(mapDocumentToTrip));
 }
 
@@ -669,6 +701,7 @@ export async function deleteTrip(tripId: string, currentUser: { id: string, user
     { id: tripId },
     { $set: { isDeleted: true, deletedAt: now, deletedBy: currentUser.username } }
   );
+  await redis.keys('trips:*').then(keys => keys.length && redis.del(...keys));
   if (result.modifiedCount > 0) {
     revalidatePath('/my-trips');
     revalidatePath('/admin/trips');
@@ -715,6 +748,12 @@ function calcOverallStatus(trip: any): string {
 }
 
 export async function getTripsPaginated(limit: number, skip: number, searchTerm?: string, statusFilter?: string): Promise<any[]> {
+  const cacheKey = `trips:${limit}:${skip}:${searchTerm || ''}:${statusFilter || ''}`;
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
   const tripsCollection = await getTripsCollection();
   const filter: any = { isDeleted: { $ne: true } };
   if (searchTerm && searchTerm.trim() !== '') {
@@ -726,6 +765,9 @@ export async function getTripsPaginated(limit: number, skip: number, searchTerm?
       { contactPhone: regex },
       { itineraryName: regex },
     ];
+  }
+  if (statusFilter === 'pending_payment' || statusFilter === 'payment_confirmed') {
+    filter['overallStatus'] = statusFilter;
   }
   const tripDocs = await tripsCollection.find(filter, {
     projection: {
@@ -741,26 +783,16 @@ export async function getTripsPaginated(limit: number, skip: number, searchTerm?
       status: 1,
       participants: 1,
       createdAt: 1,
+      overallStatus: 1,
     }
   })
     .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
     .toArray();
-  // Tính overallStatus cho từng trip và filter ở phía server
-  const filtered = tripDocs.filter(doc => {
-    const overallStatus = calcOverallStatus(doc);
-    if (statusFilter === 'pending_payment') {
-      return overallStatus === 'pending_payment';
-    }
-    if (statusFilter === 'payment_confirmed') {
-      return overallStatus === 'payment_confirmed';
-    }
-    return true;
-  });
-  // Phân trang sau khi filter
-  return filtered.slice(skip, skip + limit).map(doc => {
+  const result = tripDocs.map(doc => {
     const participants = Array.isArray(doc.participants) ? doc.participants : [];
     const participantsCount = participants.length;
-    const overallStatus = calcOverallStatus(doc);
     return {
       id: doc.id || doc._id?.toString(),
       itineraryName: doc.itineraryName,
@@ -772,10 +804,12 @@ export async function getTripsPaginated(limit: number, skip: number, searchTerm?
       totalPrice: doc.totalPrice,
       status: doc.status,
       participantsCount,
-      overallStatus,
+      overallStatus: doc.overallStatus,
       createdAt: doc.createdAt,
     };
   });
+  await redis.set(cacheKey, JSON.stringify(result), 'EX', 30);
+  return result;
 }
 
 export async function getTripsCount(searchTerm?: string, statusFilter?: string): Promise<number> {
@@ -791,36 +825,10 @@ export async function getTripsCount(searchTerm?: string, statusFilter?: string):
       { itineraryName: regex },
     ];
   }
-  const tripDocs = await tripsCollection.find(filter, {
-    projection: {
-      _id: 1,
-      id: 1,
-      itineraryName: 1,
-      itineraryType: 1,
-      date: 1,
-      time: 1,
-      contactName: 1,
-      contactPhone: 1,
-      totalPrice: 1,
-      status: 1,
-      participants: 1,
-      createdAt: 1,
-    }
-  })
-    .sort({ createdAt: -1 })
-    .toArray();
-  // Tính overallStatus cho từng trip và filter ở phía server
-  const filtered = tripDocs.filter(doc => {
-    const overallStatus = calcOverallStatus(doc);
-    if (statusFilter === 'pending_payment') {
-      return overallStatus === 'pending_payment';
-    }
-    if (statusFilter === 'payment_confirmed') {
-      return overallStatus === 'payment_confirmed';
-    }
-    return true;
-  });
-  return filtered.length;
+  if (statusFilter === 'pending_payment' || statusFilter === 'payment_confirmed') {
+    filter['overallStatus'] = statusFilter;
+  }
+  return await tripsCollection.countDocuments(filter);
 }
 
 export async function updateTripComment(tripId: string, comment: string): Promise<{ success: boolean; message: string }> {

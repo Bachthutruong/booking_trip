@@ -16,9 +16,13 @@ export async function POST(req: Request, { params }: { params: { userId: string 
     { $set: update }
   );
   if (result.modifiedCount > 0) {
-    return NextResponse.json({ success: true });
+    const res = NextResponse.json({ success: true });
+    res.headers.set('Cache-Control', 'no-store');
+    return res;
   }
-  return NextResponse.json({ success: false, message: '無法更新用戶' });
+  const res = NextResponse.json({ success: false, message: '無法更新用戶' });
+  res.headers.set('Cache-Control', 'no-store');
+  return res;
 }
 
 export async function DELETE(req: Request, { params }: { params: { userId: string } }) {
@@ -26,7 +30,11 @@ export async function DELETE(req: Request, { params }: { params: { userId: strin
   const usersCollection = await getAdminUsersCollection();
   const result = await usersCollection.deleteOne({ id: userId });
   if (result.deletedCount > 0) {
-    return NextResponse.json({ success: true });
+    const res = NextResponse.json({ success: true });
+    res.headers.set('Cache-Control', 'no-store');
+    return res;
   }
-  return NextResponse.json({ success: false, message: '無法刪除用戶' });
+  const res = NextResponse.json({ success: false, message: '無法刪除用戶' });
+  res.headers.set('Cache-Control', 'no-store');
+  return res;
 } 

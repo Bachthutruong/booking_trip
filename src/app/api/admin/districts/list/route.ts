@@ -12,10 +12,12 @@ export async function GET(req: NextRequest) {
     .skip((page - 1) * pageSize)
     .limit(pageSize)
     .toArray();
-  return NextResponse.json({
+  const res = NextResponse.json({
     districts: districts.map(d => ({ ...d, id: d._id.toString() })),
     total,
     page,
     pageSize,
   });
+  res.headers.set('Cache-Control', 'public, max-age=60');
+  return res;
 } 

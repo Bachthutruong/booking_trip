@@ -17,12 +17,13 @@ interface MyTripsClientProps {
   tripIdFromParam?: string;
   phoneFromParam?: string;
   nameFromParam?: string;
+  serverTrips?: Trip[];
 }
 
-export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFromParam }: MyTripsClientProps) {
+export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFromParam, serverTrips }: MyTripsClientProps) {
   const [phone, setPhone] = useState(phoneFromParam || '');
   const [name, setName] = useState(nameFromParam || '');
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useState<Trip[]>(serverTrips || []);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isTransitioning, startTransition] = useTransition();
@@ -65,12 +66,17 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
 
   // Set initial values from URL params and fetch if both are present
   useEffect(() => {
-    if (phoneFromParam && nameFromParam) {
+    if (serverTrips && serverTrips.length > 0) {
+      setTrips(serverTrips);
+      setNoTripsFound(false);
+      return;
+    }
+    if (phoneFromParam && nameFromParam && (!serverTrips || serverTrips.length === 0)) {
       setPhone(phoneFromParam);
       setName(nameFromParam);
       handleFetchTrips();
     }
-  }, [phoneFromParam, nameFromParam]);
+  }, [phoneFromParam, nameFromParam, serverTrips]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhone(e.target.value);

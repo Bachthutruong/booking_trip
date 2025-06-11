@@ -16,14 +16,18 @@ export async function POST(req: Request) {
     const json = await req.json();
     const validation = userSchema.safeParse(json);
     if (!validation.success) {
-      return NextResponse.json({ success: false, message: validation.error.errors.map(e => e.message).join(', ') }, { status: 400 });
+      const res = NextResponse.json({ success: false, message: validation.error.errors.map(e => e.message).join(', ') }, { status: 400 });
+      res.headers.set('Cache-Control', 'no-store');
+      return res;
     }
     const { username, password, role } = validation.data;
     const adminUsersCollection = await getAdminUsersCollection();
     // Check if username already exists
     const existingUser = await adminUsersCollection.findOne({ username });
     if (existingUser) {
-      return NextResponse.json({ success: false, message: '用戶名稱已存在' }, { status: 409 });
+      const res = NextResponse.json({ success: false, message: '用戶名稱已存在' }, { status: 409 });
+      res.headers.set('Cache-Control', 'no-store');
+      return res;
     }
     // Hash the password
     const passwordHash = await bcrypt.hash(password, 10);
@@ -39,12 +43,18 @@ export async function POST(req: Request) {
     };
     const result = await adminUsersCollection.insertOne(newUser as any);
     if (result.acknowledged) {
-      return NextResponse.json({ success: true, message: '用戶帳號已成功創建' });
+      const res = NextResponse.json({ success: true, message: '用戶帳號已成功創建' });
+      res.headers.set('Cache-Control', 'no-store');
+      return res;
     } else {
-      return NextResponse.json({ success: false, message: '無法創建用戶帳號' }, { status: 500 });
+      const res = NextResponse.json({ success: false, message: '無法創建用戶帳號' }, { status: 500 });
+      res.headers.set('Cache-Control', 'no-store');
+      return res;
     }
   } catch (error) {
     console.error('API Admin user creation error:', error);
-    return NextResponse.json({ success: false, message: '在創建用戶時發生意外錯誤' }, { status: 500 });
+    const res = NextResponse.json({ success: false, message: '在創建用戶時發生意外錯誤' }, { status: 500 });
+    res.headers.set('Cache-Control', 'no-store');
+    return res;
   }
 } 
