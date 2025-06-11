@@ -16,10 +16,19 @@ function mapDocumentToItinerary(doc: any): Itinerary {
   };
 }
 
-export async function getItineraries(): Promise<Itinerary[]> {
+export async function getItineraries(limit: number = 0): Promise<Itinerary[]> {
   const itinerariesCollection = await getItinerariesCollection();
-  const itineraries = await itinerariesCollection.find({}).sort({ name: 1 }).toArray();
-  return itineraries.map(mapDocumentToItinerary);
+  const cursor = itinerariesCollection.find({}, { projection: { _id: 1, name: 1, type: 1, pricePerPerson: 1, description: 1, imageUrl: 1, availableTimes: 1 } }).sort({ name: 1 });
+  if (limit > 0) cursor.limit(limit);
+  const itineraries = await cursor.toArray();
+  return itineraries.map(doc => {
+    return {
+      ...doc,
+      id: doc._id.toString(),
+      _id: doc._id,
+      availableTimes: Array.isArray(doc.availableTimes) ? doc.availableTimes : [],
+    };
+  });
 }
 
 export async function getItineraryById(id: string): Promise<Itinerary | null> {

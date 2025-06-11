@@ -12,9 +12,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default async function Home() { // Make the component async
-  const allItineraries = await getItineraries();
+  const allItineraries = await getItineraries(3); // Chỉ lấy top 3
   // Display the first 3 itineraries or fewer if not enough data
-  const popularItineraries = allItineraries.slice(0, 3);
+  const popularItineraries = allItineraries;
 
   return (
     <div className="space-y-12">
