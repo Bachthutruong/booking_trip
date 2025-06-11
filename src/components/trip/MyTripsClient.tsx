@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { getDistrictSurcharges } from '@/actions/configActions';
 import type { DistrictSurcharge } from '@/lib/types';
+import useSWR from 'swr';
 
 interface MyTripsClientProps {
   tripIdFromParam?: string;
@@ -23,58 +24,34 @@ interface MyTripsClientProps {
 export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFromParam, serverTrips }: MyTripsClientProps) {
   const [phone, setPhone] = useState(phoneFromParam || '');
   const [name, setName] = useState(nameFromParam || '');
-  const [trips, setTrips] = useState<Trip[]>(serverTrips || []);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isTransitioning, startTransition] = useTransition();
-  const { toast } = useToast();
   const [districts, setDistricts] = useState<DistrictSurcharge[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [noTripsFound, setNoTripsFound] = useState(false);
+  const { toast } = useToast();
+
+  // SWR fetcher
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  const shouldFetch = phone.trim() && name.trim();
+  const { data, isLoading, mutate, isValidating } = useSWR(
+    shouldFetch ? `/api/my-trips?phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(name)}` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  const trips: Trip[] = data?.trips || [];
 
   useEffect(() => {
     getDistrictSurcharges().then(setDistricts);
   }, []);
 
-  const handleFetchTrips = () => {
-    if (!phone.trim() || !name.trim()) {
-      setError('请输入您的手机号码和姓名。');
-      setTrips([]);
-      setNoTripsFound(false);
-      return;
-    }
-    setError(null);
-    setIsLoading(true);
-    setNoTripsFound(false);
-    startTransition(async () => {
-      try {
-        const fetchedTrips = await getUserTrips(phone, name);
-        setTrips(fetchedTrips);
-        if (fetchedTrips.length === 0) {
-          setNoTripsFound(true);
-        } else {
-          setNoTripsFound(false);
-        }
-      } catch (err) {
-        console.error("Error fetching trips:", err);
-        setError('查無資料，請確認聯絡電話和姓名');
-        toast({ title: "错误", description: "无法加载行程。", variant: "destructive" });
-      } finally {
-        setIsLoading(false);
-      }
-    });
-  };
-
   // Set initial values from URL params and fetch if both are present
   useEffect(() => {
     if (serverTrips && serverTrips.length > 0) {
-      setTrips(serverTrips);
+      // Nếu có trips từ server, không fetch lại
       setNoTripsFound(false);
       return;
     }
     if (phoneFromParam && nameFromParam && (!serverTrips || serverTrips.length === 0)) {
-      setPhone(phoneFromParam);
-      setName(nameFromParam);
-      handleFetchTrips();
+      setNoTripsFound(false);
     }
   }, [phoneFromParam, nameFromParam, serverTrips]);
 
@@ -87,6 +64,24 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
     setName(e.target.value);
     setError(null);
   };
+
+  const handleFetchTrips = () => {
+    if (!phone.trim() || !name.trim()) {
+      setError('请输入您的手机号码和姓名。');
+      setNoTripsFound(false);
+      return;
+    }
+    setError(null);
+    mutate(); // Gọi lại SWR fetch
+  };
+
+  useEffect(() => {
+    if (!isLoading && shouldFetch && trips.length === 0) {
+      setNoTripsFound(true);
+    } else {
+      setNoTripsFound(false);
+    }
+  }, [isLoading, shouldFetch, trips.length]);
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -108,7 +103,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
                 onChange={handlePhoneChange}
                 placeholder="e.g., 0912345678"
                 className="text-base"
-                disabled={isLoading || isTransitioning}
+                disabled={isLoading || isValidating}
               />
               <label htmlFor="nameInput" className="block text-sm font-medium text-foreground mt-4 mb-1">
                 您的姓名
@@ -120,15 +115,15 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
                 onChange={handleNameChange}
                 placeholder="e.g., John Doe"
                 className="text-base"
-                disabled={isLoading || isTransitioning}
+                disabled={isLoading || isValidating}
               />
             </div>
             <Button
               onClick={handleFetchTrips}
-              disabled={isLoading || isTransitioning || !phone.trim() || !name.trim()}
+              disabled={isLoading || isValidating || !phone.trim() || !name.trim()}
               className="h-10 w-full sm:w-auto"
             >
-              {(isLoading || isTransitioning) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+              {(isLoading || isValidating) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
               查詢
             </Button>
           </div>
@@ -136,7 +131,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
         </CardContent>
       </Card>
 
-      {noTripsFound && !isLoading && (
+      {noTripsFound && !isLoading && shouldFetch && (
         <div className="text-center py-6">
           <Alert variant="default" className="max-w-xl mx-auto">
             <Info className="h-5 w-5 mr-2" />
@@ -163,8 +158,8 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
               key={trip.id}
               trip={trip}
               highlight={trip.id === tripIdFromParam}
-              onActionStart={() => startTransition(() => { })}
-              onActionComplete={() => handleFetchTrips()}
+              onActionStart={() => {}}
+              onActionComplete={() => mutate()}
               currentUsersPhone={phone}
               districts={districts}
             />

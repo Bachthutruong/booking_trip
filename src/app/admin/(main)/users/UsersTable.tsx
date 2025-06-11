@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import useSWR from 'swr';
+import type { AdminUser } from '@/lib/types';
 
-export default function UsersTable({ users: initialUsers }: { users: any[] }) {
+export default function UsersTable() {
   // Dialog state for edit
   const [openEdit, setOpenEdit] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -26,19 +28,10 @@ export default function UsersTable({ users: initialUsers }: { users: any[] }) {
   const [openDelete, setOpenDelete] = useState(false);
   const [userToDelete, setUserToDelete] = useState<any | null>(null);
 
-  const [users, setUsers] = useState(initialUsers);
-
-  // Refetch users
-  const fetchUsers = async () => {
-    const res = await fetch('/api/admin/users/list');
-    const data = await res.json();
-    setUsers(data.users);
-  };
-
-  // Khi mở trang lần đầu, đồng bộ users nếu props thay đổi (SSR -> CSR)
-  useEffect(() => {
-    setUsers(initialUsers);
-  }, [initialUsers]);
+  // SWR fetcher
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  const { data, isLoading, mutate } = useSWR('/api/admin/users/list', fetcher, { revalidateOnFocus: false });
+  const users = data?.users || [];
 
   const handleEdit = (user: any) => {
     setSelectedUser(user);
@@ -61,7 +54,7 @@ export default function UsersTable({ users: initialUsers }: { users: any[] }) {
       if (!result.success) setError(result.message);
       else {
         setOpenEdit(false);
-        await fetchUsers();
+        await mutate();
       }
     } catch (e: any) {
       setError(e.message || 'Error');
@@ -88,7 +81,7 @@ export default function UsersTable({ users: initialUsers }: { users: any[] }) {
       if (!result.success) setCreateError(result.message);
       else {
         setOpenCreate(false);
-        await fetchUsers();
+        await mutate();
       }
     } catch (e: any) {
       setCreateError(e.message || 'Error');
@@ -115,7 +108,7 @@ export default function UsersTable({ users: initialUsers }: { users: any[] }) {
       else {
         setOpenDelete(false);
         setUserToDelete(null);
-        await fetchUsers();
+        await mutate();
       }
     } catch (e: any) {
       setError(e.message || 'Error');
@@ -141,7 +134,7 @@ export default function UsersTable({ users: initialUsers }: { users: any[] }) {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {users.map((user: AdminUser) => (
               <tr key={user.id}>
                 <td className="px-4 py-2">{user.username}</td>
                 <td className="px-4 py-2 capitalize">{user.role}</td>

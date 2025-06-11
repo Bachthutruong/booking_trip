@@ -17,14 +17,24 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
+import useSWR from 'swr';
+import type { Trip } from '@/lib/types';
 
-export default function TripsTable({ trips, totalTrips, currentUser }: { trips: any[]; totalTrips: number; currentUser: { id: string, username: string, role: 'admin' | 'staff' } }) {
+export default function TripsTable({ currentUser }: { currentUser: { id: string, username: string, role: 'admin' | 'staff' } }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1', 10);
+  const search = searchParams.get('search') || '';
+  const status = searchParams.get('status') || '';
   const PAGE_SIZE = 10;
+
+  // SWR fetcher
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  const { data, isLoading, mutate } = useSWR(`/api/admin/trips/list?page=${page}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`, fetcher, { revalidateOnFocus: false });
+  const trips = data?.trips || [];
+  const totalTrips = data?.totalTrips || 0;
   const totalPages = Math.ceil(totalTrips / PAGE_SIZE);
 
   const handleDelete = async (tripId: string, status: string) => {
@@ -38,6 +48,7 @@ export default function TripsTable({ trips, totalTrips, currentUser }: { trips: 
     setDeletingId(null);
     setConfirmId(null);
     if (result.success) {
+      mutate();
       router.refresh();
     } else {
       alert(result.message);
@@ -59,7 +70,7 @@ export default function TripsTable({ trips, totalTrips, currentUser }: { trips: 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {trips.map((trip) => (
+            {trips.map((trip: Trip) => (
               <TableRow key={trip.id}>
                 <TableCell className="font-mono text-xs">{trip.id}</TableCell>
                 <TableCell className="font-medium">

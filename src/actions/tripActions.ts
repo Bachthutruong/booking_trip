@@ -941,12 +941,56 @@ export async function getJoinableTripsPaginated(limit: number, skip: number, sea
   }
 
   const total = await tripsCollection.countDocuments(filter);
-  const tripDocs = await tripsCollection.find(filter)
+  const tripDocs = await tripsCollection.find(filter, {
+    projection: {
+      _id: 1,
+      id: 1,
+      itineraryName: 1,
+      itineraryType: 1,
+      date: 1,
+      time: 1,
+      contactName: 1,
+      contactPhone: 1,
+      totalPrice: 1,
+      status: 1,
+      participants: 1,
+      createdAt: 1,
+      overallStatus: 1,
+    }
+  })
     .sort({ date: 1, time: 1 })
     .skip(skip)
     .limit(limit)
     .toArray();
 
-  const trips = await Promise.all(tripDocs.map(mapDocumentToTrip));
+  // Không gọi mapDocumentToTrip nữa!
+  // Chỉ map sang Trip đơn giản (nếu cần)
+  const trips = tripDocs.map(doc => ({
+    id: doc.id || doc._id?.toString(),
+    itineraryId: doc.itineraryId || '',
+    itineraryName: doc.itineraryName,
+    itineraryType: doc.itineraryType,
+    date: doc.date,
+    time: doc.time,
+    numberOfPeople: doc.numberOfPeople || 0,
+    pickupAddress: doc.pickupAddress || '',
+    dropoffAddress: doc.dropoffAddress || '',
+    contactName: doc.contactName,
+    contactPhone: doc.contactPhone,
+    secondaryContact: doc.secondaryContact || '',
+    notes: doc.notes || '',
+    status: doc.status,
+    creatorUserId: doc.creatorUserId || '',
+    participants: doc.participants || [],
+    totalPrice: doc.totalPrice || 0,
+    district: doc.district || '',
+    additionalServiceIds: doc.additionalServiceIds || [],
+    discountCode: doc.discountCode || '',
+    createdAt: doc.createdAt,
+    overallStatus: doc.overallStatus,
+    isDeleted: doc.isDeleted || false,
+    handoverComment: doc.handoverComment || '',
+  }));
+
   return { trips, total };
 }
