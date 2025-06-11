@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -21,9 +20,10 @@ import { deleteItinerary } from '@/actions/itineraryActions';
 interface DeleteItineraryButtonProps {
   itineraryId: string;
   itineraryName: string;
+  onDeleted?: () => void;
 }
 
-export function DeleteItineraryButton({ itineraryId, itineraryName }: DeleteItineraryButtonProps) {
+export function DeleteItineraryButton({ itineraryId, itineraryName, onDeleted }: DeleteItineraryButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -37,7 +37,7 @@ export function DeleteItineraryButton({ itineraryId, itineraryName }: DeleteItin
           description: `"${itineraryName}" 已成功删除。`,
         });
         setIsOpen(false);
-        // Revalidation is handled by the server action
+        if (onDeleted) onDeleted();
       } else {
         toast({
           title: '删除行程失败',

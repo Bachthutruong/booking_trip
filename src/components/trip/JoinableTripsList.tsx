@@ -2,7 +2,7 @@
 
 import type { Trip } from '@/lib/types';
 import JoinableTripCard from './JoinableTripCard';
-import { useState, useEffect, useTransition, useCallback } from 'react';
+import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
 import { Input } from '../ui/input';
 import { Loader2, Search, WifiOff } from 'lucide-react';
 import { getJoinableTripsPaginated } from '@/actions/tripActions';
@@ -16,6 +16,16 @@ import { useInView } from 'react-intersection-observer';
 //   initialTrips: Trip[];
 // }
 
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 export default function JoinableTripsList() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,16 +36,23 @@ export default function JoinableTripsList() {
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
   const INITIAL_ITEMS = 3;
-  const ITEMS_PER_PAGE = 6;
+  const ITEMS_PER_PAGE = 3;
+
+  // Debounced values
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
+  const debouncedSelectedType = useDebounce(selectedType, 200);
 
   const { ref, inView } = useInView({
     threshold: 0,
   });
 
+  // Avoid race condition when switching filter/search fast
+  const fetchIdRef = useRef(0);
+
   const fetchTrips = useCallback(async (isNewSearch = false) => {
     if (isLoading) return;
-
     setError(null);
+    const fetchId = ++fetchIdRef.current;
     startTransition(async () => {
       try {
         const skip = isNewSearch ? 0 : (page - 1) * ITEMS_PER_PAGE;
@@ -43,27 +60,28 @@ export default function JoinableTripsList() {
         const { trips: newTrips, total: totalCount } = await getJoinableTripsPaginated(
           limit,
           skip,
-          searchTerm,
-          selectedType || undefined
+          debouncedSearchTerm,
+          debouncedSelectedType || undefined
         );
-
+        // Only update if this is the latest fetch
+        if (fetchId !== fetchIdRef.current) return;
         if (isNewSearch) {
           setTrips(newTrips);
           setPage(1);
         } else {
           setTrips(prev => [...prev, ...newTrips]);
         }
-
         setTotal(totalCount);
         setHasMore(skip + newTrips.length < totalCount);
       } catch (err) {
+        if (fetchId !== fetchIdRef.current) return;
         console.error("Failed to fetch joinable trips: ", err);
         setError("查無資料，請確認聯絡電話和姓名");
         setTrips([]);
         setHasMore(false);
       }
     });
-  }, [page, searchTerm, selectedType, isLoading]);
+  }, [page, debouncedSearchTerm, debouncedSelectedType, isLoading]);
 
   const handleFilterChange = (type: string | null) => {
     setSelectedType(type);
@@ -71,10 +89,11 @@ export default function JoinableTripsList() {
     setTrips([]); // Clear existing trips before new filter
   };
 
-  // Initial load and filter changes
+  // Initial load and filter changes (debounced)
   useEffect(() => {
     fetchTrips(true);
-  }, [searchTerm, selectedType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchTerm, debouncedSelectedType]);
 
   // Load more when scrolling
   useEffect(() => {
@@ -82,7 +101,9 @@ export default function JoinableTripsList() {
       setPage(prev => prev + 1);
       fetchTrips();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inView, hasMore, isLoading, fetchTrips]);
+  console.log(trips,'trips');
 
   if (isLoading && trips.length === 0) {
     return (
