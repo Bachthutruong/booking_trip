@@ -152,6 +152,7 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
   const overallStatus = getOverallTripStatus(trip); // Calculate overall status
 
   const formattedDate = format(new Date(trip.date), 'EEE, MMM dd, yyyy');
+  console.log(trip, 'trip');
 
   // Find the current user's participant entry based on the phone number from searchParams
   const currentUserParticipant = trip.participants.find(p => p.phone === currentUsersPhone);
@@ -196,19 +197,19 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
           <p className="flex items-center"><CalendarDays className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>日期:</strong>&nbsp;{formattedDate}</p>
           <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>時間:</strong>&nbsp;{trip.time}</p>
-          <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>总人数:</strong>&nbsp;{trip.participants.reduce((sum, p) => sum + (p.numberOfPeople || 0), 0)}</p>
-          <p className="flex items-center"><CreditCard className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>总价:</strong>&nbsp;{maskIfNotMainContact(currentUserParticipant ? currentUserParticipant.pricePaid.toLocaleString() : 0)} 元</p>
+          <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>總人數:</strong>&nbsp;{trip.participants.reduce((sum, p) => sum + (p.numberOfPeople || 0), 0)}</p>
+          {/* <p className="flex items-center"><CreditCard className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>总价:</strong>&nbsp;{maskIfNotMainContact(currentUserParticipant ? currentUserParticipant.pricePaid.toLocaleString() : 0)} 元</p> */}
         </div>
         {/* Only show main contact if current user is main contact */}
-        {isCurrentUserMainContact && (
+        {/* {isCurrentUserMainContact && (
           <p className="flex items-center"><PhoneCall className="h-4 w-4 mr-2 text-primary flex-shrink-0" /> <strong>主联系人:</strong>&nbsp;{trip.contactName} ({trip.contactPhone})</p>
-        )}
-        {trip.pickupAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>接机地址:</strong>&nbsp;{maskIfNotMainContact(trip.pickupAddress)}</p>}
-        {trip.dropoffAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>送机地址:</strong>&nbsp;{maskIfNotMainContact(trip.dropoffAddress)}</p>}
-        {trip.district && <p className="text-xs text-muted-foreground"><strong>区域:</strong> {maskIfNotMainContact(trip.district)}</p>}
-        {trip.additionalServices && trip.additionalServices.length > 0 && (
+        )} */}
+        {/* {trip.pickupAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>接机地址:</strong>&nbsp;{maskIfNotMainContact(trip.pickupAddress)}</p>} */}
+        {/* {trip.dropoffAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>送机地址:</strong>&nbsp;{maskIfNotMainContact(trip.dropoffAddress)}</p>} */}
+        {/* {trip.district && <p className="text-xs text-muted-foreground"><strong>区域:</strong> {maskIfNotMainContact(trip.district)}</p>} */}
+        {/* {trip.additionalServices && trip.additionalServices.length > 0 && (
           <p className="text-xs text-muted-foreground"><strong>额外服务:</strong> {maskServicesIfNotMainContact(trip.additionalServices)}</p>
-        )}
+        )} */}
         {trip.notes && <p className="text-xs text-muted-foreground italic flex items-start"><MessageSquare className="h-3 w-3 mr-1.5 mt-0.5 text-primary flex-shrink-0" /> {maskNotesIfNotMainContact(trip.notes)}</p>}
 
         {trip.participants.length > 0 && (
@@ -252,6 +253,13 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
                       <li>地址: {address}</li>
                       <li>加購服務: {additionalServices}</li>
                     </ul>
+                    {/* Participant note */}
+                    {p.notes && (
+                      <p className="text-xs text-muted-foreground italic flex items-start mt-1">
+                        <MessageSquare className="h-3 w-3 mr-1.5 mt-0.5 text-primary flex-shrink-0" />
+                        {isCurrentUser ? p.notes : '***'}
+                      </p>
+                    )}
                   </li>
                 );
               })}

@@ -9,6 +9,7 @@ import { revalidatePath } from 'next/cache';
 const feedbackSchema = z.object({
   name: z.string().min(1, "名称是必需的。"),
   email: z.string().email("无效的电子邮件地址。"),
+  phone: z.string().optional(),
   tripId: z.string().optional(),
   message: z.string().min(10, "消息必须至少有10个字符。"),
 });
@@ -27,6 +28,7 @@ export async function submitFeedback(values: FeedbackFormValues): Promise<{ succ
   const newFeedbackData: Omit<Feedback, '_id' | 'id'> = {
     name: data.name,
     email: data.email,
+    phone: data.phone,
     tripId: data.tripId,
     message: data.message,
     submittedAt: new Date().toISOString(),
@@ -58,6 +60,7 @@ export async function getAllFeedback(): Promise<Feedback[]> {
   return feedbackDocs.map(doc => ({
     ...doc,
     id: doc._id.toString(),
+    phone: doc.phone,
   })) as Feedback[];
 }
 
@@ -68,7 +71,7 @@ export async function getFeedbackById(id: string): Promise<Feedback | null> {
     if (!feedback) {
       return null;
     }
-    return { ...feedback, id: feedback._id.toHexString() };
+    return { ...feedback, id: feedback._id.toHexString(), phone: feedback.phone };
   } catch (error) {
     console.error(`获取反馈时出错 ${id}:`, error);
     return null;
@@ -84,7 +87,7 @@ export async function getFeedbackPaginated(limit: number, skip: number): Promise
     .limit(limit)
     .toArray();
   return {
-    feedback: feedbackDocs.map(doc => ({ ...doc, id: doc._id.toString() })) as Feedback[],
+    feedback: feedbackDocs.map(doc => ({ ...doc, id: doc._id.toString(), phone: doc.phone })) as Feedback[],
     total,
   };
 }

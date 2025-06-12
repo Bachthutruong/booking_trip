@@ -33,7 +33,7 @@ export default async function PendingProofPage() {
               <TableHead>查看凭证</TableHead>
               <TableHead>确认付款</TableHead>
               <TableHead>行程ID</TableHead>
-              <TableHead>行程名称</TableHead>
+              <TableHead>行程名稱</TableHead>
               <TableHead>角色</TableHead>
             </TableRow>
           </TableHeader>

@@ -60,13 +60,14 @@ export interface Trip {
   additionalServiceIds: string[]; // IDs of selected AdditionalService
   discountCode?: string; // Applied discount code
   createdAt: string; // ISO date string
-  // updatedAd: string; // ISO date string
+  updatedAt?: string;
   overallStatus: TripStatus; // Add overallStatus to Trip interface
   additionalServices?: AdditionalService[]; // Add populated services to Trip interface
   isDeleted?: boolean; // Soft-delete flag
   deletedAt?: string; // ISO date string
   deletedBy?: string; // Admin user id or username
   handoverComment?: string; // Staff handover notes/comments
+  comments?: Array<{ comment: string; username: string; createdAt: string }>;
 }
 
 export interface DiscountCode {
@@ -108,6 +109,7 @@ export interface Feedback {
   tripId?: string;
   name: string;
   email: string;
+  phone?: string;
   message: string;
   submittedAt: string; // ISO date string
 }
@@ -158,6 +160,7 @@ export interface JoinTripFormValues {
 export interface FeedbackFormValues {
   name: string;
   email: string;
+  phone?: string;
   tripId?: string;
   message: string;
 }

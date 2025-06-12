@@ -33,7 +33,7 @@ interface DistrictSurchargeFormProps {
     submitButtonText?: string;
 }
 
-    export default function DistrictSurchargeForm({ initialData, isEditMode = false, districtId, submitButtonText = "保存附加费用" }: DistrictSurchargeFormProps) {
+    export default function DistrictSurchargeForm({ initialData, isEditMode = false, districtId, submitButtonText = "建立" }: DistrictSurchargeFormProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -85,13 +85,13 @@ interface DistrictSurchargeFormProps {
                     name="districtName"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><MapPinned className="mr-2 h-4 w-4 text-primary" />区域名称 *</FormLabel>
+                            <FormLabel className="flex items-center"><MapPinned className="mr-2 h-4 w-4 text-primary" />區域名稱 *</FormLabel>
                             <FormControl>
-                                <Input placeholder="e.g., Hoan Kiem" {...field} />
+                                <Input placeholder="如：永康區" {...field} />
                             </FormControl>
-                            <FormDescription>
-                                区域名称。
-                            </FormDescription>
+                            {/* <FormDescription>
+                                區域名稱
+                            </FormDescription> */}
                             <FormMessage />
                         </FormItem>
                     )}
@@ -106,9 +106,9 @@ interface DistrictSurchargeFormProps {
                             <FormControl>
                                 <Input type="number" placeholder="e.g., 200000" {...field} />
                             </FormControl>
-                            <FormDescription>
+                            {/* <FormDescription>
                                 此区域附加费用。
-                            </FormDescription>
+                            </FormDescription> */}
                             <FormMessage />
                         </FormItem>
                     )}

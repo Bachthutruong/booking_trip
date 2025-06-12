@@ -1,27 +1,74 @@
 "use client";
-import { useState, useTransition } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card-ext';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { updateTripComment } from '@/actions/tripActions';
+import { format } from 'date-fns';
+
+// Helper to fetch current admin user info
+async function fetchCurrentUser() {
+  try {
+    const res = await fetch('/api/admin/me');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.username || null;
+  } catch {
+    return null;
+  }
+}
+
+// Helper to fetch and update comments
+async function fetchComments(tripId: string) {
+  const res = await fetch(`/api/admin/trips/${tripId}/comments`);
+  if (!res.ok) return [];
+  return await res.json();
+}
+
+async function postComment(tripId: string, comment: string, username: string) {
+  const res = await fetch(`/api/admin/trips/${tripId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ comment, username }),
+  });
+  return await res.json();
+}
 
 export default function CommentSection({ tripId, initialComment, isDeleted }: { tripId: string, initialComment?: string, isDeleted?: boolean }) {
-  const [comment, setComment] = useState(initialComment || '');
-  const [saved, setSaved] = useState(false);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [username, setUsername] = useState<string | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSave = () => {
+  // Fetch user and comments on mount
+  useEffect(() => {
+    fetchCurrentUser().then(setUsername);
+    fetchComments(tripId).then(setComments);
+  }, [tripId]);
+
+  // Scroll to bottom when comments change
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [comments]);
+
+  const handleSend = async () => {
+    if (!newComment.trim() || !username) return;
+    setIsLoading(true);
     setError(null);
-    startTransition(async () => {
-      const res = await updateTripComment(tripId, comment);
+    try {
+      const res = await postComment(tripId, newComment, username);
       if (res.success) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 1500);
+        setComments(res.comments); // Assume API returns updated comments array
+        setNewComment('');
       } else {
-        setError(res.message || '保存失败');
+        setError(res.message || '无法保存评论');
       }
-    });
+    } catch (e: any) {
+      setError(e.message || '无法保存评论');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -30,16 +77,34 @@ export default function CommentSection({ tripId, initialComment, isDeleted }: { 
         <CardTitle className="text-lg">[评论] 备注 & 工作交接</CardTitle>
       </CardHeader>
       <CardContent>
-        <Textarea
-          value={comment}
-          onChange={e => setComment(e.target.value)}
-          placeholder="输入备注，工作交接信息..."
-          className="mb-3"
-          disabled={isDeleted || isPending}
-        />
-        <Button onClick={handleSave} className="mr-2" disabled={isDeleted || isPending}>保存备注</Button>
-        {saved && <span className="text-green-600 text-sm ml-2">已保存成功!</span>}
-        {error && <span className="text-destructive text-sm ml-2">{error}</span>}
+        <div className="max-h-64 overflow-y-auto mb-4 bg-muted rounded p-3 space-y-3">
+          {comments.length === 0 && (
+            <div className="text-muted-foreground text-sm text-center">暂无备注</div>
+          )}
+          {comments.map((c, idx) => (
+            <div key={idx} className={`flex flex-col ${c.username === username ? 'items-end' : 'items-start'}`}>  
+              <div className={`rounded-lg px-4 py-2 mb-1 ${c.username === username ? 'bg-primary text-white' : 'bg-white border'}`}>{c.comment}</div>
+              <div className="text-xs text-muted-foreground">
+                {c.username} · {format(new Date(c.createdAt), 'yyyy-MM-dd HH:mm')}
+              </div>
+            </div>
+          ))}
+          <div ref={chatEndRef} />
+        </div>
+        <div className="flex gap-2">
+          <Textarea
+            value={newComment}
+            onChange={e => setNewComment(e.target.value)}
+            placeholder="输入备注，工作交接信息..."
+            className="flex-1"
+            disabled={isDeleted || isLoading || !username}
+            rows={2}
+          />
+          <Button onClick={handleSend} disabled={isDeleted || isLoading || !newComment.trim() || !username}>
+            发送
+          </Button>
+        </div>
+        {error && <div className="text-destructive text-sm mt-2">{error}</div>}
         {isDeleted && <div className="text-destructive text-xs mt-2">无法编辑备注，因为行程已删除。</div>}
       </CardContent>
     </Card>

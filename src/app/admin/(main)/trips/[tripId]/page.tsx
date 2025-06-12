@@ -100,7 +100,7 @@ export default async function AdminTripDetailPage({ params }: { params: { tripId
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
             <p><strong className="font-medium text-muted-foreground">日期:</strong> {format(new Date(trip.date), "yyyy年MM月dd日 EEEE")}</p>
             <p><strong className="font-medium text-muted-foreground">时间:</strong> {trip.time}</p>
-            <p><strong className="font-medium text-muted-foreground">总人数:</strong> {totalGuests}</p>
+            <p><strong className="font-medium text-muted-foreground">總人數:</strong> {totalGuests}</p>
             <p><strong className="font-medium text-muted-foreground">总价:</strong> {trip.totalPrice.toLocaleString()} 元</p>
             {trip.pickupAddress && <p className="md:col-span-2"><strong className="font-medium text-muted-foreground">接送地址:</strong> {trip.pickupAddress}</p>}
             {trip.dropoffAddress && <p className="md:col-span-2"><strong className="font-medium text-muted-foreground">送达地址:</strong> {trip.dropoffAddress}</p>}

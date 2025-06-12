@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,7 +26,7 @@ import { Loader2, User, Mail, Hash, MessageCircle, Search, Phone } from "lucide-
 const feedbackFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters.").max(100),
   email: z.string().email("Invalid email address."),
-  phoneForTrips: z.string().optional(), // For fetching user's trips
+  phone: z.string().optional(),
   tripId: z.string().optional(),
   message: z.string().min(10, "Message must be at least 10 characters long.").max(1000),
 });
@@ -36,7 +35,6 @@ export default function FeedbackForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userTrips, setUserTrips] = useState<{ id: string; name: string }[]>([]);
-  const [phoneForTrips, setPhoneForTrips] = useState("");
   const [isFetchingTrips, startFetchingTripsTransition] = useTransition();
 
   const form = useForm<z.infer<typeof feedbackFormSchema>>({
@@ -44,18 +42,20 @@ export default function FeedbackForm() {
     defaultValues: {
       name: "",
       email: "",
+      phone: "",
       message: "",
     },
   });
 
   const handleFetchUserTrips = () => {
-    if (!phoneForTrips.trim()) {
+    const phone = form.getValues("phone") || "";
+    if (!phone.trim()) {
       toast({ title: "电话号码要求", description: "请输入你的电话号码以找到相关行程。", variant: "destructive" });
       return;
     }
     startFetchingTripsTransition(async () => {
       try {
-        const trips = await getTripsForUserFeedback(phoneForTrips);
+        const trips = await getTripsForUserFeedback(phone);
         setUserTrips(trips);
         if (trips.length === 0) {
           toast({ title: "未找到行程", description: "未找到此电话号码的行程。" });
@@ -70,9 +70,7 @@ export default function FeedbackForm() {
   async function onSubmit(values: z.infer<typeof feedbackFormSchema>) {
     setIsSubmitting(true);
     try {
-      // Remove phoneForTrips before submitting actual feedback data
-      const { phoneForTrips, ...feedbackData } = values;
-      const result = await submitFeedback(feedbackData);
+      const result = await submitFeedback(values);
 
       if (result.success) {
         toast({
@@ -81,7 +79,6 @@ export default function FeedbackForm() {
         });
         form.reset();
         setUserTrips([]);
-        setPhoneForTrips("");
       } else {
         toast({
           title: "错误",
@@ -108,9 +105,9 @@ export default function FeedbackForm() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><User className="h-4 w-4 mr-2 text-primary" />你的名字 *</FormLabel>
+              <FormLabel className="flex items-center"><User className="h-4 w-4 mr-2 text-primary" />您的姓名 *</FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" {...field} />
+                <Input placeholder="請輸入您的全名" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -121,9 +118,9 @@ export default function FeedbackForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Mail className="h-4 w-4 mr-2 text-primary" />你的邮箱 *</FormLabel>
+              <FormLabel className="flex items-center"><Mail className="h-4 w-4 mr-2 text-primary" />你的您的電子郵件邮箱 *</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="you@example.com" {...field} />
+                <Input type="email" placeholder="我們將透過此信箱與您聯繫" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -131,23 +128,27 @@ export default function FeedbackForm() {
         />
 
         <div className="space-y-2">
-          <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary" />你的电话 (用于查找相关行程)</FormLabel>
-          <div className="flex gap-2">
-            <Input
-              placeholder="输入用于预订的电话号码"
-              value={phoneForTrips}
-              onChange={(e) => setPhoneForTrips(e.target.value)}
-              type="tel"
-            />
-            {/* <Button type="button" variant="outline" onClick={handleFetchUserTrips} disabled={isFetchingTrips || !phoneForTrips.trim()}>
-                    {isFetchingTrips ? <Loader2 className="h-4 w-4 animate-spin"/> : <Search className="h-4 w-4"/>}
-                    <span className="ml-2 hidden sm:inline">查詢</span>
-                </Button> */}
-          </div>
-          <FormDescription>如果你的反馈是关于特定行程，请输入你的电话号码以选择它。</FormDescription>
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary" />您的電話（用於查詢訂單或行程，也會作為聯絡電話）</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="請輸入您訂購時使用的電話號碼"
+                    type="tel"
+                    {...field}
+                  />
+                </FormControl>
+                {/* <FormDescription>我們將用此電話查詢行程並聯絡您（如有需要）。</FormDescription> */}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
-        {userTrips.length > 0 && (
+        {(userTrips && userTrips.length > 0) && (
           <FormField
             control={form.control}
             name="tripId"
@@ -161,7 +162,7 @@ export default function FeedbackForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {userTrips.map(trip => (
+                    {userTrips?.map(trip => (
                       <SelectItem key={trip.id} value={trip.id}>
                         {trip.name}
                       </SelectItem>
@@ -178,10 +179,10 @@ export default function FeedbackForm() {
           name="message"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><MessageCircle className="h-4 w-4 mr-2 text-primary" />你的反馈 *</FormLabel>
+              <FormLabel className="flex items-center"><MessageCircle className="h-4 w-4 mr-2 text-primary" />您的問題或需求 *</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="告诉我们你的体验..."
+                  placeholder="請詳細說明您需要協助的內容"
                   className="resize-y min-h-[120px]"
                   {...field}
                 />
@@ -197,7 +198,7 @@ export default function FeedbackForm() {
               提交中...
             </>
           ) : (
-            'Send Feedback'
+            '送出訊息'
           )}
         </Button>
       </form>

@@ -11,10 +11,9 @@ export default function FeedbackPage() {
             <div className="flex justify-center mb-4">
                 <MessageSquareHeart className="h-16 w-16 text-primary" />
             </div>
-            <CardTitle className="font-headline text-3xl">分享您的回饋</CardTitle>
+            <CardTitle className="font-headline text-3xl">聯絡客服</CardTitle>
             <CardDescription className="text-lg">
-              我們重視您的意見！讓我們知道您對河內探索者的看法。
-              如果您對特定旅程的回饋，請輸入您的電話號碼，以便我們列出您的最近旅程。
+            我們重視您的需求！如果您對行程、訂單、付款或其他事項有任何疑問，歡迎透過此表單與我們聯繫。我們會儘快回覆您。如需查詢特定行程，請提供您的電話號碼以方便查找。
             </CardDescription>
           </CardHeader>
           <CardContent>

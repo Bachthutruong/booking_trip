@@ -181,9 +181,9 @@ interface ItineraryFormProps {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Package className="mr-2 h-4 w-4 text-primary" />行程名称 *</FormLabel>
+              <FormLabel className="flex items-center"><Package className="mr-2 h-4 w-4 text-primary" />行程名稱 *</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., 河内老城区步行游" {...field} />
+                <Input placeholder="例如：台南到小港機場" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -195,7 +195,7 @@ interface ItineraryFormProps {
           name="type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Type className="mr-2 h-4 w-4 text-primary" />行程类型 *</FormLabel>
+              <FormLabel className="flex items-center"><Type className="mr-2 h-4 w-4 text-primary" />程程類別 *</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -218,7 +218,7 @@ interface ItineraryFormProps {
           name="pricePerPerson"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />每人价格（元） *  </FormLabel>
+              <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />沒人價格（元） *  </FormLabel>
               <FormControl>
                 <Input type="number" placeholder="e.g., 500000" {...field} />
               </FormControl>
@@ -232,9 +232,9 @@ interface ItineraryFormProps {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />描述 *</FormLabel>
+              <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />行程敘述 *</FormLabel>
               <FormControl>
-                <Textarea placeholder="详细描述行程..." {...field} rows={5} />
+                <Textarea placeholder="詳細敘述行程" {...field} rows={5} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -242,7 +242,7 @@ interface ItineraryFormProps {
         />
 
         <FormItem>
-          <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-primary" />行程图片</FormLabel>
+          <FormLabel className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-primary" />上傳行程照片</FormLabel>
           <FormControl>
             <Input
               type="file"
@@ -252,7 +252,7 @@ interface ItineraryFormProps {
               ref={fileInputRef} // Use ref here
             />
           </FormControl>
-          <FormDescription>上传行程图片（最大5MB）。或者粘贴一个URL。</FormDescription>
+          <FormDescription>上傳行程照片（最大5MB，建議JPG檔案格式）。或者可以直接貼上照片的連結 </FormDescription>
         </FormItem>
 
         {imagePreview && (
@@ -279,7 +279,7 @@ interface ItineraryFormProps {
             name="imageUrl"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs text-muted-foreground">或者粘贴图片URL</FormLabel>
+                <FormLabel className="text-xs text-muted-foreground">若不上傳照片可以在這裡貼上照片的連結</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="https://example.com/image.png"
@@ -303,11 +303,11 @@ interface ItineraryFormProps {
           name="availableTimes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><ClockIcon className="mr-2 h-4 w-4 text-primary" />可用时间 *</FormLabel>
+              <FormLabel className="flex items-center"><ClockIcon className="mr-2 h-4 w-4 text-primary" />設定行程時間 *</FormLabel>
               <FormControl>
                 <Input placeholder="e.g., 08:00, 09:30, 14:00, 15:30" {...field} />
               </FormControl>
-              <FormDescription>逗号分隔的可用时间，格式为HH:MM。</FormDescription>
+              <FormDescription>行程時間的正確格式需要以逗號分隔，格式為 hh:mm(小時:分鐘)，例如：13:00, 14:00</FormDescription>
               <FormMessage />
             </FormItem>
           )}

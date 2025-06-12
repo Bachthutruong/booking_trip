@@ -27,7 +27,7 @@ async function mapDocumentToTrip(doc: any): Promise<Trip> {
     }
 
     return {
-      id: p.id ? p.id.toString() : new ObjectId().toString(),
+      id: p.id ? p.id.toString() : '',
       name: p.name,
       phone: p.phone,
       numberOfPeople: p.numberOfPeople,
@@ -58,7 +58,7 @@ async function mapDocumentToTrip(doc: any): Promise<Trip> {
   const { _id, ...restOfDoc } = doc;
 
   const partialTrip: Omit<Trip, 'overallStatus'> = {
-    id: _id.toString(),
+    id: doc.id,
     itineraryId: restOfDoc.itineraryId ? restOfDoc.itineraryId.toString() : '',
     itineraryName: restOfDoc.itineraryName,
     itineraryType: restOfDoc.itineraryType,
@@ -647,7 +647,7 @@ export async function joinTrip(values: JoinTripFormValues): Promise<{ success: b
 
   try {
     const result = await tripsCollection.updateOne(
-      { _id: new ObjectId(currentTrip.id) },
+      { id: currentTrip.id },
       { $push: { participants: newParticipant }, $inc: { totalPrice: data.pricePaid } }
     );
 
@@ -835,7 +835,7 @@ export async function updateTripComment(tripId: string, comment: string): Promis
   const tripsCollection = await getTripsCollection();
   const result = await tripsCollection.updateOne(
     { id: tripId },
-    { $set: { handoverComment: comment, updatedAt: new Date() } }
+    { $set: { handoverComment: comment, updatedAt: new Date().toISOString() } }
   );
   if (result.matchedCount === 0) {
     return { success: false, message: 'Trip not found.' };
@@ -966,7 +966,7 @@ export async function getJoinableTripsPaginated(limit: number, skip: number, sea
   // Không gọi mapDocumentToTrip nữa!
   // Chỉ map sang Trip đơn giản (nếu cần)
   const trips = tripDocs.map(doc => ({
-    id: doc.id || doc._id?.toString(),
+    id: doc.id,
     itineraryId: doc.itineraryId || '',
     itineraryName: doc.itineraryName,
     itineraryType: doc.itineraryType,
@@ -993,4 +993,86 @@ export async function getJoinableTripsPaginated(limit: number, skip: number, sea
   }));
 
   return { trips, total };
+}
+
+// Lấy danh sách joinable trips summary (nhẹ, chỉ trả về trường cơ bản)
+export async function getJoinableTripSummaryList(limit: number = 20): Promise<Array<{
+  id: string;
+  itineraryName: string;
+  itineraryType: string;
+  date: string;
+  time: string;
+  contactName: string;
+  totalPrice: number;
+  participantsCount: number;
+  overallStatus: string;
+  createdAt: string;
+}>> {
+  const tripsCollection = await getTripsCollection();
+  const filter: any = {
+    isDeleted: { $ne: true },
+  };
+  const tripDocs = await tripsCollection.find(filter, {
+    projection: {
+      id: 1,
+      itineraryName: 1,
+      itineraryType: 1,
+      date: 1,
+      time: 1,
+      contactName: 1,
+      totalPrice: 1,
+      participants: 1,
+      overallStatus: 1,
+      createdAt: 1,
+    }
+  })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .toArray();
+  return tripDocs.map(doc => ({
+    id: doc.id,
+    itineraryName: doc.itineraryName,
+    itineraryType: doc.itineraryType,
+    date: doc.date,
+    time: doc.time,
+    contactName: doc.contactName,
+    totalPrice: doc.totalPrice,
+    participantsCount: Array.isArray(doc.participants) ? doc.participants.length : 0,
+    overallStatus: doc.overallStatus,
+    createdAt: doc.createdAt,
+  }));
+}
+
+// --- Chat-like comments for trips ---
+
+/**
+ * Get all comments for a trip (for chat-like notes)
+ */
+export async function getTripComments(tripId: string): Promise<Array<{comment: string, username: string, createdAt: string}>> {
+  const tripsCollection = await getTripsCollection();
+  const trip = await tripsCollection.findOne({ id: tripId });
+  if (!trip) return [];
+  // Migrate from handoverComment if needed
+  if (!(trip as any).comments && (trip as any).handoverComment) {
+    const migrated = [{ comment: (trip as any).handoverComment, username: '系统', createdAt: (trip as any).updatedAt || (trip as any).createdAt || new Date().toISOString() }];
+    await tripsCollection.updateOne({ id: tripId }, { $set: { comments: migrated, updatedAt: new Date().toISOString() } });
+    return migrated;
+  }
+  return (trip as any).comments || [];
+}
+
+/**
+ * Add a new comment to a trip
+ */
+export async function addTripComment(tripId: string, comment: string, username: string): Promise<{ success: boolean; message: string; comments?: any[] }> {
+  if (!comment.trim() || !username) return { success: false, message: '缺少内容或用户名' };
+  const tripsCollection = await getTripsCollection();
+  const newComment = { comment, username, createdAt: new Date().toISOString() };
+  const result = await tripsCollection.updateOne(
+    { id: tripId },
+    { $push: { comments: newComment }, $set: { updatedAt: new Date().toISOString() } }
+  );
+  if (result.matchedCount === 0) return { success: false, message: 'Trip not found.' };
+  const trip = await tripsCollection.findOne({ id: tripId });
+  return { success: true, message: '评论已添加', comments: (trip as any)?.comments || [] };
 }

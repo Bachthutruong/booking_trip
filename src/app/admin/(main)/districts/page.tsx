@@ -32,17 +32,17 @@ export default async function AdminDistrictsPage({ searchParams }: { searchParam
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold font-headline">管理区域附加费用 ({total})</h1>
+                <h1 className="text-3xl font-bold font-headline">管理加費的區域 ({total})</h1>
                 <Button asChild>
-                    <Link href="/admin/districts/new"><PlusCircle className="mr-2 h-4 w-4" /> 新区域附加费用</Link>
+                    <Link href="/admin/districts/new"><PlusCircle className="mr-2 h-4 w-4" /> 新增加費的區域</Link>
                 </Button>
             </div>
 
             <Card className="shadow-lg">
-                <CardHeader>
+                {/* <CardHeader>
                     <CardTitle>区域附加费用列表</CardTitle>
                     <CardDescription>查看和管理特定区域的附加费用。</CardDescription>
-                </CardHeader>
+                </CardHeader> */}
                 <CardContent>
                     {districts.length === 0 ? (
                         <p className="text-muted-foreground text-center py-8">没有找到区域附加费用。创建一个以开始！</p>
@@ -51,8 +51,8 @@ export default async function AdminDistrictsPage({ searchParams }: { searchParam
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>区域名称</TableHead>
-                                        <TableHead>附加费用</TableHead>
+                                        <TableHead>區域名稱</TableHead>
+                                        <TableHead>附加費用</TableHead>
                                         <TableHead className="text-right">操作</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -63,7 +63,7 @@ export default async function AdminDistrictsPage({ searchParams }: { searchParam
                                             <TableCell>{district.surchargeAmount.toLocaleString()} 元</TableCell>
                                             <TableCell className="text-right space-x-2">
                                                 <Button variant="outline" size="sm" asChild>
-                                                    <Link href={`/admin/districts/${district._id?.toString?.() || district.id}/edit`}>编辑</Link>
+                                                    <Link href={`/admin/districts/${district._id?.toString?.() || district.id}/edit`}>編輯</Link>
                                                 </Button>
                                                 <AlertDialog>
                                                     <AlertDialogTrigger asChild>

@@ -27,7 +27,7 @@ export default async function DeletedTripsPage() {
               <thead>
                 <tr>
                   <th className="px-4 py-2 text-left">编号</th>
-                  <th className="px-4 py-2 text-left">行程名称</th>
+                  <th className="px-4 py-2 text-left">行程名稱</th>
                   <th className="px-4 py-2 text-left">日期</th>
                   <th className="px-4 py-2 text-left">状态</th>
                   <th className="px-4 py-2 text-left">操作</th>

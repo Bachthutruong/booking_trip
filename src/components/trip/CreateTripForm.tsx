@@ -284,7 +284,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
             name="district"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />区域（在河内送达）</FormLabel>
+                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />點選台南區域</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -310,11 +310,11 @@ export default function CreateTripForm({ itinerary, districts, additionalService
             name="dropoffAddress"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />送达地址（在河内）*</FormLabel>
+                <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />輸入下車地址*</FormLabel>
                 <FormControl>
-                  <Input placeholder="例如：123 P. Hàng Bông, Hoàn Kiếm" {...field} />
+                  <Input placeholder="例如：123 台南市中西區" {...field} />
                 </FormControl>
-                <FormDescription>我们将在河内哪里送您？</FormDescription>
+                {/* <FormDescription>我們將在台南哪里送您？</FormDescription> */}
                 <FormMessage />
               </FormItem>
             )}
@@ -360,7 +360,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 <FormControl>
                   <Input placeholder="例如：456 台南市中西區" {...field} />
                 </FormControl>
-                <FormDescription>我们将在河内哪里接您？</FormDescription>
+                {/* <FormDescription>我们将在河内哪里接您？</FormDescription> */}
                 <FormMessage />
               </FormItem>
             )}
@@ -517,7 +517,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="选择联系方式类型（可选）" />
+                          <SelectValue placeholder="第二聯絡方式" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -537,7 +537,7 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                   <FormItem>
                     <FormLabel className="flex items-center opacity-0 md:opacity-100">.</FormLabel> {/* Spacer for alignment */}
                     <FormControl>
-                      <Input placeholder={`您的${watch("secondaryContactType") || '联系方式'}`} {...field} disabled={!watch("secondaryContactType")} />
+                      <Input placeholder="輸入您的第二聯絡方式" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

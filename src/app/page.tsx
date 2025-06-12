@@ -10,11 +10,13 @@ import JoinableTripsList from '@/components/trip/JoinableTripsList';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getJoinableTripSummaryList } from '@/actions/tripActions';
 
 export default async function Home() { // Make the component async
   const allItineraries = await getItineraries(3); // Chỉ lấy top 3
   // Display the first 3 itineraries or fewer if not enough data
   const popularItineraries = allItineraries;
+  const initialTrips = await getJoinableTripSummaryList(1000); // lấy tối đa 1000 trips
 
   return (
     <div className="space-y-12">
@@ -45,7 +47,7 @@ export default async function Home() { // Make the component async
           <p className="text-lg text-muted-foreground mt-2">找到已確認的旅程並加入！</p>
         </div>
         <Suspense fallback={<JoinableTripsSkeleton />}>
-          <JoinableTripsList />
+          <JoinableTripsList initialTrips={initialTrips} />
         </Suspense>
       </section>
     </div>

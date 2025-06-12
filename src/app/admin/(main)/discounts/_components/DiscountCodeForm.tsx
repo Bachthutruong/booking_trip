@@ -45,7 +45,7 @@ interface DiscountCodeFormProps {
     submitButtonText?: string;
 }
 
-export default function DiscountCodeForm({ initialData, isEditMode = false, discountId, submitButtonText = "保存折扣代码" }: DiscountCodeFormProps) {
+export default function DiscountCodeForm({ initialData, isEditMode = false, discountId, submitButtonText = "建立折扣碼" }: DiscountCodeFormProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -111,12 +111,12 @@ export default function DiscountCodeForm({ initialData, isEditMode = false, disc
                     name="code"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />折扣代码 *</FormLabel>
+                            <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />折扣代碼 *</FormLabel>
                             <FormControl>
                                 <Input placeholder="e.g., BLACKFRIDAY20" {...field} />
                             </FormControl>
                             <FormDescription>
-                                这是客户将使用的代码。
+                            這是客人要輸入的折扣代碼
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -128,7 +128,7 @@ export default function DiscountCodeForm({ initialData, isEditMode = false, disc
                     name="type"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><Percent className="mr-2 h-4 w-4 text-primary" />折扣类型 *</FormLabel>
+                            <FormLabel className="flex items-center"><Percent className="mr-2 h-4 w-4 text-primary" />設定折扣方式 *</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
@@ -136,7 +136,7 @@ export default function DiscountCodeForm({ initialData, isEditMode = false, disc
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="fixed">固定金额</SelectItem>
+                                    <SelectItem value="fixed">固定金額</SelectItem>
                                     <SelectItem value="percentage">百分比</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -152,10 +152,10 @@ export default function DiscountCodeForm({ initialData, isEditMode = false, disc
                         <FormItem>
                             <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />折扣值 *</FormLabel>
                             <FormControl>
-                                <Input type="number" placeholder="e.g., 50000 (元 for fixed) or 10 (for percentage)" {...field} />
+                                <Input type="number" placeholder="例如：300 （折300元） 或 10（9折）" {...field} />
                             </FormControl>
                             <FormDescription>
-                                {selectedType === "fixed" ? "折扣的固定金额（例如：50000元）" : "折扣的百分比（例如：10%）。"}
+                                {selectedType === "fixed" ? "折扣的固定金額（例如輸入：150 > 就是折扣給客人150元）" : "折扣的百分比 （例如輸入：10 > 就是打9折的意思）"}
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -186,9 +186,9 @@ export default function DiscountCodeForm({ initialData, isEditMode = false, disc
                     name="description"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />描述</FormLabel>
+                            <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />折扣說明</FormLabel>
                             <FormControl>
-                                <Input placeholder="e.g., 20% off all tourism packages" {...field} />
+                                <Input placeholder="例如：優惠9折 或 優惠300元" {...field} />
                             </FormControl>
                             <FormDescription>
                                 可选的折扣描述。
@@ -203,12 +203,12 @@ export default function DiscountCodeForm({ initialData, isEditMode = false, disc
                     name="usageLimit"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />使用限制</FormLabel>
+                            <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />是用限制數量</FormLabel>
                             <FormControl>
                                 <Input type="number" placeholder="e.g., 100 (leave empty for unlimited)" {...field} />
                             </FormControl>
                             <FormDescription>
-                                此代码可以使用的最大次数。留空表示无限制。
+                            此代碼可以使用的最多數量，如果留空白代表無限
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -220,7 +220,7 @@ export default function DiscountCodeForm({ initialData, isEditMode = false, disc
                     name="expiryDate"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
-                            <FormLabel className="flex items-center"><CalendarDays className="mr-2 h-4 w-4 text-primary" />过期日期</FormLabel>
+                            <FormLabel className="flex items-center"><CalendarDays className="mr-2 h-4 w-4 text-primary" />折價卷到期日期</FormLabel>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <FormControl>
@@ -251,7 +251,7 @@ export default function DiscountCodeForm({ initialData, isEditMode = false, disc
                                 </PopoverContent>
                             </Popover>
                             <FormDescription>
-                                可选的折扣代码过期日期。
+                            可選擇折扣碼的到期日期
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -270,9 +270,9 @@ export default function DiscountCodeForm({ initialData, isEditMode = false, disc
                                 />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                                <FormLabel>活动</FormLabel>
+                                <FormLabel>啟用</FormLabel>
                                 <FormDescription>
-                                    如果未选中，则无法使用折扣代码。
+                                如果未勾選，此折扣碼就不能使用
                                 </FormDescription>
                             </div>
                         </FormItem>
