@@ -3,7 +3,7 @@
 import type { Trip } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Clock, Users, MapPin, CheckCircle2 } from 'lucide-react';
+import { CalendarDays, Clock, Users, MapPin, CheckCircle2, Loader2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import JoinTripForm from './JoinTripForm'; // This will be the dialog/form component
 import { ITINERARY_TYPES } from '@/lib/constants';
@@ -11,10 +11,14 @@ import Image from 'next/image'; // Assuming itineraries might have images
 import { getDistrictSurcharges, getAdditionalServices } from '@/actions/configActions'; // Import the action
 import type { DistrictSurcharge, AdditionalService } from '@/lib/types'; // Import DistrictSurcharge type
 
-export default function JoinableTripCard({ trip }: { trip: Trip }) {
+type TripSummary = Trip & { participantsCount?: number };
+
+export default function JoinableTripCard({ trip }: { trip: TripSummary }) {
   const [isJoinFormOpen, setIsJoinFormOpen] = useState(false);
-  const [districts, setDistricts] = useState<DistrictSurcharge[]>([]); // State to store districts
-  const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([]); // State to store additional services
+  const [districts, setDistricts] = useState<DistrictSurcharge[]>([]);
+  const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([]);
+  const [tripDetail, setTripDetail] = useState<any | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -38,13 +42,23 @@ export default function JoinableTripCard({ trip }: { trip: Trip }) {
   });
 
   // Calculate total participants already in the trip (main booker + all participants)
-  const totalCurrentParticipants = trip.participants.reduce((sum, p) => sum + (p.numberOfPeople || 0), 0);
+  const totalCurrentParticipants = typeof trip.participantsCount === 'number' ? trip.participantsCount : 0;
 
-  const handleJoinClick = useCallback((e: React.MouseEvent) => {
+  const handleJoinClick = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsJoinFormOpen(true);
-  }, []);
+    setLoadingDetail(true);
+    try {
+      const res = await fetch(`/api/joinable-trips/${trip.id}`);
+      const data = await res.json();
+      setTripDetail(data.trip);
+      setIsJoinFormOpen(true);
+    } catch (err) {
+      alert('加载行程详情失败');
+    } finally {
+      setLoadingDetail(false);
+    }
+  }, [trip.id]);
 
   return (
     <>
@@ -75,15 +89,17 @@ export default function JoinableTripCard({ trip }: { trip: Trip }) {
             className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
             onClick={handleJoinClick}
             type="button"
+            disabled={loadingDetail}
           >
+            {loadingDetail ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             加入此行程
           </Button>
         </CardFooter>
       </Card>
 
-      {isJoinFormOpen && (
+      {isJoinFormOpen && tripDetail && (
         <JoinTripForm
-          trip={trip}
+          trip={tripDetail}
           isOpen={isJoinFormOpen}
           onOpenChange={setIsJoinFormOpen}
           districts={districts}

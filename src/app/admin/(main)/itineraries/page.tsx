@@ -10,7 +10,7 @@ export default function AdminItinerariesPage() {
         <h1 className="text-3xl font-bold font-headline">管理行程   </h1>
         <Button asChild>
           <Link href="/admin/itineraries/new">
-            <PlusCircle className="mr-2 h-5 w-5" /> 添加新行程
+            <PlusCircle className="mr-2 h-5 w-5" /> 建立行程
           </Link>
         </Button>
       </div>

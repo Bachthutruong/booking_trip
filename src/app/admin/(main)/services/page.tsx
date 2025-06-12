@@ -14,17 +14,17 @@ export default async function AdminServicesPage() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold font-headline">管理附加服务 ({additionalServices.length})</h1>
+                <h1 className="text-3xl font-bold font-headline">管理附加服務 ({additionalServices.length})</h1>
                 <Button asChild>
-                    <Link href="/admin/services/new"><PlusCircle className="mr-2 h-4 w-4" /> 新服务</Link>
+                    <Link href="/admin/services/new"><PlusCircle className="mr-2 h-4 w-4" /> 新增附加服務</Link>
                 </Button>
             </div>
 
             <Card className="shadow-lg">
-                <CardHeader>
+                {/* <CardHeader>
                     <CardTitle>附加服务列表</CardTitle>
                     <CardDescription>查看和管理客户可以添加到他们的行程中的可选服务。</CardDescription>
-                </CardHeader>
+                </CardHeader> */}
                 <CardContent>
                     {additionalServices.length === 0 ? (
                         <p className="text-muted-foreground text-center py-8">没有附加服务。创建一个以开始！</p>
@@ -33,10 +33,10 @@ export default async function AdminServicesPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>名称</TableHead>
-                                        <TableHead>价格</TableHead>
-                                        <TableHead>描述</TableHead>
-                                        <TableHead>适用</TableHead>
+                                        <TableHead>名稱</TableHead>
+                                        <TableHead>價格</TableHead>
+                                        {/* <TableHead>描述</TableHead> */}
+                                        <TableHead>類別</TableHead>
                                         <TableHead className="text-right">操作</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -45,7 +45,7 @@ export default async function AdminServicesPage() {
                                         <TableRow key={service.id}>
                                             <TableCell className="font-medium">{service.name}</TableCell>
                                             <TableCell>{service.price.toLocaleString()} 元</TableCell>
-                                            <TableCell className="text-muted-foreground text-sm">{service.description || 'N/A'}</TableCell>
+                                            {/* <TableCell className="text-muted-foreground text-sm">{service.description || 'N/A'}</TableCell> */}
                                             <TableCell>
                                                 {service.applicableTo && service.applicableTo.length > 0 ? (
                                                     service.applicableTo.map((type: ItineraryType) => (
@@ -59,7 +59,7 @@ export default async function AdminServicesPage() {
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <Button variant="outline" size="sm" asChild>
-                                                    <Link href={`/admin/services/${service.id}/edit`}>编辑</Link>
+                                                    <Link href={`/admin/services/${service.id}/edit`}>編輯</Link>
                                                 </Button>
                                             </TableCell>
                                         </TableRow>

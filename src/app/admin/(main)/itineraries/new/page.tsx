@@ -14,11 +14,11 @@ export default function NewItineraryPage() {
       </Button>
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">创建新行程</CardTitle>
-          <CardDescription>填写新旅行行程的详细信息。</CardDescription>
+          <CardTitle className="font-headline text-2xl">建立新的行程</CardTitle>
+          <CardDescription>填寫新的行程詳細內容</CardDescription>
         </CardHeader>
         <CardContent>
-          <ItineraryForm onSubmitAction={createItinerary} submitButtonText="创建行程" />
+          <ItineraryForm onSubmitAction={createItinerary} submitButtonText="建立行程" />
         </CardContent>
       </Card>
     </div>

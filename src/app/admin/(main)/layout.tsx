@@ -6,16 +6,16 @@ import { logoutAdmin, verifyAdminToken } from '@/actions/adminAuthActions';
 import { usePathname } from 'next/navigation';
 
 const adminNavLinks = [
-  { href: '/admin/dashboard', label: '儀表板', icon: LayoutDashboard },
-  { href: '/admin/itineraries', label: '行程', icon: ListOrdered },
-  { href: '/admin/trips', label: '行程預訂', icon: History },
-  { href: '/admin/trips/deleted', label: '已刪除的行程', icon: History, adminOnly: true },
+  { href: '/admin/dashboard', label: '平台總覽', icon: LayoutDashboard },
+  { href: '/admin/itineraries', label: '管理員建立共乘', icon: ListOrdered },
+  { href: '/admin/trips', label: '客人建立的共乘', icon: History },
+  { href: '/admin/trips/deleted', label: '刪除的共乘記錄', icon: History, adminOnly: true },
   { href: '/admin/discounts', label: '折扣碼', icon: Percent },
-  { href: '/admin/districts', label: '地區附加費', icon: MapPinned },
-  { href: '/admin/services', label: '附加服務', icon: Wand2 },
-  { href: '/admin/terms', label: '條款和條件', icon: FileText },
-  { href: '/admin/feedback', label: '回饋', icon: MessageSquare },
-  { href: '/admin/users', label: '用戶', icon: Users, adminOnly: true },
+  { href: '/admin/districts', label: '設定加費的區域', icon: MapPinned },
+  { href: '/admin/services', label: '設定附加服務', icon: Wand2 },
+  { href: '/admin/terms', label: '編輯同意條款', icon: FileText },
+  { href: '/admin/feedback', label: '聯絡客服', icon: MessageSquare },
+  { href: '/admin/users', label: '帳號管理', icon: Users, adminOnly: true },
   // { href: '/admin/notifications', label: 'Notifications', icon: Bell }, // Example for future
   // { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
@@ -32,7 +32,7 @@ export default function AdminLayout({
       <aside className="hidden w-64 flex-col border-r bg-background p-4 sm:flex">
         <Link href="/admin/dashboard" className="mb-8 flex items-center gap-2 text-lg font-semibold text-primary">
           <Feather className="h-7 w-7" />
-          <span>管理員面板</span>
+          <span>管理員控制台</span>
         </Link>
         <nav className="flex flex-col gap-1.5">
           {adminNavLinks

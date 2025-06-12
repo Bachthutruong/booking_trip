@@ -11,10 +11,10 @@ import { Button } from '../ui/button';
 import { ITINERARY_TYPES } from '@/lib/constants';
 import { useInView } from 'react-intersection-observer';
 
-// No longer needs initialTrips prop if fetching client-side
-// interface JoinableTripsListProps {
-//   initialTrips: Trip[];
-// }
+// Thêm props initialTrips
+interface JoinableTripsListProps {
+  initialTrips?: any[];
+}
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -26,94 +26,70 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export default function JoinableTripsList() {
-  const [trips, setTrips] = useState<Trip[]>([]);
+export default function JoinableTripsList({ initialTrips = [] }: JoinableTripsListProps) {
+  const [allTrips, setAllTrips] = useState<any[]>(initialTrips); // Tất cả trips từ server
+  const [trips, setTrips] = useState<any[]>([]); // Trips sau khi filter/search
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, startTransition] = useTransition();
+  const [isLoading, setIsLoading] = useState(false); // Không cần loading khi đã có initialTrips
   const [error, setError] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [total, setTotal] = useState(0);
-  const INITIAL_ITEMS = 3;
-  const ITEMS_PER_PAGE = 3;
+  const [itineraryTypes, setItineraryTypes] = useState<{ type: string, label: string }[]>([]);
+  const [displayCount, setDisplayCount] = useState(6);
 
-  // Debounced values
-  const debouncedSearchTerm = useDebounce(searchTerm, 400);
-  const debouncedSelectedType = useDebounce(selectedType, 200);
-
-  const { ref, inView } = useInView({
-    threshold: 0,
-  });
-
-  // Avoid race condition when switching filter/search fast
-  const fetchIdRef = useRef(0);
-
-  // Fetch trips for a given page
-  const fetchTrips = useCallback(async (pageToFetch: number, isNewSearch = false) => {
-    setError(null);
-    const fetchId = ++fetchIdRef.current;
-    startTransition(async () => {
-      try {
-        const skip = isNewSearch ? 0 : (pageToFetch - 1) * ITEMS_PER_PAGE;
-        const limit = isNewSearch ? INITIAL_ITEMS : ITEMS_PER_PAGE;
-        const { trips: newTrips, total: totalCount } = await getJoinableTripsPaginated(
-          limit,
-          skip,
-          debouncedSearchTerm,
-          debouncedSelectedType || undefined
-        );
-        if (fetchId !== fetchIdRef.current) return;
-        if (isNewSearch || pageToFetch === 1) {
-          setTrips(newTrips);
-          setPage(1);
-        } else {
-          setTrips(prev => [...prev, ...newTrips]);
-        }
-        setTotal(totalCount);
-        setHasMore(skip + newTrips.length < totalCount);
-      } catch (err) {
-        if (fetchId !== fetchIdRef.current) return;
-        console.error("Failed to fetch joinable trips: ", err);
-        setError("查無資料，請確認聯絡電話和姓名");
-        setTrips([]);
-        setHasMore(false);
-      }
-    });
-  }, [debouncedSearchTerm, debouncedSelectedType]);
-
-  // Khi filter/search đổi, reset page về 1, trips về rỗng, và fetch lại
+  // Nếu initialTrips thay đổi (do SSR/hydration), cập nhật lại state
   useEffect(() => {
-    setTrips([]);
-    setPage(1);
-    fetchTrips(1, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm, debouncedSelectedType]);
+    setAllTrips(initialTrips);
+  }, [initialTrips]);
 
-  // Khi scroll (inView), chỉ tăng page nếu còn hasMore và không loading
+  // Không fetch trips khi mount nữa!
+
+  // Fetch danh sách itinerary types động
   useEffect(() => {
-    if (inView && hasMore) {
-      setPage(prev => prev + 1);
+    fetch('/api/admin/itineraries/list')
+      .then(res => res.json())
+      .then(data => {
+        // Lấy unique type và label từ danh sách itinerary
+        const typesMap: Record<string, string> = {};
+        (data.itineraries || []).forEach((it: any) => {
+          if (it.type && it.name) typesMap[it.type] = it.name;
+        });
+        setItineraryTypes(Object.entries(typesMap).map(([type, label]) => ({ type, label })));
+      });
+  }, []);
+
+  // Filter client-side khi search/filter đổi
+  useEffect(() => {
+    let filtered = allTrips;
+    if (selectedType) {
+      filtered = filtered.filter(trip => trip.itineraryType === selectedType);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView, hasMore]);
-
-  // Khi page thay đổi (và page > 1), fetch trips tiếp theo
-  useEffect(() => {
-    if (page > 1) {
-      fetchTrips(page);
+    if (searchTerm.trim()) {
+      const term = searchTerm.trim().toLowerCase();
+      filtered = filtered.filter(trip =>
+        (trip.itineraryName && trip.itineraryName.toLowerCase().includes(term)) ||
+        (trip.date && trip.date.toLowerCase().includes(term)) ||
+        (trip.contactName && trip.contactName.toLowerCase().includes(term))
+      );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+    setTrips(filtered);
+    setDisplayCount(6); // Reset displayCount khi filter/search đổi
+  }, [allTrips, searchTerm, selectedType]);
 
   const handleFilterChange = (type: string | null) => {
     setSelectedType(type);
-    // Không cần setTrips([]) và setPage(1) ở đây nữa vì đã làm ở effect trên
   };
 
-  if (isLoading && trips.length === 0) {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  if (isLoading) {
     return (
       <div className="space-y-8">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold font-headline">加入現有旅程</h1>
+          <p className="text-lg text-muted-foreground mt-2">找到已確認的旅程並加入！</p>
+        </div>
         <div className="relative max-w-lg mx-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input type="text" placeholder="加载行程..." disabled className="pl-10 text-base" value={searchTerm} />
@@ -132,7 +108,7 @@ export default function JoinableTripsList() {
         <AlertTitle>加载错误</AlertTitle>
         <AlertDescription>
           {error}
-          <Button onClick={() => fetchTrips(1, true)} variant="link" className="p-0 h-auto ml-1 text-destructive hover:underline">
+          <Button onClick={() => window.location.reload()} variant="link" className="p-0 h-auto ml-1 text-destructive hover:underline">
             重试
           </Button>
         </AlertDescription>
@@ -140,29 +116,18 @@ export default function JoinableTripsList() {
     );
   }
 
-  if (!isLoading && trips.length === 0 && !error) {
-    return (
-      <Alert className="max-w-lg mx-auto">
-        <Search className="h-5 w-5" />
-        <AlertTitle>没有可用的行程</AlertTitle>
-        <AlertDescription>
-          目前没有可用的确认行程。请稍后再试或创建自己的行程！
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
+  // Luôn render thanh tìm kiếm và filter buttons, chỉ thay đổi phần kết quả
   return (
     <div className="space-y-8">
+      {/* Thanh tìm kiếm */}
       <div className="relative max-w-lg mx-auto">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
           type="text"
           placeholder="按名称、日期、地点或创建者搜索行程..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleInputChange}
           className="pl-10 text-base"
-          disabled={isLoading}
         />
       </div>
 
@@ -173,44 +138,53 @@ export default function JoinableTripsList() {
           variant={selectedType === null ? 'default' : 'outline'}
           onClick={() => handleFilterChange(null)}
           className={selectedType === null ? 'bg-primary text-white' : ''}
-          disabled={isLoading}
         >
           所有行程
         </Button>
-        {Object.entries(ITINERARY_TYPES).map(([key, label]) => (
+        {itineraryTypes.map(({ type, label }) => (
           <Button
-            key={key}
-            variant={selectedType === key ? 'default' : 'outline'}
-            onClick={() => handleFilterChange(selectedType === key ? null : key)}
-            className={selectedType === key ? 'bg-primary text-white' : ''}
-            disabled={isLoading}
+            key={type}
+            variant={selectedType === type ? 'default' : 'outline'}
+            onClick={() => handleFilterChange(selectedType === type ? null : type)}
+            className={selectedType === type ? 'bg-primary text-white' : ''}
           >
             {label}
           </Button>
         ))}
       </div>
 
-      {trips.length > 0 && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
-          {trips.map(trip => (
-            <JoinableTripCard key={trip.id} trip={trip} />
-          ))}
-        </div>
-      )}
-
-      {/* Loading indicator and infinite scroll trigger */}
-      <div ref={ref} className="h-20 flex items-center justify-center">
-        {isLoading && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
-        {!isLoading && !hasMore && trips.length > 0 && (
-          <p className="text-muted-foreground">没有更多行程了</p>
+      {/* Kết quả */}
+      <div>
+        {trips.length > 0 ? (
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
+              {trips.slice(0, displayCount).map(trip => (
+                <JoinableTripCard key={trip.id} trip={trip} />
+              ))}
+            </div>
+            <div className="flex justify-center mt-6 gap-4">
+              {displayCount < trips.length && (
+                <Button onClick={() => setDisplayCount(c => c + 6)}>
+                  载入更多
+                </Button>
+              )}
+              {displayCount > 6 && (
+                <Button variant="outline" onClick={() => setDisplayCount(6)}>
+                  收起
+                </Button>
+              )}
+            </div>
+          </>
+        ) : (
+          <Alert className="max-w-lg mx-auto">
+            <Search className="h-5 w-5" />
+            <AlertTitle>没有可用的行程</AlertTitle>
+            <AlertDescription>
+              目前没有可用的确认行程。请稍后再试或创建自己的行程！
+            </AlertDescription>
+          </Alert>
         )}
       </div>
-
-      {!isLoading && searchTerm && trips.length === 0 && (
-        <p className="text-center text-muted-foreground text-lg mt-10">
-          没有符合您搜索条件的行程。
-        </p>
-      )}
     </div>
   );
 }

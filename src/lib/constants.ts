@@ -2,9 +2,9 @@
 import type { ItineraryType, TripStatus } from './types';
 
 export const ITINERARY_TYPES: Record<ItineraryType, string> = {
-  airport_pickup: '機場接機（至台南）',
-  airport_dropoff: '機場送機（從台南）',
-  tourism: '河內旅遊套裝行程',
+  airport_pickup: '機場至台南 （機場上車，台南下車）',
+  airport_dropoff: '台南至機場 （台南上車，機場下車）',
+  tourism: '旅遊共乘',
 };
 
 export const TRIP_STATUSES: Record<TripStatus, string> = {

@@ -39,7 +39,7 @@ interface AdditionalServiceFormProps {
     submitButtonText?: string;
 }
 
-export default function AdditionalServiceForm({ initialData, isEditMode = false, serviceId, submitButtonText = "保存服务" }: AdditionalServiceFormProps) {
+export default function AdditionalServiceForm({ initialData, isEditMode = false, serviceId, submitButtonText = "新增附加服務" }: AdditionalServiceFormProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -94,13 +94,13 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><Wand2 className="mr-2 h-4 w-4 text-primary" />服务名称 *</FormLabel>
+                            <FormLabel className="flex items-center"><Wand2 className="mr-2 h-4 w-4 text-primary" />附加服務名稱 *</FormLabel>
                             <FormControl>
                                 <Input placeholder="e.g., Extra Luggage Space" {...field} />
                             </FormControl>
-                            <FormDescription>
+                            {/* <FormDescription>
                                 附加服务的名称。
-                            </FormDescription>
+                            </FormDescription> */}
                             <FormMessage />
                         </FormItem>
                     )}
@@ -111,13 +111,13 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                     name="price"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />Price (元) *</FormLabel>
+                            <FormLabel className="flex items-center"><Tag className="mr-2 h-4 w-4 text-primary" />價格（元） *</FormLabel>
                             <FormControl>
                                 <Input type="number" placeholder="e.g., 200000" {...field} />
                             </FormControl>
-                            <FormDescription>
+                            {/* <FormDescription>
                                 此服务的价格。
-                            </FormDescription>
+                            </FormDescription> */}
                             <FormMessage />
                         </FormItem>
                     )}
@@ -130,11 +130,11 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                         <FormItem>
                             <FormLabel className="flex items-center"><Info className="mr-2 h-4 w-4 text-primary" />描述</FormLabel>
                             <FormControl>
-                                <Textarea placeholder="Detailed description of the service..." {...field} rows={3} />
+                                <Textarea placeholder="輸入附加服務的說明" {...field} rows={3} />
                             </FormControl>
-                            <FormDescription>
+                            {/* <FormDescription>
                                 此服务的可选描述。
-                            </FormDescription>
+                            </FormDescription> */}
                             <FormMessage />
                         </FormItem>
                     )}
@@ -145,8 +145,8 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                     name="applicableTo"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="flex items-center"><SquareActivity className="mr-2 h-4 w-4 text-primary" />适用的行程类型</FormLabel>
-                            <FormDescription>选择此服务适用的行程类型。</FormDescription>
+                            <FormLabel className="flex items-center"><SquareActivity className="mr-2 h-4 w-4 text-primary" />勾選適用的類別</FormLabel>
+                            {/* <FormDescription>选择此服务适用的行程类型。</FormDescription> */}
                             <div className="space-y-2">
                                 {Object.entries(ITINERARY_TYPES).map(([key, label]) => (
                                     <FormField
@@ -187,7 +187,7 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                     )}
                 />
 
-                <FormField
+                {/* <FormField
                     control={form.control}
                     name="iconName"
                     render={({ field }) => (
@@ -202,7 +202,7 @@ export default function AdditionalServiceForm({ initialData, isEditMode = false,
                             <FormMessage />
                         </FormItem>
                     )}
-                />
+                /> */}
 
                 <Button type="submit" className="w-full text-lg py-6" disabled={isPending}>
                     {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}

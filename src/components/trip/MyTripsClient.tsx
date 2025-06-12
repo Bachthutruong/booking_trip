@@ -22,6 +22,8 @@ interface MyTripsClientProps {
 }
 
 export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFromParam, serverTrips }: MyTripsClientProps) {
+  const [inputPhone, setInputPhone] = useState(phoneFromParam || '');
+  const [inputName, setInputName] = useState(nameFromParam || '');
   const [phone, setPhone] = useState(phoneFromParam || '');
   const [name, setName] = useState(nameFromParam || '');
   const [districts, setDistricts] = useState<DistrictSurcharge[]>([]);
@@ -56,23 +58,25 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
   }, [phoneFromParam, nameFromParam, serverTrips]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(e.target.value);
+    setInputPhone(e.target.value);
     setError(null);
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setName(e.target.value);
+    setInputName(e.target.value);
     setError(null);
   };
 
   const handleFetchTrips = () => {
-    if (!phone.trim() || !name.trim()) {
+    if (!inputPhone.trim() || !inputName.trim()) {
       setError('请输入您的手机号码和姓名。');
       setNoTripsFound(false);
       return;
     }
     setError(null);
-    mutate(); // Gọi lại SWR fetch
+    setPhone(inputPhone.trim());
+    setName(inputName.trim());
+    // mutate sẽ được gọi tự động do phone/name thay đổi
   };
 
   useEffect(() => {
@@ -99,7 +103,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
               <Input
                 id="phoneInput"
                 type="tel"
-                value={phone}
+                value={inputPhone}
                 onChange={handlePhoneChange}
                 placeholder="e.g., 0912345678"
                 className="text-base"
@@ -111,7 +115,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
               <Input
                 id="nameInput"
                 type="text"
-                value={name}
+                value={inputName}
                 onChange={handleNameChange}
                 placeholder="e.g., John Doe"
                 className="text-base"
@@ -120,7 +124,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
             </div>
             <Button
               onClick={handleFetchTrips}
-              disabled={isLoading || isValidating || !phone.trim() || !name.trim()}
+              disabled={isLoading || isValidating || !inputPhone.trim() || !inputName.trim()}
               className="h-10 w-full sm:w-auto"
             >
               {(isLoading || isValidating) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
@@ -152,7 +156,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
 
       {!isLoading && trips.length > 0 && (
         <div className="space-y-6">
-          <h2 className="text-2xl font-semibold font-headline">您的预订行程</h2>
+          <h2 className="text-2xl font-semibold font-headline">您的共乘</h2>
           {trips.map(trip => (
             <TripListItem
               key={trip.id}

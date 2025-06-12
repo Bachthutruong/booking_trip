@@ -31,8 +31,8 @@ export default async function EditItineraryPage({ params }: { params: { itinerar
       </Button>
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">编辑行程: {itinerary.name}</CardTitle>
-          <CardDescription>更新此旅行行程的详细信息。确保可用时间以逗号分隔（例如：08:00,14:30）。</CardDescription>
+          <CardTitle className="font-headline text-2xl">編輯行程: {itinerary.name}</CardTitle>
+          <CardDescription>更新此行程的詳細內容，確保行程的時間格式要正確以逗號分隔（例如：08:00,14:30）</CardDescription>
         </CardHeader>
         <CardContent>
           <ItineraryForm

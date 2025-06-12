@@ -14,7 +14,7 @@ export default async function AdminTermsPage() {
     <div className="max-w-2xl mx-auto py-10">
       <Card>
         <CardHeader>
-          <CardTitle>编辑预订条款与细则</CardTitle>
+          <CardTitle>編輯同意條款的內容</CardTitle>
         </CardHeader>
         <CardContent>
           <form action="/api/admin/terms" method="POST">
@@ -22,10 +22,10 @@ export default async function AdminTermsPage() {
               className="min-h-[300px]"
               name="content"
               defaultValue={content}
-              placeholder="请输入预订条款与细则..."
+              placeholder="請輸入詳細的條款內容"
             />
             <Button className="mt-4" type="submit">
-              保存
+            更新
             </Button>
           </form>
         </CardContent>

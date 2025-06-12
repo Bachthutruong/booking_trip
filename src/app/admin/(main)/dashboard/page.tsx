@@ -21,21 +21,38 @@ export default async function AdminDashboardPage() {
   const totalServices = await additionalServicesCol.countDocuments();
   const totalDistricts = await districtSurchargesCol.countDocuments();
 
+  // --- NEW LOGIC FOR PARTICIPANT COUNTS (MATCHES UI LOGIC) ---
+  const allTrips = await tripsCollection.find({ isDeleted: { $ne: true } }).toArray();
+  let pendingProofCount = 0;
+  let notPaidCount = 0;
+  for (const trip of allTrips) {
+    if (!Array.isArray(trip.participants)) continue;
+    for (const p of trip.participants) {
+      if (p.status === 'pending_payment') {
+        if (p.transferProofImageUrl && p.transferProofImageUrl.trim() !== '') {
+          pendingProofCount++;
+        } else {
+          notPaidCount++;
+        }
+      }
+    }
+  }
 
   const summaryCards = [
-    { title: "总行程", value: itineraries.length, icon: ListOrdered, link: "/admin/itineraries", description: "可用行程" },
-    { title: "总预订", value: totalTrips, icon: History, link: "/admin/trips", description: "所有状态" },
-    { title: "待付款", value: pendingPaymentTrips, icon: HourglassIcon, link: "/admin/trips?status=pending_payment", description: "待付款预订", color: "text-yellow-600" },
-    { title: "已确认预订", value: confirmedTrips, icon: CheckCircleIcon, link: "/admin/trips?status=payment_confirmed", description: "已付款并确认预订", color: "text-green-600" },
-    { title: "Active Discounts", value: totalDiscounts, icon: Percent, link: "/admin/discounts", description: "可用促销代码" },
-    { title: "附加服务", value: totalServices, icon: Wand2, link: "/admin/services", description: "可选的行程附加服务" },
-    { title: "区域附加费用", value: totalDistricts, icon: Palette, link: "/admin/districts", description: "附加费用区域" },
-    { title: "总反馈", value: totalFeedback, icon: MessageSquare, link: "/admin/feedback", description: "用户提交的评论" },
+
+    { title: "現有共行程", value: itineraries.length, icon: ListOrdered, link: "/admin/itineraries", description: "管理員建立的行程" },
+    { title: "客人建立的共乘", value: totalTrips, icon: History, link: "/admin/trips", description: "所有狀態" },
+    { title: "已轉帳(待確認)", value: pendingProofCount, icon: HourglassIcon, link: "/admin/trips/pending-proof", description: "已上传转账凭证，待确认", color: "text-blue-600" },
+    { title: "未付款", value: notPaidCount, icon: HourglassIcon, link: "/admin/trips/not-paid", description: "尚未上传转账凭证", color: "text-red-600" },
+    // { title: "Active Discounts", value: totalDiscounts, icon: Percent, link: "/admin/discounts", description: "可用促销代码" },
+    // { title: "附加服务", value: totalServices, icon: Wand2, link: "/admin/services", description: "可选的行程附加服务" },
+    // { title: "区域附加费用", value: totalDistricts, icon: Palette, link: "/admin/districts", description: "附加费用区域" },
+    // { title: "总反馈", value: totalFeedback, icon: MessageSquare, link: "/admin/feedback", description: "用户提交的评论" },
   ];
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-headline">管理员仪表板</h1>
+      {/* <h1 className="text-3xl font-bold font-headline">管理员仪表板</h1> */}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {summaryCards.map(card => (
@@ -60,7 +77,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Placeholder for recent activity or pending actions */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>快速操作</CardTitle>
         </CardHeader>
@@ -70,7 +87,7 @@ export default async function AdminDashboardPage() {
           <Button asChild variant="outline"><Link href="/admin/services/new">新服务</Link></Button>
           <Button asChild variant="outline"><Link href="/admin/districts/new">新区域附加费用</Link></Button>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 }

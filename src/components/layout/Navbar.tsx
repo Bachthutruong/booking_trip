@@ -12,7 +12,7 @@ const navLinks = [
   { href: '/create-trip', label: '建立行程' },
   { href: '/my-trips', label: '我的行程' },
   // { href: '/join-trip', label: '加入行程' },
-  { href: '/feedback', label: '回饋' },
+  { href: '/feedback', label: '聯絡客服' },
   // { href: '/chatbot', label: '虛擬助理' },
 ];
 

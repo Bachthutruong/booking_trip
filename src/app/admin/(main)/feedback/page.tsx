@@ -14,6 +14,7 @@ export default async function AdminFeedbackPage({ searchParams }: { searchParams
     const page = Number(searchParams?.page) > 0 ? Number(searchParams?.page) : 1;
     const skip = (page - 1) * PAGE_SIZE;
     const { feedback: feedbackEntries, total } = await getFeedbackPaginated(PAGE_SIZE, skip);
+    console.log(feedbackEntries, 'feedbackEntries');
     const totalPages = Math.ceil(total / PAGE_SIZE);
 
     // Nếu page vượt quá totalPages, redirect về page 1
@@ -22,14 +23,14 @@ export default async function AdminFeedbackPage({ searchParams }: { searchParams
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold font-headline">管理反馈 ({total})</h1>
+                <h1 className="text-3xl font-bold font-headline">管理聯絡客服 ({total})</h1>
             </div>
 
             <Card className="shadow-lg">
-                <CardHeader>
+                {/* <CardHeader>
                     <CardTitle>反馈列表</CardTitle>
                     <CardDescription>查看所有客户反馈提交。</CardDescription>
-                </CardHeader>
+                </CardHeader> */}
                 <CardContent>
                     {feedbackEntries.length === 0 ? (
                         <p className="text-muted-foreground text-center py-8">没有反馈提交。</p>
@@ -38,11 +39,12 @@ export default async function AdminFeedbackPage({ searchParams }: { searchParams
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>提交者</TableHead>
-                                        <TableHead>邮箱</TableHead>
+                                        <TableHead>提交者名稱</TableHead>
+                                        <TableHead>信箱</TableHead>
+                                        <TableHead>聯絡電話</TableHead>
                                         <TableHead>行程ID</TableHead>
                                         <TableHead>消息</TableHead>
-                                        <TableHead>提交时间</TableHead>
+                                        <TableHead>聯絡時間</TableHead>
                                         <TableHead className="text-right">操作</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -51,6 +53,7 @@ export default async function AdminFeedbackPage({ searchParams }: { searchParams
                                         <TableRow key={feedback.id}>
                                             <TableCell className="font-medium">{feedback.name}</TableCell>
                                             <TableCell>{feedback.email}</TableCell>
+                                            <TableCell>{feedback.phone || 'N/A'}</TableCell>
                                             <TableCell>{feedback.tripId || 'N/A'}</TableCell>
                                             <TableCell className="text-muted-foreground text-sm max-w-sm overflow-hidden text-ellipsis whitespace-nowrap">
                                                 {feedback.message}

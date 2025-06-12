@@ -28,7 +28,7 @@ export default async function NotPaidPage() {
               <TableHead>姓名</TableHead>
               <TableHead>电话</TableHead>
               <TableHead>行程ID</TableHead>
-              <TableHead>行程名称</TableHead>
+              <TableHead>行程名稱</TableHead>
               <TableHead>角色</TableHead>
             </TableRow>
           </TableHeader>

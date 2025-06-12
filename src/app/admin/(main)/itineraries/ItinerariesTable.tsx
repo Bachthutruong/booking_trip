@@ -19,7 +19,7 @@ export default function ItinerariesTable() {
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle>行程列表 ({itineraries.length})</CardTitle>
-        <CardDescription>查看、编辑或删除现有行程。</CardDescription>
+        <CardDescription>查看，編輯或刪除現有行程</CardDescription>
       </CardHeader>
       <CardContent>
         {itineraries.length === 0 ? (
@@ -29,10 +29,10 @@ export default function ItinerariesTable() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[200px]">名称</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>价格 (元)</TableHead>
-                  <TableHead className="min-w-[150px]">可用时间</TableHead>
+                  <TableHead className="min-w-[200px]">行程名稱</TableHead>
+                  <TableHead>行程類別</TableHead>
+                  <TableHead>每人價格（元）</TableHead>
+                  {/* <TableHead className="min-w-[150px]">可用时间</TableHead> */}
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -44,7 +44,7 @@ export default function ItinerariesTable() {
                       <Badge variant="secondary">{ITINERARY_TYPES[itinerary.type]}</Badge>
                     </TableCell>
                     <TableCell>{itinerary.pricePerPerson.toLocaleString()}</TableCell>
-                    <TableCell>
+                    {/* <TableCell>
                       {itinerary.availableTimes.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {itinerary.availableTimes.slice(0, 3).map((time: string) => (
@@ -55,7 +55,7 @@ export default function ItinerariesTable() {
                       ) : (
                         <span className="text-xs text-muted-foreground">未设置</span>
                       )}
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" asChild title={`编辑 ${itinerary.name}`}>
                         <Link href={`/admin/itineraries/${itinerary.id}/edit`}>

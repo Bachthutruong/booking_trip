@@ -5,7 +5,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
-  title: '河內探索者',
+  title: '中華衛星共乘平台',
   description: '規劃和管理您的河內旅程',
 };
 

@@ -15,17 +15,17 @@ export default async function AdminDiscountsPage() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold font-headline">管理折扣代码 ({discountCodes.length})</h1>
+                <h1 className="text-3xl font-bold font-headline">管理折扣碼 ({discountCodes.length})</h1>
                 <Button asChild>
-                    <Link href="/admin/discounts/new"><PlusCircle className="mr-2 h-4 w-4" /> 新折扣</Link>
+                    <Link href="/admin/discounts/new"><PlusCircle className="mr-2 h-4 w-4" /> 新增折扣碼</Link>
                 </Button>
             </div>
 
             <Card className="shadow-lg">
-                <CardHeader>
+                {/* <CardHeader>
                     <CardTitle>折扣代码列表</CardTitle>
                     <CardDescription>查看和管理所有可用的折扣代码。</CardDescription>
-                </CardHeader>
+                </CardHeader> */}
                 <CardContent>
                     {discountCodes.length === 0 ? (
                         <p className="text-muted-foreground text-center py-8">没有找到折扣代码。创建一个以开始！</p>
@@ -34,13 +34,13 @@ export default async function AdminDiscountsPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>代码</TableHead>
+                                        <TableHead>折扣碼</TableHead>
                                         <TableHead>折扣</TableHead>
-                                        <TableHead>过期</TableHead>
-                                        <TableHead>活动</TableHead>
-                                        <TableHead>使用限制</TableHead>
+                                        <TableHead>到期日期</TableHead>
+                                        <TableHead>狀態</TableHead>
+                                        <TableHead>限量使用</TableHead>
                                         <TableHead>已使用</TableHead>
-                                        <TableHead className="text-right">操作</TableHead>
+                                        <TableHead className="text-right">編輯</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -59,7 +59,7 @@ export default async function AdminDiscountsPage() {
                                             badgeText = "已过期";
                                         } else if (discount.isActive) {
                                             badgeVariant = "default";
-                                            badgeText = "活动";
+                                            badgeText = "啟用";
                                         } else {
                                             badgeVariant = "secondary";
                                             badgeText = "不活动";
@@ -84,7 +84,7 @@ export default async function AdminDiscountsPage() {
                                                 <TableCell>{(discount.usedCount || 0)}</TableCell>
                                                 <TableCell className="text-right">
                                                     <Button variant="outline" size="sm" asChild disabled={isExhausted || !discount.isActive || isExpired}>
-                                                        <Link href={`/admin/discounts/${discount.id}/edit`}>编辑</Link>
+                                                        <Link href={`/admin/discounts/${discount.id}/edit`}>編輯</Link>
                                                     </Button>
                                                     {/* 如果需要，在此处添加删除按钮 */}
                                                 </TableCell>

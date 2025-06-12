@@ -21,7 +21,7 @@ export default async function FeedbackDetailsPage({ params }: FeedbackDetailsPag
                 <Button variant="outline" asChild>
                     <Link href="/admin/feedback">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        返回反馈列表
+                        返回管理聯絡客服頁面
                     </Link>
                 </Button>
             </div>
@@ -31,11 +31,11 @@ export default async function FeedbackDetailsPage({ params }: FeedbackDetailsPag
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold font-headline">反馈详情</h1>
+                <h1 className="text-3xl font-bold font-headline">聯絡內容明細</h1>
                 <Button variant="outline" asChild>
                     <Link href="/admin/feedback">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        返回反馈列表
+                        返回管理聯絡客服頁面
                     </Link>
                 </Button>
             </div>
