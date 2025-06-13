@@ -37,7 +37,7 @@ export default function JoinableTripCard({ trip }: { trip: TripSummary }) {
     fetchData();
   }, [fetchData]);
 
-  const formattedDate = new Date(trip.date).toLocaleDateString('en-US', {
+  const formattedDate = new Date(trip.date).toLocaleDateString('zh-TW', {
     year: 'numeric', month: 'long', day: 'numeric'
   });
 

@@ -1,27 +1,35 @@
-import MyTripsClient from '@/components/trip/MyTripsClient';
-import { Suspense } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { getUserTrips } from '@/actions/tripActions';
-import { Trip } from '@/lib/types';
+"use client";
 
-export default async function MyTripsPage({
-  searchParams,
-}: {
-  searchParams?: { tripId?: string; phone?: string; name?: string };
-}) {
+import { useEffect, useState } from 'react';
+import MyTripsClient from '@/components/trip/MyTripsClient';
+import { Skeleton } from '@/components/ui/skeleton';
+
+export default function MyTripsPage({ searchParams }: { searchParams?: { tripId?: string; phone?: string; name?: string } }) {
   const tripIdFromParam = searchParams?.tripId ? String(searchParams.tripId) : undefined;
   const phoneFromParam = searchParams?.phone ? String(searchParams.phone) : undefined;
   const nameFromParam = searchParams?.name ? String(searchParams.name) : undefined;
-  let serverTrips: Trip[] | undefined = [];
-  if (phoneFromParam && nameFromParam) {
-    serverTrips = await getUserTrips(phoneFromParam, nameFromParam);
-  }
+
+  const [serverTrips, setServerTrips] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (phoneFromParam && nameFromParam) {
+      setLoading(true);
+      fetch(`/api/my-trips?phone=${encodeURIComponent(phoneFromParam)}&name=${encodeURIComponent(nameFromParam)}`)
+        .then(res => res.json())
+        .then(data => setServerTrips(data.trips || []))
+        .finally(() => setLoading(false));
+    }
+  }, [phoneFromParam, nameFromParam]);
+
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-4xl font-bold mb-10 text-center font-headline">管理您的共乘</h1>
-      <Suspense fallback={<MyTripsSkeleton />}>
+      {loading ? (
+        <MyTripsSkeleton />
+      ) : (
         <MyTripsClient tripIdFromParam={tripIdFromParam} phoneFromParam={phoneFromParam} nameFromParam={nameFromParam} serverTrips={serverTrips} />
-      </Suspense>
+      )}
     </div>
   );
 }

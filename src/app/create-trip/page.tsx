@@ -1,48 +1,30 @@
 import { getItineraries } from '@/actions/itineraryActions';
-import ItinerarySelectionStep from '@/components/trip/ItinerarySelectionStep';
-import CreateTripFormWrapper from '@/components/trip/CreateTripFormWrapper';
-import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ITINERARY_TYPES } from '@/lib/constants';
 import CreateTripItinerarySelector from '@/components/trip/CreateTripItinerarySelector';
+import CreateTripFormWrapper from '@/components/trip/CreateTripFormWrapper';
 
-export default async function CreateTripPage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
+export default async function CreateTripPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
   const selectedItineraryId = searchParams?.itineraryId as string | undefined;
-  const initialItineraryType = searchParams?.type as string | undefined;
+
+  let itineraries: any[] = [];
+  if (!selectedItineraryId) {
+    itineraries = await getItineraries();
+  }
 
   if (selectedItineraryId) {
     return (
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-8 text-center font-headline">確認您的旅程詳情</h1>
-        <Suspense fallback={<CreateTripFormSkeleton />}>
-          <CreateTripFormWrapper itineraryId={selectedItineraryId} />
-        </Suspense>
+        <CreateTripFormWrapper itineraryId={selectedItineraryId} />
       </div>
     );
   }
 
-  const allItineraries = await getItineraries();
-
-  // Convert to plain objects to avoid the "toJSON" error when passing to Client Components
-  const plainItineraries = allItineraries.map(itn => ({
-    id: itn.id, // Mongoose documents have a .id getter that returns _id as a string
-    name: itn.name,
-    type: itn.type,
-    pricePerPerson: itn.pricePerPerson,
-    description: itn.description,
-    imageUrl: itn.imageUrl,
-    availableTimes: itn.availableTimes,
-    // Add any other properties from your Itinerary type that are needed in client components
-  }));
-
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-4xl font-bold mb-10 text-center font-headline">選擇您的旅程：選擇旅程</h1>
-      <CreateTripItinerarySelector itineraries={plainItineraries} />
+      <CreateTripItinerarySelector itineraries={itineraries} />
     </div>
   );
 }
@@ -73,6 +55,6 @@ function CreateTripFormSkeleton() {
       <Skeleton className="h-10 w-1/2" /> {/* Price */}
       <Skeleton className="h-12 w-full" /> {/* Submit Button */}
     </div>
-  )
+  );
 }
 

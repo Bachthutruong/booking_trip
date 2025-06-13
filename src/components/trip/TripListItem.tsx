@@ -248,7 +248,7 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
                     </div>
                     {/* Price breakdown for each participant */}
                     <ul className="ml-2 mt-1 text-xs text-muted-foreground space-y-0.5">
-                      <li>行程价格: {isCurrentUser ? p.pricePaid.toLocaleString() + ' 元' : '*****'}</li>
+                      <li>行程價格: {isCurrentUser ? p.pricePaid.toLocaleString() + ' 元' : '*****'}</li>
                       <li>区域: {districtName}{isCurrentUser && districtSurcharge > 0 ? ` (+${districtSurcharge.toLocaleString()} 元)` : ''}</li>
                       <li>地址: {address}</li>
                       <li>加購服務: {additionalServices}</li>

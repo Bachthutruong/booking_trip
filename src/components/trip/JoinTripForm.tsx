@@ -281,7 +281,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />你的姓名 *</FormLabel>
+                    <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />聯絡人姓名 （此名會用來查詢共乘） *</FormLabel>
                     <FormControl>
                       <Input placeholder="全名" {...field} />
                     </FormControl>
@@ -294,7 +294,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary" />你的电话号码 *</FormLabel>
+                    <FormLabel className="flex items-center"><Phone className="h-4 w-4 mr-2 text-primary" />聯絡人電話 （此電話會用來查詢共乘） *</FormLabel>
                     <FormControl>
                       <Input type="tel" placeholder="e.g., 0912345678" {...field} />
                     </FormControl>
@@ -307,7 +307,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                 name="numberOfPeople"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />加入的人数 *</FormLabel>
+                    <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" />人數 *</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="e.g., 1" {...field} min="1" />
                     </FormControl>
@@ -323,11 +323,11 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                   name="district"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />地区 (在河内接/送)</FormLabel>
+                      <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />點選台南區域</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="选择一个地区" />
+                            <SelectValue placeholder="選區域" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -338,7 +338,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormDescription>某些地区可能需要额外费用。</FormDescription>
+                      <FormDescription>偏遠的區域，需要額外費用</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -350,9 +350,9 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                 name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />你的接/送地址 *</FormLabel>
+                    <FormLabel className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-primary" />輸入地址 *</FormLabel>
                     <FormControl>
-                      <Input placeholder="你的接/送地址" {...field} />
+                      <Input placeholder="輸入地址" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -364,9 +364,9 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                 name="discountCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center"><TicketPercent className="h-4 w-4 mr-2 text-primary" />折扣代码 (可选)</FormLabel>
+                    <FormLabel className="flex items-center"><TicketPercent className="h-4 w-4 mr-2 text-primary" />折扣碼（選填）</FormLabel>
                     <FormControl>
-                      <Input placeholder="如果你有的话" {...field} />
+                      <Input placeholder="如果有折扣碼，請在這裡輸入" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -378,10 +378,10 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center"><FileText className="h-4 w-4 mr-2 text-primary" />备注 (可选)</FormLabel>
+                    <FormLabel className="flex items-center"><FileText className="h-4 w-4 mr-2 text-primary" />備註（非必填）</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="任何特殊请求"
+                        placeholder=" 如有特殊要求或補充資料請在這裡告訴我們"
                         className="resize-none"
                         {...field}
                       />
@@ -398,8 +398,8 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                   name="additionalServiceIds"
                   render={({ field }) => (
                     <FormItem className="space-y-4">
-                      <FormLabel className="text-base">额外服务</FormLabel>
-                      <FormDescription>选择您想要包含的任何额外服务。</FormDescription>
+                      <FormLabel className="text-base">加購服務</FormLabel>
+                      {/* <FormDescription>选择您想要包含的任何额外服务。</FormDescription> */}
                       {additionalServices.map((service) => (
                         <FormField
                           key={service.id}
@@ -444,7 +444,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
               <div className="mt-8 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
                 <h3 className="text-xl font-bold font-headline mb-2 flex items-center">
                   <TicketPercent className="h-5 w-5 mr-2 text-primary" />
-                  你的估计价格:
+                  預估價格:
                 </h3>
                 {priceCalculationLoading ? (
                   <p className="text-lg text-muted-foreground flex items-center">
@@ -464,7 +464,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                     {/* --- BEGIN: Price breakdown details --- */}
                     <div className="mt-4 bg-white dark:bg-muted/30 rounded-lg border p-4 text-xs">
                       <div className="flex justify-between mb-1">
-                        <span>行程价格 ({priceBreakdown.numPeople} 人{priceBreakdown.numPeople > 1 ? 's' : ''}):</span>
+                        <span>行程價格 ({priceBreakdown.numPeople} 人{priceBreakdown.numPeople > 1 ? 's' : ''}):</span>
                         <span>{(priceBreakdown.basePrice).toLocaleString()} 元</span>
                       </div>
                       {priceBreakdown.districtSurchargeLabel && (
@@ -475,7 +475,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                       )}
                       {priceBreakdown.services.length > 0 && (
                         <div className="mb-1">
-                          <span>额外服务:</span>
+                          <span>加購服務:</span>
                           <ul className="ml-4 mt-1">
                             {priceBreakdown.services.map((s, idx) => (
                               <li key={idx} className="flex justify-between">
@@ -504,7 +504,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                     {/* --- END: Price breakdown details --- */}
                   </>
                 )}
-                <FormDescription className="mt-2">这是您部分行程的估计价格。最终价格可能会有所不同。</FormDescription>
+                {/* <FormDescription className="mt-2">这是您部分行程的估计价格。最终价格可能会有所不同。</FormDescription> */}
               </div>
 
               <DialogFooter className="sm:justify-between gap-2 pt-4">
@@ -517,7 +517,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                   {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
-                  确认并加入
+                  確認並加入
                 </Button>
               </DialogFooter>
             </form>
@@ -550,7 +550,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
               className="min-w-[120px]"
             >
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              确认并加入
+              確認並加入
             </Button>
           </DialogFooter>
         </DialogContent>

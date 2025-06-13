@@ -96,7 +96,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex-grow">
+            <div className="flex-grow w-full">
               <label htmlFor="phoneInput" className="block text-sm font-medium text-foreground mb-1">
               您的聯絡電話
               </label>
@@ -106,7 +106,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
                 value={inputPhone}
                 onChange={handlePhoneChange}
                 placeholder="e.g., 0912345678"
-                className="text-base"
+                className="text-base w-full"
                 disabled={isLoading || isValidating}
               />
               <label htmlFor="nameInput" className="block text-sm font-medium text-foreground mt-4 mb-1">
@@ -118,18 +118,20 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
                 value={inputName}
                 onChange={handleNameChange}
                 placeholder="e.g., John Doe"
-                className="text-base"
+                className="text-base w-full"
                 disabled={isLoading || isValidating}
               />
             </div>
-            <Button
-              onClick={handleFetchTrips}
-              disabled={isLoading || isValidating || !inputPhone.trim() || !inputName.trim()}
-              className="h-10 w-full sm:w-auto"
-            >
-              {(isLoading || isValidating) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-              查詢
-            </Button>
+            <div className="w-full sm:w-auto">
+              <Button
+                onClick={handleFetchTrips}
+                disabled={isLoading || isValidating || !inputPhone.trim() || !inputName.trim()}
+                className="h-10 w-full sm:w-auto"
+              >
+                {(isLoading || isValidating) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                查詢
+              </Button>
+            </div>
           </div>
           {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
         </CardContent>
