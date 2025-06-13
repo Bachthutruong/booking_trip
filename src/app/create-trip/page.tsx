@@ -3,28 +3,46 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ITINERARY_TYPES } from '@/lib/constants';
 import CreateTripItinerarySelector from '@/components/trip/CreateTripItinerarySelector';
 import CreateTripFormWrapper from '@/components/trip/CreateTripFormWrapper';
+import { Suspense } from 'react';
 
 export default async function CreateTripPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
   const selectedItineraryId = searchParams?.itineraryId as string | undefined;
-
-  let itineraries: any[] = [];
-  if (!selectedItineraryId) {
-    itineraries = await getItineraries();
-  }
 
   if (selectedItineraryId) {
     return (
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-8 text-center font-headline">確認您的旅程詳情</h1>
-        <CreateTripFormWrapper itineraryId={selectedItineraryId} />
+        <Suspense fallback={<CreateTripFormSkeleton />}>
+          <CreateTripFormWrapper itineraryId={selectedItineraryId} />
+        </Suspense>
       </div>
     );
   }
 
+  // Fetch itineraries on the server side
+  const itineraries = await getItineraries();
+
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-4xl font-bold mb-10 text-center font-headline">選擇您的旅程：選擇旅程</h1>
-      <CreateTripItinerarySelector itineraries={itineraries} />
+      <Suspense fallback={<ItinerarySelectorSkeleton />}>
+        <CreateTripItinerarySelector itineraries={itineraries} />
+      </Suspense>
+    </div>
+  );
+}
+
+function ItinerarySelectorSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-card rounded-lg p-4 space-y-4">
+          <Skeleton className="h-40 w-full rounded-lg" />
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      ))}
     </div>
   );
 }
@@ -32,28 +50,28 @@ export default async function CreateTripPage({ searchParams }: { searchParams?: 
 function CreateTripFormSkeleton() {
   return (
     <div className="max-w-2xl mx-auto bg-card p-6 sm:p-8 rounded-xl shadow-xl space-y-6">
-      <Skeleton className="h-8 w-3/4 mb-4" /> {/* Itinerary Name */}
+      <Skeleton className="h-8 w-3/4 mb-4" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Skeleton className="h-10 w-full" /> {/* Date */}
-        <Skeleton className="h-10 w-full" /> {/* Time */}
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
       </div>
-      <Skeleton className="h-10 w-full" /> {/* Num people */}
-      <Skeleton className="h-10 w-full" /> {/* Address field 1 */}
-      <Skeleton className="h-10 w-full" /> {/* Address field 2 (optional) */}
-      <Skeleton className="h-10 w-full" /> {/* Contact Name */}
-      <Skeleton className="h-10 w-full" /> {/* Contact Phone */}
-      <Skeleton className="h-10 w-full" /> {/* Secondary Contact */}
-      <Skeleton className="h-20 w-full" /> {/* Notes */}
-      <Skeleton className="h-10 w-full" /> {/* District */}
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-20 w-full" />
+      <Skeleton className="h-10 w-full" />
       <div>
-        <Skeleton className="h-6 w-1/4 mb-2" /> {/* Additional Services Label */}
+        <Skeleton className="h-6 w-1/4 mb-2" />
         <div className="space-y-2">
           <Skeleton className="h-8 w-full" />
           <Skeleton className="h-8 w-full" />
         </div>
       </div>
-      <Skeleton className="h-10 w-1/2" /> {/* Price */}
-      <Skeleton className="h-12 w-full" /> {/* Submit Button */}
+      <Skeleton className="h-10 w-1/2" />
+      <Skeleton className="h-12 w-full" />
     </div>
   );
 }
