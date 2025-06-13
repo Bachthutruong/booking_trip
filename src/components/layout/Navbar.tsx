@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, Feather } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 const navLinks = [
   { href: '/', label: '首頁' },
@@ -18,8 +19,9 @@ const navLinks = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
 
-  const NavLinksContent = () => (
+  const NavLinksContent = ({ onItemClick }: { onItemClick?: () => void }) => (
     <>
       {navLinks.map((link) => (
         <Button key={link.href} variant="ghost" asChild
@@ -27,6 +29,7 @@ export default function Navbar() {
             "justify-start md:justify-center transition-colors",
             pathname === link.href ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'hover:bg-secondary'
           )}
+          onClick={onItemClick}
         >
           <Link href={link.href}>{link.label}</Link>
         </Button>
@@ -49,7 +52,7 @@ export default function Navbar() {
 
         {/* Mobile Navigation */}
         <div className="md:hidden">
-          <Sheet>
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon">
                 <Menu className="h-6 w-6" />
@@ -58,7 +61,7 @@ export default function Navbar() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px] p-4">
               <nav className="flex flex-col gap-3 mt-6">
-                <NavLinksContent />
+                <NavLinksContent onItemClick={() => setIsOpen(false)} />
               </nav>
             </SheetContent>
           </Sheet>

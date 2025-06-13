@@ -33,7 +33,6 @@ export default function JoinableTripsList({ initialTrips = [] }: JoinableTripsLi
   const [isLoading, setIsLoading] = useState(false); // Không cần loading khi đã có initialTrips
   const [error, setError] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [itineraryTypes, setItineraryTypes] = useState<{ type: string, label: string }[]>([]);
   const [displayCount, setDisplayCount] = useState(6);
 
   // Nếu initialTrips thay đổi (do SSR/hydration), cập nhật lại state
@@ -42,20 +41,6 @@ export default function JoinableTripsList({ initialTrips = [] }: JoinableTripsLi
   }, [initialTrips]);
 
   // Không fetch trips khi mount nữa!
-
-  // Fetch danh sách itinerary types động
-  useEffect(() => {
-    fetch('/api/admin/itineraries/list')
-      .then(res => res.json())
-      .then(data => {
-        // Lấy unique type và label từ danh sách itinerary
-        const typesMap: Record<string, string> = {};
-        (data.itineraries || []).forEach((it: any) => {
-          if (it.type && it.name) typesMap[it.type] = it.name;
-        });
-        setItineraryTypes(Object.entries(typesMap).map(([type, label]) => ({ type, label })));
-      });
-  }, []);
 
   // Filter client-side khi search/filter đổi
   useEffect(() => {
@@ -124,7 +109,7 @@ export default function JoinableTripsList({ initialTrips = [] }: JoinableTripsLi
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
           type="text"
-          placeholder="按名称、日期、地点或创建者搜索行程..."
+          placeholder="以關鍵字查詢共乘行程…"
           value={searchTerm}
           onChange={handleInputChange}
           className="pl-10 text-base"
@@ -132,7 +117,7 @@ export default function JoinableTripsList({ initialTrips = [] }: JoinableTripsLi
       </div>
 
       {/* Itinerary Type Filter Buttons */}
-      <div className="flex gap-3 justify-center mb-2 flex-wrap">
+      <div className="flex flex-col md:flex-row gap-2 md:gap-3 justify-center mb-2">
         <Button
           key="all"
           variant={selectedType === null ? 'default' : 'outline'}
@@ -141,12 +126,12 @@ export default function JoinableTripsList({ initialTrips = [] }: JoinableTripsLi
         >
           所有行程
         </Button>
-        {itineraryTypes.map(({ type, label }) => (
+        {Object.entries(ITINERARY_TYPES).map(([key, label]) => (
           <Button
-            key={type}
-            variant={selectedType === type ? 'default' : 'outline'}
-            onClick={() => handleFilterChange(selectedType === type ? null : type)}
-            className={selectedType === type ? 'bg-primary text-white' : ''}
+            key={key}
+            variant={selectedType === key ? 'default' : 'outline'}
+            onClick={() => handleFilterChange(selectedType === key ? null : key)}
+            className={selectedType === key ? 'bg-primary text-white' : ''}
           >
             {label}
           </Button>
@@ -165,12 +150,12 @@ export default function JoinableTripsList({ initialTrips = [] }: JoinableTripsLi
             <div className="flex justify-center mt-6 gap-4">
               {displayCount < trips.length && (
                 <Button onClick={() => setDisplayCount(c => c + 6)}>
-                  载入更多
+                  載入更多
                 </Button>
               )}
               {displayCount > 6 && (
                 <Button variant="outline" onClick={() => setDisplayCount(6)}>
-                  收起
+                  收起來
                 </Button>
               )}
             </div>

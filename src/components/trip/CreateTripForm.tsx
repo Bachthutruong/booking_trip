@@ -60,25 +60,6 @@ const createTripFormSchema = z.object({
       path: ["date"],
     });
   }
-
-  if (data.secondaryContactType && !data.secondaryContactValue) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "请输入所选联系方式的详细信息。",
-      path: ["secondaryContactValue"],
-    });
-  }
-  if (!data.secondaryContactType && data.secondaryContactValue) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "请选择联系方式类型。",
-      path: ["secondaryContactType"],
-    });
-  }
-  // Address validation based on itinerary type (will be handled in server action for robustness, but good for client too)
-  // For example:
-  // if (itineraryType === 'airport_pickup' && !data.dropoffAddress) { ... }
-  // This logic is better placed in the server action to prevent bypass.
 });
 
 
@@ -377,19 +358,21 @@ export default function CreateTripForm({ itinerary, districts, additionalService
     <div className="mx-auto max-w-3xl">
       {/* Thông tin itinerary ở đầu form */}
       <div className="mb-8">
-        <div className="flex flex-col md:flex-row gap-6 items-start">
-          {itinerary.imageUrl && (
-            <img src={itinerary.imageUrl} alt={itinerary.name} className="w-full md:w-64 h-40 object-cover rounded-lg shadow" />
-          )}
-          <div className="flex-1">
-            <h2 className="text-2xl font-headline font-semibold mb-2">{itinerary.name}</h2>
-            <div className="mb-2 text-muted-foreground">{itinerary.description}</div>
-            <div className="flex flex-wrap gap-4 text-sm">
-              <span className="flex items-center"><Tag className="h-4 w-4 mr-1 text-primary" />{itinerary.pricePerPerson.toLocaleString()} 元 / 人</span>
-              {itinerary.availableTimes?.length > 0 && (
-                <span className="flex items-center"><Clock className="h-4 w-4 mr-1 text-primary" />{itinerary.availableTimes.slice(0,3).join(', ')}{itinerary.availableTimes.length > 3 ? '...' : ''}</span>
-              )}
-            </div>
+        {itinerary.imageUrl && (
+          <img
+            src={itinerary.imageUrl}
+            alt={itinerary.name}
+            className="w-full object-cover rounded-lg shadow mb-4"
+          />
+        )}
+        <div>
+          <h2 className="text-2xl font-headline font-semibold mb-2">{itinerary.name}</h2>
+          <div className="mb-2 text-muted-foreground">{itinerary.description}</div>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <span className="flex items-center"><Tag className="h-4 w-4 mr-1 text-primary" />{itinerary.pricePerPerson.toLocaleString()} 元 / 人</span>
+            {/* {itinerary.availableTimes?.length > 0 && (
+              <span className="flex items-center"><Clock className="h-4 w-4 mr-1 text-primary" />{itinerary.availableTimes.slice(0,3).join(', ')}{itinerary.availableTimes.length > 3 ? '...' : ''}</span>
+            )} */}
           </div>
         </div>
       </div>
@@ -635,12 +618,12 @@ export default function CreateTripForm({ itinerary, districts, additionalService
                 {/* --- BEGIN: Price breakdown details --- */}
                 <div className="mt-4 bg-white dark:bg-muted/30 rounded-lg border p-4 text-sm">
                   <div className="flex justify-between mb-1">
-                    <span>行程价格（{priceBreakdown.numPeople}人）:</span>
+                    <span>行程價格（{priceBreakdown.numPeople}人）:</span>
                     <span>{(priceBreakdown.basePrice).toLocaleString()} 元</span>
                   </div>
                   {priceBreakdown.districtSurchargeLabel && (
                     <div className="flex justify-between mb-1">
-                      <span>区域附加费</span>
+                      <span>區域加價</span>
                       <span>{priceBreakdown.districtSurchargeLabel}</span>
                     </div>
                   )}

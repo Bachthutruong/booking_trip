@@ -42,22 +42,23 @@ export default function ItineraryCard({ itinerary, onSelect, showSelectButton = 
         </div>
       )}
       <CardHeader>
-        <div className="flex items-center justify-between mb-2">
-          <CardTitle className="font-headline text-xl">{itinerary.name}</CardTitle>
-          <Badge variant="secondary" className="flex items-center gap-1.5">
+        <div className="mb-2">
+          <CardTitle className="font-headline text-xl mb-1">{itinerary.name}</CardTitle>
+          <Badge variant="secondary" className="flex flex-row items-center gap-1.5 w-auto px-2 py-1">
             <ItineraryIcon type={itinerary.type} />
-            {ITINERARY_TYPES[itinerary.type]}
+            <span>{ITINERARY_TYPES[itinerary.type]}</span>
           </Badge>
         </div>
-        <CardDescription className="text-sm text-muted-foreground line-clamp-3 min-h-[60px]">
+        <CardDescription className="text-sm text-muted-foreground line-clamp-3 min-h-[60px] mt-1">
           {itinerary.description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-grow space-y-3">
-        <div className="flex items-center text-sm text-foreground">
+          <div className="flex items-center text-sm text-foreground">
           <Tag className="h-4 w-4 mr-2 text-primary" />
           價格: <span className="font-semibold ml-1">{itinerary.pricePerPerson.toLocaleString()} 元/人</span>
         </div>
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex-grow space-y-1 pt-0 mt-0">
+        
         {/* {itinerary.availableTimes && itinerary.availableTimes.length > 0 && (
           <div className="flex items-center text-sm text-foreground">
             <Clock className="h-4 w-4 mr-2 text-primary" />
