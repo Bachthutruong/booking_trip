@@ -1,61 +1,41 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { getUserTrips } from '@/actions/tripActions';
 import type { Trip } from '@/lib/types';
 import TripListItem from './TripListItem';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Info } from 'lucide-react';
+import { Search, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { getDistrictSurcharges } from '@/actions/configActions';
 import type { DistrictSurcharge } from '@/lib/types';
-import useSWR from 'swr';
+import { useRouter } from 'next/navigation';
+import { startTransition } from 'react';
 
 interface MyTripsClientProps {
   tripIdFromParam?: string;
   phoneFromParam?: string;
   nameFromParam?: string;
-  serverTrips?: Trip[];
+  serverTrips: Trip[];
+  districts: DistrictSurcharge[];
 }
 
-export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFromParam, serverTrips }: MyTripsClientProps) {
+export default function MyTripsClient({ 
+  tripIdFromParam, 
+  phoneFromParam, 
+  nameFromParam, 
+  serverTrips,
+  districts 
+}: MyTripsClientProps) {
+  const router = useRouter();
   const [inputPhone, setInputPhone] = useState(phoneFromParam || '');
   const [inputName, setInputName] = useState(nameFromParam || '');
   const [phone, setPhone] = useState(phoneFromParam || '');
   const [name, setName] = useState(nameFromParam || '');
-  const [districts, setDistricts] = useState<DistrictSurcharge[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [noTripsFound, setNoTripsFound] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
-
-  // SWR fetcher
-  const fetcher = (url: string) => fetch(url).then(res => res.json());
-  const shouldFetch = phone.trim() && name.trim();
-  const { data, isLoading, mutate, isValidating } = useSWR(
-    shouldFetch ? `/api/my-trips?phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(name)}` : null,
-    fetcher,
-    { revalidateOnFocus: false }
-  );
-  const trips: Trip[] = data?.trips || [];
-
-  useEffect(() => {
-    getDistrictSurcharges().then(setDistricts);
-  }, []);
-
-  // Set initial values from URL params and fetch if both are present
-  useEffect(() => {
-    if (serverTrips && serverTrips.length > 0) {
-      // Nếu có trips từ server, không fetch lại
-      setNoTripsFound(false);
-      return;
-    }
-    if (phoneFromParam && nameFromParam && (!serverTrips || serverTrips.length === 0)) {
-      setNoTripsFound(false);
-    }
-  }, [phoneFromParam, nameFromParam, serverTrips]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputPhone(e.target.value);
@@ -70,22 +50,23 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
   const handleFetchTrips = () => {
     if (!inputPhone.trim() || !inputName.trim()) {
       setError('请输入您的手机号码和姓名。');
-      setNoTripsFound(false);
       return;
     }
     setError(null);
     setPhone(inputPhone.trim());
     setName(inputName.trim());
-    // mutate sẽ được gọi tự động do phone/name thay đổi
+    setIsSearching(true);
+
+    startTransition(() => {
+      router.push(`/my-trips?phone=${encodeURIComponent(inputPhone.trim())}&name=${encodeURIComponent(inputName.trim())}`);
+    });
   };
 
-  useEffect(() => {
-    if (!isLoading && shouldFetch && trips.length === 0) {
-      setNoTripsFound(true);
-    } else {
-      setNoTripsFound(false);
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleFetchTrips();
     }
-  }, [isLoading, shouldFetch, trips.length]);
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -98,16 +79,17 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-grow w-full">
               <label htmlFor="phoneInput" className="block text-sm font-medium text-foreground mb-1">
-              您的聯絡電話
+                您的聯絡電話
               </label>
               <Input
                 id="phoneInput"
                 type="tel"
                 value={inputPhone}
                 onChange={handlePhoneChange}
+                onKeyPress={handleKeyPress}
                 placeholder="e.g., 0912345678"
                 className="text-base w-full"
-                disabled={isLoading || isValidating}
+                disabled={isSearching}
               />
               <label htmlFor="nameInput" className="block text-sm font-medium text-foreground mt-4 mb-1">
                 您的姓名
@@ -117,18 +99,19 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
                 type="text"
                 value={inputName}
                 onChange={handleNameChange}
+                onKeyPress={handleKeyPress}
                 placeholder="e.g., John Doe"
                 className="text-base w-full"
-                disabled={isLoading || isValidating}
+                disabled={isSearching}
               />
             </div>
             <div className="w-full sm:w-auto">
               <Button
                 onClick={handleFetchTrips}
-                disabled={isLoading || isValidating || !inputPhone.trim() || !inputName.trim()}
+                disabled={!inputPhone.trim() || !inputName.trim() || isSearching}
                 className="h-10 w-full sm:w-auto"
               >
-                {(isLoading || isValidating) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                <Search className="mr-2 h-4 w-4" />
                 查詢
               </Button>
             </div>
@@ -137,7 +120,7 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
         </CardContent>
       </Card>
 
-      {noTripsFound && !isLoading && shouldFetch && (
+      {serverTrips.length === 0 && phone && name && (
         <div className="text-center py-6">
           <Alert variant="default" className="max-w-xl mx-auto">
             <Info className="h-5 w-5 mr-2" />
@@ -149,23 +132,20 @@ export default function MyTripsClient({ tripIdFromParam, phoneFromParam, nameFro
         </div>
       )}
 
-      {isLoading && (
-        <div className="text-center py-10">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-2 text-muted-foreground">正在加载您的行程...</p>
-        </div>
-      )}
-
-      {!isLoading && trips.length > 0 && (
+      {serverTrips.length > 0 && (
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold font-headline">您的共乘</h2>
-          {trips.map(trip => (
+          {serverTrips.map(trip => (
             <TripListItem
               key={trip.id}
               trip={trip}
               highlight={trip.id === tripIdFromParam}
               onActionStart={() => {}}
-              onActionComplete={() => mutate()}
+              onActionComplete={() => {
+                startTransition(() => {
+                  router.refresh();
+                });
+              }}
               currentUsersPhone={phone}
               districts={districts}
             />

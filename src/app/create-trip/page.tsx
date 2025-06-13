@@ -5,6 +5,9 @@ import CreateTripItinerarySelector from '@/components/trip/CreateTripItinerarySe
 import CreateTripFormWrapper from '@/components/trip/CreateTripFormWrapper';
 import { Suspense } from 'react';
 
+// Add route segment config
+export const revalidate = 30; // revalidate every 30 seconds
+
 export default async function CreateTripPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
   const selectedItineraryId = searchParams?.itineraryId as string | undefined;
 
@@ -12,22 +15,18 @@ export default async function CreateTripPage({ searchParams }: { searchParams?: 
     return (
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-8 text-center font-headline">確認您的旅程詳情</h1>
-        <Suspense fallback={<CreateTripFormSkeleton />}>
-          <CreateTripFormWrapper itineraryId={selectedItineraryId} />
-        </Suspense>
+        <CreateTripFormWrapper itineraryId={selectedItineraryId} />
       </div>
     );
   }
 
-  // Fetch itineraries on the server side
-  const itineraries = await getItineraries();
+  // Fetch itineraries on the server side with error handling
+  const itineraries = await getItineraries().catch(() => []);
 
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-4xl font-bold mb-10 text-center font-headline">選擇您的旅程：選擇旅程</h1>
-      <Suspense fallback={<ItinerarySelectorSkeleton />}>
-        <CreateTripItinerarySelector itineraries={itineraries} />
-      </Suspense>
+      <CreateTripItinerarySelector itineraries={itineraries} />
     </div>
   );
 }
