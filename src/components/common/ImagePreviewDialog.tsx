@@ -29,9 +29,9 @@ export default function ImagePreviewDialog({ isOpen, onOpenChange, imageUrl }: I
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>付款证明预览</DialogTitle>
+                    <DialogTitle>付款證明檔案</DialogTitle>
                     <DialogDescription>
-                        {isPdf ? '预览PDF文档。' : '预览图片。'}
+                        {isPdf ? '预览PDF文档。' : '預覽照片'}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex justify-center items-center bg-muted p-2 rounded-md min-h-[300px]">

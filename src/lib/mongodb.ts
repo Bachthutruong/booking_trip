@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { MongoClient, Db, Collection } from 'mongodb';
-import type { Itinerary, Trip, Feedback, DiscountCode, DistrictSurcharge, AdditionalService, AdminUser } from './types';
+import type { Itinerary, Trip, Feedback, DiscountCode, DistrictSurcharge, AdditionalService, AdminUser, SpamReport } from './types';
 
 const uri = process.env.MONGODB_URI;
 if (!uri) {
@@ -16,7 +16,15 @@ if (process.env.NODE_ENV === 'development') {
   // is preserved across module reloads caused by HMR (Hot Module Replacement).
   // @ts-ignore
   if (!global._mongoClientPromise) {
-    client = new MongoClient(uri);
+    client = new MongoClient(uri, {
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 30000,
+      maxPoolSize: 50,
+      minPoolSize: 10,
+      retryWrites: true,
+      retryReads: true
+    });
     // @ts-ignore
     global._mongoClientPromise = client.connect();
   }
@@ -24,7 +32,15 @@ if (process.env.NODE_ENV === 'development') {
   clientPromise = global._mongoClientPromise;
 } else {
   // In production mode, it's best to not use a global variable.
-  client = new MongoClient(uri);
+  client = new MongoClient(uri, {
+    connectTimeoutMS: 30000,
+    socketTimeoutMS: 45000,
+    serverSelectionTimeoutMS: 30000,
+    maxPoolSize: 50,
+    minPoolSize: 10,
+    retryWrites: true,
+    retryReads: true
+  });
   clientPromise = client.connect();
 }
 
@@ -71,4 +87,14 @@ export async function getAdminUsersCollection(): Promise<Collection<AdminUser>> 
 export async function getTermsContentCollection(): Promise<Collection<any>> {
   const db = await getDb();
   return db.collection('terms_content');
+}
+
+export async function getSpamReportsCollection(): Promise<Collection<SpamReport>> {
+  const db = await getDb();
+  return db.collection<SpamReport>('spam_reports');
+}
+
+export async function getTermsCollection() {
+  const db = await getDb();
+  return db.collection('terms');
 }

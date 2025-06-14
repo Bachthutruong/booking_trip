@@ -75,7 +75,7 @@ export default function TripsTable({ currentUser }: { currentUser: { id: string,
                 <TableCell className="font-mono text-xs">{trip.id}</TableCell>
                 <TableCell className="font-medium">
                   {trip.itineraryName}
-                  <Badge variant="outline" className="ml-2 text-xs">{trip.itineraryType ? trip.itineraryType.charAt(0).toUpperCase() + trip.itineraryType.slice(1) : ''}</Badge>
+                  {/* <Badge variant="outline" className="ml-2 text-xs">{trip.itineraryType ? trip.itineraryType.charAt(0).toUpperCase() + trip.itineraryType.slice(1) : ''}</Badge> */}
                 </TableCell>
                 <TableCell>
                   {trip.date ? new Date(trip.date).toLocaleDateString() : ''}<br />

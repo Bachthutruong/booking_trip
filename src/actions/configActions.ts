@@ -3,9 +3,10 @@
 import {
   getDistrictSurchargesCollection,
   getAdditionalServicesCollection,
-  getDiscountCodesCollection
+  getDiscountCodesCollection,
+  getTermsCollection
 } from '@/lib/mongodb';
-import type { DistrictSurcharge, AdditionalService, DiscountCode, DiscountCodeFormValues, DistrictSurchargeFormValues, AdditionalServiceFormValues, ItineraryType } from '@/lib/types';
+import type { DistrictSurcharge, AdditionalService, DiscountCode, DiscountCodeFormValues, DistrictSurchargeFormValues, AdditionalServiceFormValues, ItineraryType, Terms } from '@/lib/types';
 import { ObjectId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -267,4 +268,11 @@ export async function getDiscountCodeById(id: string): Promise<DiscountCode | nu
   const collection = await getDiscountCodesCollection();
   const doc = await collection.findOne({ _id: new ObjectId(id) });
   return doc ? mapMongoDocument<DiscountCode>(doc) : null;
+}
+
+// --- Terms ---
+export async function getTerms(): Promise<Terms | null> {
+  const collection = await getTermsCollection();
+  const doc = await collection.findOne({});
+  return doc ? mapMongoDocument<Terms>(doc) : null;
 }

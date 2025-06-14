@@ -74,15 +74,15 @@ export default function CommentSection({ tripId, initialComment, isDeleted }: { 
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle className="text-lg">[评论] 备注 & 工作交接</CardTitle>
+        <CardTitle className="text-lg">備註與交接</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="max-h-64 overflow-y-auto mb-4 bg-muted rounded p-3 space-y-3">
           {comments.length === 0 && (
-            <div className="text-muted-foreground text-sm text-center">暂无备注</div>
+            <div className="text-muted-foreground text-sm text-center">無備註</div>
           )}
           {comments.map((c, idx) => (
-            <div key={idx} className={`flex flex-col ${c.username === username ? 'items-end' : 'items-start'}`}>  
+            <div key={idx} className={`flex flex-col ${c.username === username ? 'items-end' : 'items-start'}`}>
               <div className={`rounded-lg px-4 py-2 mb-1 ${c.username === username ? 'bg-primary text-white' : 'bg-white border'}`}>{c.comment}</div>
               <div className="text-xs text-muted-foreground">
                 {c.username} · {format(new Date(c.createdAt), 'yyyy-MM-dd HH:mm')}
@@ -95,13 +95,13 @@ export default function CommentSection({ tripId, initialComment, isDeleted }: { 
           <Textarea
             value={newComment}
             onChange={e => setNewComment(e.target.value)}
-            placeholder="输入备注，工作交接信息..."
+            placeholder="輸入備註或交接的內容"
             className="flex-1"
             disabled={isDeleted || isLoading || !username}
             rows={2}
           />
           <Button onClick={handleSend} disabled={isDeleted || isLoading || !newComment.trim() || !username}>
-            发送
+            發送
           </Button>
         </div>
         {error && <div className="text-destructive text-sm mt-2">{error}</div>}

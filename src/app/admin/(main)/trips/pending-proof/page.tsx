@@ -28,7 +28,7 @@ export default async function PendingProofPage() {
           <TableHeader>
             <TableRow>
               <TableHead>姓名</TableHead>
-              <TableHead>电话</TableHead>
+              <TableHead>電話</TableHead>
               <TableHead className="text-right">金额</TableHead>
               <TableHead>查看凭证</TableHead>
               <TableHead>确认付款</TableHead>

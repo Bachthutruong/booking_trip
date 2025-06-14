@@ -62,7 +62,7 @@ const ParticipantStatusBadge = ({ status, pricePaid, transferProofImageUrl, part
     return (
       <div className="flex items-center gap-1">
         <Badge variant="outline" className="border-yellow-500 text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/30 text-xs px-2 py-1">
-          <Hourglass className="h-2.5 w-2.5 mr-1" /> 待支付 ({pricePaid.toLocaleString()} 元)
+          <Hourglass className="h-2.5 w-2.5 mr-1" /> 待付款 ({pricePaid.toLocaleString()} 元)
         </Badge>
         {hasProofUploaded ? (
           <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" className="text-green-600 border-green-500 bg-green-50 dark:text-green-400 dark:border-green-600 dark:bg-green-900/30 text-xs h-6 px-2 py-1">
@@ -70,7 +70,7 @@ const ParticipantStatusBadge = ({ status, pricePaid, transferProofImageUrl, part
           </Button>
         ) : (
           <Button onClick={() => setIsUploadDialogOpen(true)} className="bg-accent text-accent-foreground hover:bg-accent/90 text-xs h-6 px-2 py-1">
-            <CreditCard className="mr-1 h-3 w-3" /> 上传证明
+            <CreditCard className="mr-1 h-3 w-3" /> 上傳轉帳證明
           </Button>
         )}
         {isUploadDialogOpen && (
@@ -214,7 +214,7 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
 
         {trip.participants.length > 0 && (
           <div className="pt-2 mt-2 border-t">
-            <h4 className="text-xs font-semibold text-muted-foreground mb-1">参与者:</h4>
+            <h4 className="text-xs font-semibold text-muted-foreground mb-1">行程參與者:</h4>
             <ul className="list-disc list-inside pl-1 space-y-0.5 text-xs">
               {trip.participants.map(p => {
                 const isCurrentUser = currentUsersPhone && p.phone === currentUsersPhone;
@@ -233,7 +233,7 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
                 return (
                   <li key={p.id} className="flex flex-col gap-0.5 border-b last:border-b-0 pb-2 mb-2 last:pb-0 last:mb-0">
                     <div className="flex flex-wrap items-center justify-between gap-x-2">
-                      <span>{displayName} ({p.numberOfPeople} 位, 电话: {displayPhone})</span>
+                      <span>{displayName} ({p.numberOfPeople} 位, 電話: {displayPhone})</span>
                       {isCurrentUser && (
                         <ParticipantStatusBadge
                           status={p.status}
@@ -249,7 +249,7 @@ export default function TripListItem({ trip, highlight = false, onActionStart, o
                     {/* Price breakdown for each participant */}
                     <ul className="ml-2 mt-1 text-xs text-muted-foreground space-y-0.5">
                       <li>行程價格: {isCurrentUser ? p.pricePaid.toLocaleString() + ' 元' : '*****'}</li>
-                      <li>区域: {districtName}{isCurrentUser && districtSurcharge > 0 ? ` (+${districtSurcharge.toLocaleString()} 元)` : ''}</li>
+                      <li>區域: {districtName}{isCurrentUser && districtSurcharge > 0 ? ` (+${districtSurcharge.toLocaleString()} 元)` : ''}</li>
                       <li>地址: {address}</li>
                       <li>加購服務: {additionalServices}</li>
                     </ul>

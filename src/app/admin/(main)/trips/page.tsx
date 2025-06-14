@@ -15,10 +15,10 @@ export default async function AdminTripsPage({ searchParams }: AdminTripsPagePro
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold font-headline">管理行程预订</h1>
+        {/* <h1 className="text-3xl font-bold font-headline">管理行程预订</h1> */}
         <div className="flex gap-2 mt-2 sm:mt-0">
           <Button asChild variant="secondary">
-            <Link href="/admin/trips/pending-proof">待审核凭证</Link>
+            <Link href="/admin/trips/pending-proof">待確認(已上傳付款證明)</Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/admin/trips/not-paid">未付款</Link>

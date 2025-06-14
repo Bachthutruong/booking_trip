@@ -315,7 +315,7 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
                   </FormItem>
                 )}
               />
-              
+
               {/* Conditionally render District field for relevant itinerary types */}
               {(trip.itineraryType === 'airport_pickup' || trip.itineraryType === 'airport_dropoff' || trip.itineraryType === 'tourism') && (
                 <FormField
@@ -537,12 +537,12 @@ export default function JoinTripForm({ trip, isOpen, onOpenChange, districts, ad
           <div className="flex items-center space-x-2 mt-4">
             <Checkbox id="accept-terms" checked={termsAccepted} onCheckedChange={checked => setTermsAccepted(checked === true)} />
             <label htmlFor="accept-terms" className="text-sm cursor-pointer select-none">
-              我已阅读并同意上述条款和条件
+              我已閱讀並同意上述條款和條件
             </label>
           </div>
           <DialogFooter className="pt-4">
             <Button variant="outline" onClick={() => setShowTermsDialog(false)}>
-                返回
+              返回
             </Button>
             <Button
               onClick={handleTermsConfirm}
