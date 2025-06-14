@@ -72,7 +72,7 @@ export default function UploadProofDialog({ tripId, participantId, isOpen, onOpe
 
   const handleSubmit = async () => {
     if (!selectedFile) {
-      toast({ title: '没有选择文件', description: '请选择一个文件上传。', variant: 'destructive' });
+      toast({ title: '還沒上傳檔案', description: '请选择一个文件上传。', variant: 'destructive' });
       return;
     }
     setIsSubmitting(true);
@@ -133,16 +133,14 @@ export default function UploadProofDialog({ tripId, participantId, isOpen, onOpe
     <Dialog open={isOpen} onOpenChange={handleCloseDialog}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle className="font-headline text-2xl">上传付款证明 {participantId ? '(针对参与者)' : '(针对主要预订者)'}</DialogTitle>
+          <DialogTitle className="font-headline text-2xl">上傳付款證明</DialogTitle>
           <DialogDescription>
-            请上传一张图片或PDF的转账确认书，用于行程ID: <strong>{tripId}</strong>。
-            {participantId && <><br />此证明是针对行程中的特定参与者。</>}
-            接受的格式: JPG, PNG, GIF, PDF。最大大小: 5MB。
+            請上傳一張照片或PDF檔案 轉帳的截圖或證明，接受格式為：JPG，PNG，GIF，PDF。最大大小：5MB
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-6">
           <div className="space-y-2">
-            <Label htmlFor="payment-proof-file" className="text-base">付款证明文件</Label>
+            <Label htmlFor="payment-proof-file" className="text-base">點擊下方【選擇檔案】上傳</Label>
             <Input
               id="payment-proof-file"
               type="file"
@@ -169,7 +167,7 @@ export default function UploadProofDialog({ tripId, participantId, isOpen, onOpe
           {!selectedFile && (
             <div className="mt-4 border border-dashed border-border rounded-md p-6 flex flex-col items-center justify-center text-muted-foreground h-[150px]">
               <FileImage className="h-12 w-12 mb-2" />
-              <p>没有选择文件</p>
+              <p>還沒上傳檔案</p>
             </div>
           )}
         </div>
@@ -185,7 +183,7 @@ export default function UploadProofDialog({ tripId, participantId, isOpen, onOpe
             ) : (
               <UploadCloud className="mr-2 h-4 w-4" />
             )}
-            上传
+            上傳
           </Button>
         </DialogFooter>
       </DialogContent>

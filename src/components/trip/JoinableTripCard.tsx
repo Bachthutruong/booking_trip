@@ -40,7 +40,6 @@ export default function JoinableTripCard({ trip }: { trip: TripSummary }) {
   const formattedDate = new Date(trip.date).toLocaleDateString('zh-TW', {
     year: 'numeric', month: 'long', day: 'numeric'
   });
-
   // Calculate total participants already in the trip (main booker + all participants)
   const totalCurrentParticipants = typeof trip.participantsCount === 'number' ? trip.participantsCount : 0;
 
@@ -80,7 +79,7 @@ export default function JoinableTripCard({ trip }: { trip: TripSummary }) {
         <CardContent className="flex-grow space-y-2 text-sm">
           <p className="flex items-center"><CalendarDays className="h-4 w-4 mr-2 text-primary" /> {formattedDate}</p>
           <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-primary" /> {trip.time}</p>
-          <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" /> 目前 {totalCurrentParticipants} 人加入</p>
+          {/* <p className="flex items-center"><Users className="h-4 w-4 mr-2 text-primary" /> 目前 {totalCurrentParticipants} 人加入</p> */}
           {/* {trip.pickupAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Pickup:</strong>&nbsp;{trip.pickupAddress}</p>} */}
           {/* {trip.dropoffAddress && <p className="flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" /> <strong>Dropoff:</strong>&nbsp;{trip.dropoffAddress}</p>} */}
         </CardContent>

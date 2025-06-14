@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Home, Settings, LogOut, LayoutDashboard, ListOrdered, Feather, TicketPercent, Map, Users, Percent, MapPinned, Palette, Wand2, History, Bell, FileText, MessageSquare } from 'lucide-react';
+import { Home, Settings, LogOut, LayoutDashboard, ListOrdered, Feather, TicketPercent, Map, Users, Percent, MapPinned, Palette, Wand2, History, Bell, FileText, MessageSquare, Flag } from 'lucide-react';
 import { logoutAdmin, verifyAdminToken } from '@/actions/adminAuthActions';
 import { usePathname } from 'next/navigation';
 
@@ -16,6 +16,7 @@ const adminNavLinks = [
   { href: '/admin/terms', label: '編輯同意條款', icon: FileText },
   { href: '/admin/feedback', label: '聯絡客服', icon: MessageSquare },
   { href: '/admin/users', label: '帳號管理', icon: Users, adminOnly: true },
+  { href: '/admin/spam', label: '垃圾用戶報告', icon: Flag },
   // { href: '/admin/notifications', label: 'Notifications', icon: Bell }, // Example for future
   // { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];

@@ -1048,7 +1048,7 @@ export async function getJoinableTripSummaryList(limit: number = 20): Promise<Ar
 /**
  * Get all comments for a trip (for chat-like notes)
  */
-export async function getTripComments(tripId: string): Promise<Array<{comment: string, username: string, createdAt: string}>> {
+export async function getTripComments(tripId: string): Promise<Array<{ comment: string, username: string, createdAt: string }>> {
   const tripsCollection = await getTripsCollection();
   const trip = await tripsCollection.findOne({ id: tripId });
   if (!trip) return [];
@@ -1075,4 +1075,44 @@ export async function addTripComment(tripId: string, comment: string, username: 
   if (result.matchedCount === 0) return { success: false, message: 'Trip not found.' };
   const trip = await tripsCollection.findOne({ id: tripId });
   return { success: true, message: '评论已添加', comments: (trip as any)?.comments || [] };
+}
+
+export async function revertParticipantPayment(tripId: string, participantId: string): Promise<{ success: boolean; message: string }> {
+  const tripsCollection = await getTripsCollection();
+  const doc = await tripsCollection.findOne({ id: tripId });
+  const currentTrip = doc ? await mapDocumentToTrip(doc) : null;
+
+  if (!currentTrip) {
+    return { success: false, message: "Trip not found." };
+  }
+
+  const participantIndex = currentTrip.participants.findIndex(p => p.id === participantId);
+
+  if (participantIndex === -1) {
+    return { success: false, message: "Participant not found." };
+  }
+
+  if (currentTrip.participants[participantIndex].status !== 'payment_confirmed') {
+    return { success: true, message: "Participant payment is not confirmed." };
+  }
+
+  const result = await tripsCollection.updateOne(
+    { id: tripId, "participants.id": participantId },
+    {
+      $set: {
+        [`participants.${participantIndex}.status`]: "pending_payment",
+        [`participants.${participantIndex}.confirmedBy`]: null,
+        [`participants.${participantIndex}.confirmedAt`]: null,
+        overallStatus: getOverallTripStatus({ ...currentTrip, participants: currentTrip.participants.map((p, idx) => idx === participantIndex ? { ...p, status: 'pending_payment' } : p) })
+      }
+    }
+  );
+
+  if (result.matchedCount === 0) {
+    return { success: false, message: "Failed to revert participant payment status." };
+  }
+
+  revalidatePath('/my-trips');
+  revalidatePath('/admin/trips');
+  return { success: true, message: "已成功將付款狀態改為待付款！" };
 }

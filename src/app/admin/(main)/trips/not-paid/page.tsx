@@ -20,13 +20,13 @@ export default async function NotPaidPage() {
         <Button asChild variant="outline">
           <Link href="/admin/trips">← 返回行程列表</Link>
         </Button>
-      </div>    
+      </div>
       <div className="shadow-xl rounded-xl border bg-white overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>姓名</TableHead>
-              <TableHead>电话</TableHead>
+              <TableHead>電話</TableHead>
               <TableHead>行程ID</TableHead>
               <TableHead>行程名稱</TableHead>
               <TableHead>角色</TableHead>

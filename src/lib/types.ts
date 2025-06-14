@@ -205,3 +205,22 @@ export interface TermsContent {
   content: string; // HTML hoặc markdown
   updatedAt: string; // ISO date string
 }
+
+export interface SpamReport {
+  _id?: ObjectId;
+  id: string;
+  reportedUserId: string;
+  reportedUserPhone: string;
+  reportedUserName: string;
+  reportedBy: string; // admin username
+  tripId: string;
+  reason: string;
+  createdAt: Date;
+  isHidden: boolean;
+}
+
+export interface Terms {
+  id: string;
+  content: string;
+  updatedAt: string;
+}
