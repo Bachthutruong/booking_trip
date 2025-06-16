@@ -22,7 +22,15 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
+    domains: ['images.unsplash.com'],
+    unoptimized: true,
   },
   webpack: (config, { isServer }) => {
     if (isServer) {

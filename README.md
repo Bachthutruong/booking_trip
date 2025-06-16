@@ -15,3 +15,19 @@ ADMIN_PASSWORD=password
 CLOUDINARY_CLOUD_NAME=dycxmy3tq
 CLOUDINARY_API_KEY=728763913524778
 CLOUDINARY_API_SECRET=S6hvz7VYYQ81LFkctZacoWXer7E
+
+# Booking Trip Application
+
+## Required Images
+
+The application requires the following images to be placed in the `public/images` directory:
+
+- `airport_pickup.jpg`: Image representing airport pickup service
+- `airport_dropoff.jpg`: Image representing airport dropoff service
+- `tourism.jpg`: Image representing tourism/sightseeing service
+- `default.jpg`: Default fallback image
+
+Please ensure these images are:
+- High quality (recommended resolution: 1200x800 pixels)
+- Optimized for web (file size < 200KB)
+- Relevant to the service type they represent

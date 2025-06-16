@@ -12,7 +12,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { content } = await req.json();
+  const formData = await req.formData();
+  const content = formData.get('content');
   const collection = await getTermsContentCollection();
   await collection.updateOne(
     { key: TERMS_KEY },
