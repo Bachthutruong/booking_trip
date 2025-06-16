@@ -1,6 +1,6 @@
 'use client';
 
-import type { Trip } from '@/lib/types';
+import type { Trip, Itinerary } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CalendarDays, Clock, Users, MapPin, CheckCircle2, Loader2 } from 'lucide-react';
@@ -13,12 +13,26 @@ import type { DistrictSurcharge, AdditionalService } from '@/lib/types'; // Impo
 
 type TripSummary = Trip & { participantsCount?: number };
 
+const getItineraryTypeImage = (type: string) => {
+  switch (type?.toLowerCase()) {
+    case 'airport_dropoff':
+      return '/images/image_1.jpg';
+    case 'airport_pickup':
+      return '/images/image_2.jpg';
+    case 'tourism':
+      return '/images/image_3.jpg';
+    default:
+      return '/images/image_4.jpg';
+  }
+};
+
 export default function JoinableTripCard({ trip }: { trip: TripSummary }) {
   const [isJoinFormOpen, setIsJoinFormOpen] = useState(false);
   const [districts, setDistricts] = useState<DistrictSurcharge[]>([]);
   const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([]);
   const [tripDetail, setTripDetail] = useState<any | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [itinerary, setItinerary] = useState<Itinerary | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -28,10 +42,19 @@ export default function JoinableTripCard({ trip }: { trip: TripSummary }) {
       ]);
       setDistricts(fetchedDistricts);
       setAdditionalServices(fetchedServices);
+
+      // Only fetch itinerary if itineraryId exists
+      if (trip.itineraryId) {
+        const res = await fetch(`/api/admin/itineraries/${trip.itineraryId}`);
+        const data = await res.json();
+        if (data.itinerary) {
+          setItinerary(data.itinerary);
+        }
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     }
-  }, []);
+  }, [trip.itineraryId]);
 
   useEffect(() => {
     fetchData();
@@ -62,14 +85,23 @@ export default function JoinableTripCard({ trip }: { trip: TripSummary }) {
   return (
     <>
       <Card className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl">
-        {/* You might want to fetch itinerary image based on trip.itineraryId if available */}
         <div className="relative w-full h-40 bg-secondary/50">
           <Image
-            src={`https://placehold.co/600x400.png?text=${encodeURIComponent(trip.itineraryName.substring(0, 20))}`}
-            alt={trip.itineraryName}
-            layout="fill"
-            objectFit="cover"
-            data-ai-hint={`${trip.itineraryType} travel`}
+            src={getItineraryTypeImage(trip.itineraryType)}
+            alt={trip.itineraryName || 'Trip image'}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover"
+            priority
+            unoptimized
+            onError={(e) => {
+              console.error('Image failed to load for type:', trip.itineraryType);
+              if (trip.itineraryType?.toLowerCase() === 'tourism') {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1539635278303-d4002c07eae3?q=80&w=1470&auto=format&fit=crop';
+              } else {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1464746133101-a2c3f88e0dd9?q=80&w=2043&auto=format&fit=crop';
+              }
+            }}
           />
         </div>
         <CardHeader>

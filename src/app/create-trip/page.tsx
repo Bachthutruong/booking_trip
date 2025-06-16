@@ -1,14 +1,11 @@
-import { getItineraries } from '@/actions/itineraryActions';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ITINERARY_TYPES } from '@/lib/constants';
-import CreateTripItinerarySelector from '@/components/trip/CreateTripItinerarySelector';
 import CreateTripFormWrapper from '@/components/trip/CreateTripFormWrapper';
-import { Suspense } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
+import CreateTripItinerarySelectorClient from '@/components/trip/CreateTripItinerarySelectorClient';
 
 // Add route segment config
 export const revalidate = 30; // revalidate every 30 seconds
 
-export default async function CreateTripPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+export default function CreateTripPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
   const selectedItineraryId = searchParams?.itineraryId as string | undefined;
 
   if (selectedItineraryId) {
@@ -20,13 +17,10 @@ export default async function CreateTripPage({ searchParams }: { searchParams?: 
     );
   }
 
-  // Fetch itineraries on the server side with error handling
-  const itineraries = await getItineraries().catch(() => []);
-
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-4xl font-bold mb-10 text-center font-headline">選擇您的旅程：選擇旅程</h1>
-      <CreateTripItinerarySelector itineraries={itineraries} />
+      <CreateTripItinerarySelectorClient />
     </div>
   );
 }
