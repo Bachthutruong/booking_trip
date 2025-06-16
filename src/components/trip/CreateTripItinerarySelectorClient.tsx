@@ -6,14 +6,17 @@ import type { Itinerary } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-export default function CreateTripItinerarySelectorClient() {
+export default function CreateTripItinerarySelectorClient({ initialItineraries = [] }: { initialItineraries?: Itinerary[] }) {
   const { data, error, isLoading } = useSWR<{ itineraries: Itinerary[] }>(
     "/api/admin/itineraries/list",
     fetcher,
-    { refreshInterval: 30000 } // refresh every 30s
+    {
+      refreshInterval: 30000,
+      fallbackData: { itineraries: initialItineraries }
+    }
   );
 
-  if (isLoading) {
+  if (isLoading && (!data || data.itineraries.length === 0)) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1, 2, 3].map((i) => (
