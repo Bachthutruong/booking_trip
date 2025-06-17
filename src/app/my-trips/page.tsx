@@ -5,11 +5,8 @@ import { getUserTrips } from '@/actions/tripActions';
 import { getDistrictSurcharges } from '@/actions/configActions';
 import type { Trip } from '@/lib/types';
 
-// Cache configuration
-const CACHE_TIME = 60 * 5; // 5 minutes
-
 // Add route segment config
-export const revalidate = CACHE_TIME;
+export const revalidate = 300; // 5 minutes in seconds
 
 // Helper function to fetch data with caching
 async function fetchDataWithCache(phoneFromParam?: string, nameFromParam?: string) {
