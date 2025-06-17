@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { Trip } from '@/lib/types';
@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { DistrictSurcharge } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { startTransition } from 'react';
 
 interface MyTripsClientProps {
   tripIdFromParam?: string;
@@ -29,13 +28,19 @@ export default function MyTripsClient({
   districts 
 }: MyTripsClientProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [inputPhone, setInputPhone] = useState(phoneFromParam || '');
   const [inputName, setInputName] = useState(nameFromParam || '');
   const [phone, setPhone] = useState(phoneFromParam || '');
   const [name, setName] = useState(nameFromParam || '');
   const [error, setError] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
+
+  // Reset form state when server props change
+  useEffect(() => {
+    if (phoneFromParam) setInputPhone(phoneFromParam);
+    if (nameFromParam) setInputName(nameFromParam);
+  }, [phoneFromParam, nameFromParam]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputPhone(e.target.value);
@@ -55,7 +60,6 @@ export default function MyTripsClient({
     setError(null);
     setPhone(inputPhone.trim());
     setName(inputName.trim());
-    setIsSearching(true);
 
     startTransition(() => {
       router.push(`/my-trips?phone=${encodeURIComponent(inputPhone.trim())}&name=${encodeURIComponent(inputName.trim())}`);
@@ -89,7 +93,7 @@ export default function MyTripsClient({
                 onKeyPress={handleKeyPress}
                 placeholder="e.g., 0912345678"
                 className="text-base w-full"
-                disabled={isSearching}
+                disabled={isPending}
               />
               <label htmlFor="nameInput" className="block text-sm font-medium text-foreground mt-4 mb-1">
                 您的姓名
@@ -102,17 +106,17 @@ export default function MyTripsClient({
                 onKeyPress={handleKeyPress}
                 placeholder="e.g., John Doe"
                 className="text-base w-full"
-                disabled={isSearching}
+                disabled={isPending}
               />
             </div>
             <div className="w-full sm:w-auto">
               <Button
                 onClick={handleFetchTrips}
-                disabled={!inputPhone.trim() || !inputName.trim() || isSearching}
+                disabled={!inputPhone.trim() || !inputName.trim() || isPending}
                 className="h-10 w-full sm:w-auto"
               >
                 <Search className="mr-2 h-4 w-4" />
-                查詢
+                {isPending ? '查詢中...' : '查詢'}
               </Button>
             </div>
           </div>

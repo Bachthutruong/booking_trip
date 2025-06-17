@@ -1,25 +1,31 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Feather } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const navLinks = [
   { href: '/', label: '首頁' },
   { href: '/create-trip', label: '建立行程' },
   { href: '/my-trips', label: '我的行程' },
-  // { href: '/join-trip', label: '加入行程' },
   { href: '/feedback', label: '聯絡客服' },
-  // { href: '/chatbot', label: '虛擬助理' },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Prefetch all routes when component mounts
+  useEffect(() => {
+    navLinks.forEach(link => {
+      router.prefetch(link.href);
+    });
+  }, [router]);
 
   const NavLinksContent = ({ onItemClick }: { onItemClick?: () => void }) => (
     <>
@@ -31,7 +37,13 @@ export default function Navbar() {
           )}
           onClick={onItemClick}
         >
-          <Link href={link.href}>{link.label}</Link>
+          <Link 
+            href={link.href}
+            prefetch={true}
+            className="w-full"
+          >
+            {link.label}
+          </Link>
         </Button>
       ))}
     </>

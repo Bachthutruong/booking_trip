@@ -5,22 +5,39 @@ import { getUserTrips } from '@/actions/tripActions';
 import { getDistrictSurcharges } from '@/actions/configActions';
 import type { Trip } from '@/lib/types';
 
+// Cache configuration
+const CACHE_TIME = 60 * 5; // 5 minutes
+
 // Add route segment config
-export const revalidate = 30; // revalidate every 30 seconds
-export const dynamic = 'force-dynamic';
+export const revalidate = CACHE_TIME;
+
+// Helper function to fetch data with caching
+async function fetchDataWithCache(phoneFromParam?: string, nameFromParam?: string) {
+  const [trips, districts] = await Promise.all([
+    phoneFromParam && nameFromParam 
+      ? getUserTrips(phoneFromParam, nameFromParam)
+          .then(data => ({ trips: data, timestamp: Date.now() }))
+          .catch(() => ({ trips: [], timestamp: Date.now() }))
+      : Promise.resolve({ trips: [], timestamp: Date.now() }),
+    getDistrictSurcharges()
+      .then(data => ({ districts: data, timestamp: Date.now() }))
+      .catch(() => ({ districts: [], timestamp: Date.now() }))
+  ]);
+
+  return {
+    trips: trips.trips,
+    districts: districts.districts,
+    timestamp: Math.min(trips.timestamp, districts.timestamp)
+  };
+}
 
 export default async function MyTripsPage({ searchParams }: { searchParams?: { tripId?: string; phone?: string; name?: string } }) {
   const tripIdFromParam = searchParams?.tripId ? String(searchParams.tripId) : undefined;
   const phoneFromParam = searchParams?.phone ? String(searchParams.phone) : undefined;
   const nameFromParam = searchParams?.name ? String(searchParams.name) : undefined;
 
-  // Fetch trips and districts in parallel with error handling
-  const [serverTrips, districts] = await Promise.all([
-    phoneFromParam && nameFromParam 
-      ? getUserTrips(phoneFromParam, nameFromParam).catch(() => [])
-      : Promise.resolve([]),
-    getDistrictSurcharges().catch(() => [])
-  ]);
+  // Fetch data with caching
+  const { trips: serverTrips, districts } = await fetchDataWithCache(phoneFromParam, nameFromParam);
 
   return (
     <div className="container mx-auto py-8">

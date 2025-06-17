@@ -1,19 +1,34 @@
 import CreateTripItinerarySelectorClient from "./CreateTripItinerarySelectorClient";
 import { headers } from 'next/headers';
 
+// Add cache constant
+const CACHE_TIME = 60 * 5; // 5 minutes
+
+async function getItineraries(baseUrl: string) {
+  const res = await fetch(`${baseUrl}/api/admin/itineraries/list`, {
+    next: { 
+      revalidate: CACHE_TIME,
+      tags: ['itineraries']
+    },
+    headers: {
+      'Cache-Control': `s-maxage=${CACHE_TIME}, stale-while-revalidate`
+    }
+  });
+
+  if (!res.ok) {
+    return { itineraries: [] };
+  }
+
+  return res.json();
+}
+
 export default async function CreateTripItinerarySelectorServer() {
   const headersList = await headers();
   const host = headersList.get('host');
   const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
   const baseUrl = host ? `${protocol}://${host}` : 'http://localhost:3000';
   
-  // Add caching with revalidation every 5 minutes
-  const res = await fetch(`${baseUrl}/api/admin/itineraries/list`, {
-    next: {
-      revalidate: 300 // 5 minutes
-    }
-  });
+  const data = await getItineraries(baseUrl);
   
-  const data = await res.json();
   return <CreateTripItinerarySelectorClient initialItineraries={data?.itineraries || []} />;
 } 
