@@ -104,9 +104,9 @@ async function getItineraryFromDb(itineraryId: string): Promise<Itinerary | null
   const itinerariesCollection = await getItinerariesCollection();
   let itineraryDoc;
   if (ObjectId.isValid(itineraryId)) {
-    itineraryDoc = await itinerariesCollection.findOne({ _id: new ObjectId(itineraryId) });
+    itineraryDoc = await itinerariesCollection.findOne({ _id: new ObjectId(itineraryId), isDeleted: { $ne: true } });
   } else {
-    itineraryDoc = await itinerariesCollection.findOne({ id: itineraryId });
+    itineraryDoc = await itinerariesCollection.findOne({ id: itineraryId, isDeleted: { $ne: true } });
   }
   if (!itineraryDoc) return null;
   return {
@@ -205,9 +205,9 @@ export async function getItineraryDetailsForCalculation(itineraryId: string, dis
 
   let itineraryDoc;
   if (ObjectId.isValid(itineraryId)) {
-    itineraryDoc = await itinerariesCollection.findOne({ _id: new ObjectId(itineraryId) });
+    itineraryDoc = await itinerariesCollection.findOne({ _id: new ObjectId(itineraryId), isDeleted: { $ne: true } });
   } else {
-    itineraryDoc = await itinerariesCollection.findOne({ id: itineraryId });
+    itineraryDoc = await itinerariesCollection.findOne({ id: itineraryId, isDeleted: { $ne: true } });
   }
 
   if (!itineraryDoc) {

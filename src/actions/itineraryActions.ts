@@ -18,7 +18,26 @@ function mapDocumentToItinerary(doc: any): Itinerary {
 
 export async function getItineraries(limit: number = 0): Promise<Itinerary[]> {
   const itinerariesCollection = await getItinerariesCollection();
-  const cursor = itinerariesCollection.find({}, { projection: { _id: 1, name: 1, type: 1, pricePerPerson: 1, description: 1, imageUrl: 1, availableTimes: 1 } }).sort({ name: 1 });
+  // Filter out deleted itineraries (soft delete support)
+  const filter = { isDeleted: { $ne: true } };
+  const cursor = itinerariesCollection.find(filter, { projection: { _id: 1, name: 1, type: 1, pricePerPerson: 1, description: 1, imageUrl: 1, availableTimes: 1 } }).sort({ name: 1 });
+  if (limit > 0) cursor.limit(limit);
+  const itineraries = await cursor.toArray();
+  return itineraries.map(doc => {
+    return {
+      ...doc,
+      id: doc._id.toString(),
+      _id: doc._id,
+      availableTimes: Array.isArray(doc.availableTimes) ? doc.availableTimes : [],
+    };
+  });
+}
+
+// Admin function to get all itineraries including deleted ones
+export async function getItinerariesForAdmin(limit: number = 0): Promise<Itinerary[]> {
+  const itinerariesCollection = await getItinerariesCollection();
+  // No filter - get ALL itineraries including deleted ones for admin view
+  const cursor = itinerariesCollection.find({}, { projection: { _id: 1, name: 1, type: 1, pricePerPerson: 1, description: 1, imageUrl: 1, availableTimes: 1, isDeleted: 1, deletedAt: 1 } }).sort({ name: 1 });
   if (limit > 0) cursor.limit(limit);
   const itineraries = await cursor.toArray();
   return itineraries.map(doc => {
@@ -35,10 +54,10 @@ export async function getItineraryById(id: string): Promise<Itinerary | null> {
   const itinerariesCollection = await getItinerariesCollection();
   let itineraryDoc;
   if (ObjectId.isValid(id)) {
-    itineraryDoc = await itinerariesCollection.findOne({ _id: new ObjectId(id) });
+    itineraryDoc = await itinerariesCollection.findOne({ _id: new ObjectId(id), isDeleted: { $ne: true } });
   } else {
     // Fallback for user-friendly ID if it's not an ObjectId
-    itineraryDoc = await itinerariesCollection.findOne({ id: id });
+    itineraryDoc = await itinerariesCollection.findOne({ id: id, isDeleted: { $ne: true } });
   }
   return itineraryDoc ? mapDocumentToItinerary(itineraryDoc) : null;
 }
@@ -149,11 +168,13 @@ export async function deleteItinerary(id: string): Promise<{ success: boolean; m
 
   const itinerariesCollection = await getItinerariesCollection();
   try {
-    // TODO: Before deleting, check if this itinerary is used in any Trips.
-    // If so, prevent deletion or handle accordingly (e.g., soft delete, anonymize trips).
-    // For now, direct deletion.
-    const result = await itinerariesCollection.deleteOne({ _id: objectIdToDelete });
-    if (result.deletedCount > 0) {
+    // Use soft delete instead of hard delete for consistency with trips
+    const now = new Date().toISOString();
+    const result = await itinerariesCollection.updateOne(
+      { _id: objectIdToDelete },
+      { $set: { isDeleted: true, deletedAt: now } }
+    );
+    if (result.modifiedCount > 0) {
       revalidatePath('/admin/itineraries');
       revalidatePath('/create-trip');
       revalidatePath('/');
